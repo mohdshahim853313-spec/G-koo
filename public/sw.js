@@ -6,6 +6,7 @@ const ASSETS = [
   '/gkoo-logo.svg',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
+  '/screenshot-desktop.png',
   '/gkoo-widget-template.json',
   '/gkoo-widget-data.json'
 ];

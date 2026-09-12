@@ -29,6 +29,21 @@
       "purpose": "any"
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "G-koo AI Quiz & Gamified Learning Dashboard"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "G-koo Interactive Learning Arena"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Daily Challenge Quiz",
@@ -63,8 +78,8 @@
       "type": "application/json",
       "screenshots": [
         {
-          "src": "/pwa-512x512.png",
-          "sizes": "512x512",
+          "src": "/screenshot-desktop.png",
+          "sizes": "1280x720",
           "label": "G-koo Daily Streak Widget"
         }
       ],
