@@ -3,8 +3,9 @@
   "short_name": "G-koo",
   "description": "Fun AI Quiz and Gamified GK Learning Adventure with G-koo Mascot",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
-  "background_color": "#FCF9F7",
+  "background_color": "#0B0E17",
   "theme_color": "#FF5F6D",
   "orientation": "any",
   "categories": ["education", "games"],
@@ -26,6 +27,55 @@
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Daily Challenge Quiz",
+      "short_name": "Daily Quiz",
+      "description": "Play today's GK challenge and earn streak gems",
+      "url": "/quiz/daily?daily=true",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Global Leaderboard",
+      "short_name": "Leaderboard",
+      "description": "View live ranks and top players",
+      "url": "/leaderboard",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Learning Profile",
+      "short_name": "Profile",
+      "description": "Check your XP, stats, and achievements",
+      "url": "/profile",
+      "icons": [{ "src": "/pwa-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "widgets": [
+    {
+      "name": "G-koo Daily Streak & GK",
+      "short_name": "G-koo",
+      "description": "Daily GK Streak, Daily Challenge & Mascot companion widget for Windows 11",
+      "tag": "gkoo-daily-widget",
+      "template": "gkoo-widget-template",
+      "data": "gkoo-widget-data",
+      "type": "application/json",
+      "screenshots": [
+        {
+          "src": "/pwa-512x512.png",
+          "sizes": "512x512",
+          "label": "G-koo Daily Streak Widget"
+        }
+      ],
+      "icons": [
+        {
+          "src": "/pwa-192x192.png",
+          "sizes": "192x192"
+        }
+      ],
+      "auth": false,
+      "update": 86400
     }
   ]
 }

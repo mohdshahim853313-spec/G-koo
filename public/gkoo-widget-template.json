@@ -1,0 +1,67 @@
+{
+  "type": "AdaptiveCard",
+  "version": "1.5",
+  "body": [
+    {
+      "type": "ColumnSet",
+      "columns": [
+        {
+          "type": "Column",
+          "width": "auto",
+          "items": [
+            {
+              "type": "Image",
+              "url": "${mascotUrl}",
+              "size": "Medium",
+              "style": "Person"
+            }
+          ]
+        },
+        {
+          "type": "Column",
+          "width": "stretch",
+          "items": [
+            {
+              "type": "TextBlock",
+              "text": "G-koo Quiz Time! ✨",
+              "weight": "Bolder",
+              "size": "Medium",
+              "color": "Accent"
+            },
+            {
+              "type": "TextBlock",
+              "text": "${quote}",
+              "wrap": true,
+              "size": "Small",
+              "spacing": "None"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "FactSet",
+      "facts": [
+        {
+          "title": "🔥 Daily Streak:",
+          "value": "${streak} Days"
+        },
+        {
+          "title": "💎 Gems:",
+          "value": "${gems}"
+        },
+        {
+          "title": "⚡ Challenge:",
+          "value": "Ready to play!"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "type": "Action.OpenUrl",
+      "title": "Play Daily Quiz 🚀",
+      "url": "/quiz/daily?daily=true"
+    }
+  ]
+}
