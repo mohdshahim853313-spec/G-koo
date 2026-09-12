@@ -1,20 +1,36 @@
 @import "tailwindcss";
 
-/* Ye line Tailwind v4 ko batati hai ki '.dark' class lagne par dark mode on karna hai */
+/* Tailwind v4 dark mode variant */
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
   html, body, #root {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: auto;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
+
   body {
     @apply antialiased text-gray-900 bg-[#FCF9F7] dark:bg-[#121217] dark:text-gray-100;
   }
-}
 
-* {
-  -webkit-tap-highlight-color: transparent;
+  /* Completely hide scrollbars on all elements */
+  * {
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  *::-webkit-scrollbar,
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent !important;
+  }
 }
 
 :root {
@@ -36,11 +52,11 @@
   will-change: transform, opacity;
 }
 
-/* Hide scrollbars cleanly */
+/* Helper class */
 .no-scrollbar::-webkit-scrollbar {
-  display: none;
+  display: none !important;
 }
 .no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
