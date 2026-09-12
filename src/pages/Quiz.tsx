@@ -1,0 +1,855 @@
+import { useState, useEffect } from 'react';
+import { useAppContext } from '../useAppContext';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
+import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
+import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight } from 'lucide-react';
+import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
+import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
+import { recordQuestionAnswer } from '../lib/questionTracker';
+
+const QUIT_MESSAGES = [
+  {
+    titleHi: 'क्या आप सचमुच छोड़कर जा रहे हैं? 🥺',
+    titleEn: 'Wait, don’t leave yet! 🥺',
+    msgHi: 'You are leaving? G-koo is so sad! 🥺 बस कुछ ही सवाल बचे हैं, पूरा करके ही जाओ ना!',
+    msgEn: 'You are leaving? G-koo is so sad! 🥺 Just a few questions left, let’s finish together!',
+  },
+  {
+    titleHi: 'अरे रुकिए! मत जाइए ना! 💔',
+    titleEn: 'Please don’t give up now! 💔',
+    msgHi: 'आपकी मेहनत और स्ट्रीक बहुत कीमती है! अगर अभी छोड़ दिया तो प्रोग्रेस सेव नहीं होगी... 😢',
+    msgEn: 'Your hard work and streak are so precious! If you leave now, your progress won’t be saved... 😢',
+  },
+  {
+    titleHi: 'G-koo बहुत उदास हो जाएगा... 😭',
+    titleEn: 'G-koo is feeling so heartbroken... 😭',
+    msgHi: 'इतनी अच्छी तैयारी चल रही है! थोड़े से सवाल और बाकी हैं, G-koo पर भरोसा रखो! ✨',
+    msgEn: 'You were doing so well! Just a few more questions, G-koo believes in you! ✨',
+  },
+  {
+    titleHi: 'हार मत मानो चैंपियन! 🦁',
+    titleEn: 'Never give up, Champion! 🦁',
+    msgHi: 'असली टॉपर्स बीच में कभी नहीं रुकते! आप यह टेस्ट आसानी से जीत सकते हो! 🚀',
+    msgEn: 'True toppers never stop midway! You have what it takes to conquer this stage! 🚀',
+  },
+  {
+    titleHi: 'थोड़ी सी और कोशिश! 🌟',
+    titleEn: 'Just one more step! 🌟',
+    msgHi: 'जीत बस कुछ ही कदम दूर है! प्लीज टेस्ट पूरा कर लो ना! 🥺💕',
+    msgEn: 'Victory is just around the corner! Please stay and finish the test! 🥺💕',
+  },
+];
+
+// Helper to shuffle options and question order on level retries
+const shuffleQuestionsAndOptions = (rawList: QuizQuestion[]): QuizQuestion[] => {
+  return rawList.map((q) => {
+    const shuffledOptions = [...q.options];
+    for (let i = shuffledOptions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]];
+    }
+    return {
+      ...q,
+      options: shuffledOptions,
+    };
+  });
+};
+
+export default function Quiz() {
+
+  const navigate = useNavigate();
+  const { categoryId } = useParams();
+  const [searchParams] = useSearchParams();
+  const customTopic = searchParams.get('topic') || '';
+  const customPrompt = searchParams.get('prompt') || '';
+  const difficulty = (searchParams.get('diff') || 'medium') as 'easy' | 'medium' | 'hard';
+  const questionCount = parseInt(searchParams.get('count') || '15', 10);
+
+  const {
+    addXp,
+    soundEnabled,
+    hapticsEnabled,
+    geminiApiKey,
+    lang,
+    t,
+    recordQuizResult,
+    spendHeart,
+    refillHearts,
+    completeCategoryLevel,
+  } = useAppContext();
+
+  const isLevelQuiz = !!(categoryId && categoryId.startsWith('level-'));
+  const isDailyChallenge = searchParams.get('daily') === 'true' || categoryId === 'daily';
+  let levelCategory = 'india';
+  let levelNumber: number | null = null;
+
+  if (isLevelQuiz && categoryId) {
+    const raw = categoryId.replace('level-', '');
+    const lastDashIdx = raw.lastIndexOf('-');
+    if (lastDashIdx !== -1) {
+      levelCategory = raw.substring(0, lastDashIdx);
+      levelNumber = parseInt(raw.substring(lastDashIdx + 1), 10);
+    } else {
+      levelNumber = parseInt(raw, 10);
+      levelCategory = 'india';
+    }
+  }
+
+  const levelConfig = (levelNumber && levelCategory) ? getCategoryLevelConfig(levelCategory, levelNumber) : null;
+  const categoryInfo = getCategoryInfo(levelCategory);
+
+  const [quizHearts, setQuizHearts] = useState(5);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [showQuitModal, setShowQuitModal] = useState(false);
+  const [quitMessageIdx, setQuitMessageIdx] = useState(0);
+
+  // Score and Gamified Combos
+  const [correctCount, setCorrectCount] = useState(0);
+  const [currentCombo, setCurrentCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
+  const [bonusXp, setBonusXp] = useState(0);
+  const [earnedGems, setEarnedGems] = useState(0);
+  const [earnedStars, setEarnedStars] = useState<number>(0);
+  const [nextUnlockedLevel, setNextUnlockedLevel] = useState<number | null>(null);
+
+  const CATEGORY_TOPICS_EN: Record<string, string> = {
+    india: "India GK, States, Monuments, Freedom Struggle & Geography",
+    world: "World Geography, International Capitals, Wonders & Oceans",
+    subjects: "Science Inventions, Biology, Physics & Modern Tech",
+    mix: "Mix Potpourri GK & General Knowledge",
+    ai: "Current Affairs & Space Discoveries 2026",
+  };
+
+  const CATEGORY_TOPICS_HI: Record<string, string> = {
+    india: "भारत का इतिहास, राज्य, धरोहर और भूगोल",
+    world: "विश्व भूगोल, राजधानियां, महासागर और स्मारक",
+    subjects: "सामान्य विज्ञान, भौतिकी, जीवविज्ञान और खोजें",
+    mix: "मिश्रित सामान्य ज्ञान और तथ्य",
+    ai: "दैनिक करेंट अफेयर्स और अंतरिक्ष खोजें 2026",
+  };
+
+  const loadQuizData = async () => {
+    setIsLoading(true);
+    setQuizHearts(5);
+    setCurrentIndex(0);
+    setCorrectCount(0);
+    setCurrentCombo(0);
+    setMaxCombo(0);
+    setBonusXp(0);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setEarnedStars(0);
+    setNextUnlockedLevel(null);
+    setIsSpeaking(false);
+
+    let topicName = customTopic;
+    let effectiveDifficulty = difficulty;
+    let effectiveCount = questionCount;
+
+    if (levelConfig) {
+      topicName = lang === 'hi' ? levelConfig.topicPromptHi : levelConfig.topicPromptEn;
+      effectiveDifficulty = levelConfig.difficulty;
+      effectiveCount = levelConfig.questionCount;
+    } else if (isDailyChallenge) {
+      topicName = lang === 'hi'
+        ? 'दैनिक करेंट अफेयर्स, भारत सामान्य ज्ञान, विज्ञान, भूगोल व प्रमुख तथ्य'
+        : 'Daily Current Affairs, India GK, General Science, World Geography & Key Facts';
+      effectiveDifficulty = 'medium';
+      effectiveCount = 10;
+    } else if (!customTopic) {
+      const catKey = categoryId || 'mix';
+      const defaultTopic = lang === 'hi'
+        ? (CATEGORY_TOPICS_HI[catKey] || CATEGORY_TOPICS_HI.mix)
+        : (CATEGORY_TOPICS_EN[catKey] || CATEGORY_TOPICS_EN.mix);
+      topicName = defaultTopic;
+    }
+
+    const levelQuestionsKey = isLevelQuiz && levelNumber
+      ? `gkoo_level_q_${levelCategory}_${levelNumber}_${lang}`
+      : null;
+
+    let generated: QuizQuestion[] = [];
+
+    // Check if questions were already generated for this level on 1st load
+    if (levelQuestionsKey) {
+      try {
+        const saved = localStorage.getItem(levelQuestionsKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            generated = parsed;
+          }
+        }
+      } catch (e) {
+        // Fallback to generation
+      }
+    }
+
+    if (generated.length === 0) {
+      generated = await generateAiQuiz(geminiApiKey, {
+        topic: topicName,
+        categoryId: isLevelQuiz ? levelCategory : (categoryId || 'mix'),
+        customPrompt: customPrompt || undefined,
+        difficulty: effectiveDifficulty,
+        count: effectiveCount,
+        lang
+      }, lang);
+
+      // Save the 1st-time generated questions for this level permanently
+      if (levelQuestionsKey && generated.length > 0) {
+        try {
+          localStorage.setItem(levelQuestionsKey, JSON.stringify(generated));
+        } catch (e) {
+          // ignore
+        }
+      }
+    }
+
+    setQuestions(shuffleQuestionsAndOptions(generated));
+    setIsLoading(false);
+  };
+
+  const handleRestartSameQuiz = () => {
+    stopSpeech();
+    setQuestions(prev => shuffleQuestionsAndOptions(prev));
+    setCurrentIndex(0);
+    setQuizHearts(5);
+    setCorrectCount(0);
+    setCurrentCombo(0);
+    setMaxCombo(0);
+    setBonusXp(0);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setIsSpeaking(false);
+    refillHearts();
+  };
+
+  useEffect(() => {
+    loadQuizData();
+  }, [categoryId, customTopic, customPrompt, difficulty, questionCount, geminiApiKey, lang]);
+
+
+  const currentQ = questions[currentIndex];
+
+  const handleSelect = (option: string) => {
+    if (isAnswerChecked) return;
+    stopSpeech();
+    setIsSpeaking(false);
+    setSelectedOption(option);
+  };
+
+  const handleCheck = () => {
+    if (!selectedOption || !currentQ || isAnswerChecked) return;
+    stopSpeech();
+    setIsSpeaking(false);
+
+    const correct = selectedOption === currentQ.answer;
+    setIsCorrect(correct);
+    setIsAnswerChecked(true);
+
+    // Track mastered and weak/incorrect questions for deduplication and spaced repetition
+    recordQuestionAnswer(currentQ, correct, isLevelQuiz ? levelCategory : (categoryId || 'mix'));
+
+    if (correct) {
+      const nextCombo = currentCombo + 1;
+      setCurrentCombo(nextCombo);
+      setMaxCombo(prev => Math.max(prev, nextCombo));
+      setCorrectCount(prev => prev + 1);
+
+      if (nextCombo >= 2) {
+        setBonusXp(prev => prev + 5);
+        playSound('combo', soundEnabled);
+      } else {
+        playSound('success', soundEnabled);
+      }
+      triggerHaptic('success', hapticsEnabled);
+    } else {
+      if (!isDailyChallenge) {
+        setQuizHearts(prev => Math.max(0, prev - 1));
+        spendHeart();
+      }
+      setCurrentCombo(0);
+      playSound('error', soundEnabled);
+      triggerHaptic('error', hapticsEnabled);
+    }
+  };
+
+  const toggleSpeakQuestion = () => {
+    if (isSpeaking) {
+      stopSpeech();
+      setIsSpeaking(false);
+    } else if (currentQ) {
+      triggerHaptic('click');
+      setIsSpeaking(true);
+      const textToSpeak = `${currentQ.text}. ${lang === 'hi' ? 'विकल्प हैं:' : 'Options are:'} ${currentQ.options.join(', ')}`;
+      speakText(textToSpeak, lang, () => setIsSpeaking(false));
+    }
+  };
+
+  const speakSingleOption = (e: React.MouseEvent, opt: string) => {
+    e.stopPropagation();
+    triggerHaptic('click');
+    setIsSpeaking(true);
+    speakText(opt, lang, () => setIsSpeaking(false));
+  };
+
+  // Stop speech when question changes or unmounts
+  useEffect(() => {
+    stopSpeech();
+    setIsSpeaking(false);
+    return () => {
+      stopSpeech();
+    };
+  }, [currentIndex]);
+
+  const handleNext = () => {
+    stopSpeech();
+    setIsSpeaking(false);
+    const isLast = currentIndex === questions.length - 1;
+
+    if (isLast) {
+      const finalCorrect = correctCount + (isCorrect ? 1 : 0);
+      const finalAccuracy = Math.round((finalCorrect / questions.length) * 100);
+
+      let baseReward = levelConfig ? levelConfig.xpReward : 50;
+
+      // If Daily Challenge, calculate XP out of 100 deducting proportionally for each wrong answer
+      if (isDailyChallenge) {
+        baseReward = Math.max(0, Math.round((finalCorrect / questions.length) * 100));
+
+        // Mark Daily Challenge completed for today
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          localStorage.setItem('gkoo_daily_challenge_completed_date', today);
+          window.dispatchEvent(new Event('gkoo_daily_completed'));
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      const totalXpEarned = baseReward + bonusXp;
+
+      // Calculate Gems reward based on accuracy and performance
+      let gemsReward = 15;
+      if (finalAccuracy >= 90) gemsReward = 25;
+      else if (finalAccuracy >= 65) gemsReward = 20;
+      if (quizHearts === 5) gemsReward += 5; // Flawless bonus!
+
+      setEarnedGems(gemsReward);
+      addXp(totalXpEarned);
+      recordQuizResult(questions.length, finalCorrect, Math.max(maxCombo, currentCombo), gemsReward);
+      playSound('complete', soundEnabled);
+
+      if (isLevelQuiz && levelNumber) {
+        const result = completeCategoryLevel(levelCategory, levelNumber, finalAccuracy, totalXpEarned);
+        setEarnedStars(result.starsEarned);
+        setNextUnlockedLevel(result.nextUnlocked);
+      }
+    }
+
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setCurrentIndex(prev => prev + 1);
+  };
+
+
+  // Loading Screen for AI Question Generation (Engaging Animated G-koo with 15 dynamic sentence templates)
+  if (isLoading) {
+    return <GkooQuizLoadingArena />;
+  }
+
+  // Out of Hearts Game Over Screen (When all 5 hearts are lost in this quiz)
+  if (!isDailyChallenge && quizHearts <= 0 && isAnswerChecked && !isCorrect) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md mx-auto bg-[#FCF9F7] dark:bg-[#121217]">
+        <Mascot size="lg" mood="sad" message={lang === 'hi' ? 'ओह नहीं! सारे हार्ट्स खत्म हो गए 💔' : 'Out of Hearts! 💔'} />
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+          {lang === 'hi' ? 'सभी 5 हार्ट्स समाप्त हो गए! 💔' : 'Out of Hearts (5/5 Lost)! 💔'}
+        </h2>
+        <p className="text-xs text-gray-500 dark:text-gray-300 font-medium max-w-xs mb-6 leading-relaxed">
+          {lang === 'hi' 
+            ? 'आप 5 गलत उत्तर देने के कारण बाहर हो गए हैं। आप इन्हीं समान 15 प्रश्नों के साथ दोबारा टेस्ट शुरू कर सकते हैं!' 
+            : 'You used up all 5 hearts in this quiz. You can restart the test with the exact same 15 questions!'}
+        </p>
+        <div className="space-y-3 w-full">
+          <button
+            onClick={handleRestartSameQuiz}
+            className="w-full bg-[#FF5F6D] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2"
+          >
+            <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+            <span>{lang === 'hi' ? '🔄 दोबारा टेस्ट दें' : '🔄 Restart Test'}</span>
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs"
+          >
+            {t('returnHome')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Quiz Completed Screen
+  if (currentIndex >= questions.length) {
+    const accuracy = Math.round((correctCount / questions.length) * 100);
+    const baseReward = levelConfig 
+      ? levelConfig.xpReward 
+      : (isDailyChallenge ? Math.max(0, Math.round((correctCount / questions.length) * 100)) : 50);
+    const totalGained = baseReward + bonusXp;
+    const incorrectCount = questions.length - correctCount;
+
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-10 pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md md:max-w-lg mx-auto bg-[#FCF9F7] dark:bg-[#121217]"
+      >
+
+        <Mascot message={isLevelQuiz ? "Stage Conquered! Realm Master! 🌟" : (isDailyChallenge ? "Daily Challenge Conquered! ⚡" : "Great job! Your streak continues! 🔥")} size="lg" mood="celebrate" />
+        
+        <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-3">
+          {isLevelQuiz ? `${categoryInfo.icon} Level ${levelNumber} Cleared! 🎉` : (isDailyChallenge ? (lang === 'hi' ? 'दैनिक चुनौती पूर्ण! ⚡' : "Today's Daily Challenge Cleared! ⚡") : t('quizCompleted'))}
+        </h2>
+        {isLevelQuiz && (
+          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-0.5">
+            {lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn}
+          </p>
+        )}
+
+        {/* 3-Star Rating Showcase on Level Finish */}
+        {isLevelQuiz && (
+          <div className="flex items-center space-x-2 my-3 bg-amber-50 dark:bg-amber-950/40 px-5 py-2.5 rounded-2xl border-2 border-amber-200 dark:border-amber-800">
+            {[1, 2, 3].map((s) => (
+              <motion.div
+                key={s}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: s * 0.15, type: 'spring' }}
+              >
+                <Star
+                  className={`w-7 h-7 ${
+                    s <= (earnedStars || (accuracy >= 90 ? 3 : accuracy >= 65 ? 2 : 1))
+                      ? 'fill-amber-400 text-amber-500 drop-shadow-md'
+                      : 'text-gray-300 dark:text-gray-700'
+                  }`}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Daily Challenge XP Breakdown Banner */}
+        {isDailyChallenge && (
+          <div className="w-full bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-300 dark:border-amber-700/60 p-3 rounded-2xl my-3 text-xs text-amber-900 dark:text-amber-200 text-left">
+            <div className="flex items-center justify-between font-black">
+              <span>⚡ {lang === 'hi' ? 'दैनिक चुनौती XP रिवॉर्ड' : 'Daily Challenge XP Reward'}</span>
+              <span className="text-amber-600 dark:text-amber-400 font-extrabold text-sm">{baseReward} / 100 XP</span>
+            </div>
+            <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400 mt-1">
+              {lang === 'hi'
+                ? (incorrectCount > 0 
+                    ? `${incorrectCount} गलत उत्तरों के कारण ${100 - baseReward} XP काटे गए (-10 XP प्रति गलत उत्तर)। कुल अर्जित: +${totalGained} XP। अगली चुनौती कल आएगी!` 
+                    : 'शानदार! सभी 10 सही उत्तर (पूरे +100 XP अर्जित)। अगली चुनौती कल उपलब्ध होगी!')
+                : (incorrectCount > 0 
+                    ? `${100 - baseReward} XP deducted for ${incorrectCount} wrong answers (-10 XP per wrong answer). Total Earned: +${totalGained} XP. Next challenge opens tomorrow!` 
+                    : 'Flawless! All 10 correct (Full +100 XP earned). Next challenge opens tomorrow!')}
+            </p>
+          </div>
+        )}
+        
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full my-4">
+          <div className="bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800/60 p-2.5 rounded-2xl">
+            <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">{t('xpEarned')}</p>
+            <p className="text-lg font-black text-amber-600 dark:text-amber-400">+{totalGained}</p>
+          </div>
+          <div className="bg-sky-50 dark:bg-sky-950/40 border-2 border-sky-200 dark:border-sky-800/60 p-2.5 rounded-2xl">
+            <p className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-wider">{t('gems')}</p>
+            <p className="text-lg font-black text-sky-600 dark:text-sky-400">+{earnedGems || 15} 💎</p>
+          </div>
+          <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/60 p-2.5 rounded-2xl">
+            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{t('accuracy')}</p>
+            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{accuracy}%</p>
+          </div>
+          <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-200 dark:border-rose-800/60 p-2.5 rounded-2xl">
+            <p className="text-[10px] font-black text-[#FF5F6D] uppercase tracking-wider">Hearts</p>
+            <p className="text-lg font-black text-[#FF5F6D]">
+              {isDailyChallenge ? (lang === 'hi' ? 'सुरक्षित ❤️' : 'Safe ❤️') : `${quizHearts} ❤️`}
+            </p>
+          </div>
+        </div>
+
+        {/* Level Unlocked Banner */}
+        {isLevelQuiz && nextUnlockedLevel && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white p-3 rounded-2xl mb-4 font-black text-xs shadow-md flex items-center justify-center space-x-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Level {nextUnlockedLevel} is now Unlocked!</span>
+          </motion.div>
+        )}
+
+        <div className="space-y-2.5 w-full">
+          {isLevelQuiz && nextUnlockedLevel ? (
+            <button 
+              onClick={() => {
+                navigate(`/quiz/level-${levelCategory}-${nextUnlockedLevel}`);
+              }}
+              className="w-full bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#991B1B] active:translate-y-1 active:shadow-none transition-all text-sm flex items-center justify-center space-x-2"
+            >
+              <span>{t('playNextLevel')} (LVL {nextUnlockedLevel})</span>
+              <ArrowRight className="w-4 h-4 stroke-[3]" />
+            </button>
+          ) : null}
+
+          <button 
+            onClick={() => navigate('/')}
+            className={`w-full font-black py-3.5 rounded-2xl transition-all text-xs ${
+              isLevelQuiz
+                ? 'bg-white dark:bg-[#1A1A24] text-gray-800 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-700 shadow-sm active:scale-98'
+                : 'bg-[#FF5F6D] text-white shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none text-sm'
+            }`}
+          >
+            {t('returnHome')}
+          </button>
+
+          <button 
+            onClick={handleRestartSameQuiz}
+            className="w-full bg-transparent text-gray-500 dark:text-gray-400 font-bold py-2.5 rounded-2xl active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{t('tryAgain')}</span>
+          </button>
+
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full flex flex-col justify-between px-4 pt-[max(env(safe-area-inset-top,0px),20px)] md:pt-6 pb-[25px] max-w-md md:max-w-3xl lg:max-w-4xl mx-auto font-sans bg-[#FCF9F7] dark:bg-[#121217]">
+      {/* Top Section: HUD + Question & Options */}
+      <div className="w-full flex flex-col">
+        {/* Top HUD (Duolingo Style: Exit 'X', Smooth Coral Progress Bar, Hearts) */}
+        <div className="w-full mb-4 md:mb-6">
+          <div className="flex items-center space-x-3 w-full">
+            <button 
+              type="button"
+              onClick={() => {
+                triggerHaptic('click');
+                setQuitMessageIdx(Math.floor(Math.random() * QUIT_MESSAGES.length));
+                setShowQuitModal(true);
+              }} 
+              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-white shrink-0 cursor-pointer"
+              title={lang === 'hi' ? 'क्विज छोड़ें' : 'Quit quiz'}
+            >
+              <X className="w-6 h-6 stroke-[2.5]" />
+            </button>
+
+            {/* Clean Coral Progress Bar */}
+            <div className="flex-1 bg-gray-200 dark:bg-gray-800 h-3.5 rounded-full overflow-hidden">
+              <motion.div 
+                className="bg-gradient-to-r from-[#FF7B7B] to-[#FF5F6D] h-full rounded-full transition-all duration-300" 
+                animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+              />
+            </div>
+
+            {/* 5-Heart HUD Indicator or Unlimited Hearts for Daily Challenge */}
+            {isDailyChallenge ? (
+              <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-rose-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
+                <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center space-x-1">
+                  <span>⚡ ∞</span>
+                  <Heart className="w-3.5 h-3.5 fill-[#FF5F6D] text-[#FF5F6D] inline" />
+                </span>
+                <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight">
+                  {lang === 'hi' ? 'नो हार्ट लॉस' : 'Free Hearts'}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-900/50 shrink-0">
+                <div className="flex space-x-0.5">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Heart
+                      key={i}
+                      className={`w-3.5 h-3.5 transition-transform ${
+                        i <= quizHearts
+                          ? 'fill-[#FF5F6D] text-[#FF5F6D]'
+                          : 'text-gray-300 dark:text-gray-600 scale-90'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-black text-[#FF5F6D] ml-0.5">{quizHearts}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Question Prompt & Options Grid */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ x: 25, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -25, opacity: 0 }}
+            className="w-full"
+          >
+            <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 w-full">
+              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-snug flex-1">
+                {currentQ.text}
+              </h2>
+              {/* Question Audio Speaker Button */}
+              <motion.button
+                whileTap={{ scale: 0.88, y: 1 }}
+                onClick={toggleSpeakQuestion}
+                className={`p-3 rounded-2xl border-2 transition-all shadow-md shrink-0 flex items-center justify-center ${
+                  isSpeaking
+                    ? 'bg-[#FF5F6D] border-[#D93848] text-white shadow-[0_3px_0_0_#991B1B] animate-pulse'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-[#FF5F6D] hover:bg-rose-50 dark:hover:bg-rose-950/30 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
+                }`}
+                title={lang === 'hi' ? 'सवाल सुनें (Audio)' : 'Listen Question (Audio)'}
+              >
+                {isSpeaking ? (
+                  <VolumeX className="w-5 h-5 stroke-[2.5]" />
+                ) : (
+                  <Volume2 className="w-5 h-5 stroke-[2.5]" />
+                )}
+              </motion.button>
+            </div>
+
+            {/* 3D Tactile Option Buttons */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
+              {currentQ.options.map((option) => {
+                const isSelected = selectedOption === option;
+
+                let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
+
+                if (!isAnswerChecked) {
+                  if (isSelected) {
+                    btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
+                  } else {
+                    btnStyles += "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1A24] text-gray-800 dark:text-white hover:border-gray-300 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B] active:translate-y-0.5 active:shadow-none";
+                  }
+                } else {
+                  if (option === currentQ.answer) {
+                    btnStyles += "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-[0_3px_0_0_#10B981]";
+                  } else if (isSelected && !isCorrect) {
+                    btnStyles += "border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-[0_3px_0_0_#F43F5E]";
+                  } else {
+                    btnStyles += "border-gray-200 dark:border-gray-800 opacity-40 bg-white dark:bg-[#1A1A24] text-gray-400";
+                  }
+                }
+
+                return (
+                  <motion.button 
+                    key={option} 
+                    whileTap={!isAnswerChecked ? { scale: 0.96, y: 3 } : {}}
+                    whileHover={!isAnswerChecked ? { scale: 1.01 } : {}}
+                    onClick={() => {
+                      triggerHaptic('click');
+                      handleSelect(option);
+                    }} 
+                    disabled={isAnswerChecked}
+                    className={btnStyles}
+                  >
+                    <div className="flex items-center space-x-2.5 flex-1 pr-2">
+                      {/* Optional micro audio button on option */}
+                      <button
+                        type="button"
+                        onClick={(e) => speakSingleOption(e, option)}
+                        className="p-1 rounded-lg text-gray-400 hover:text-[#FF5F6D] dark:hover:text-rose-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                        title={lang === 'hi' ? 'विकल्प सुनें' : 'Listen option'}
+                      >
+                        <Volume2 className="w-3.5 h-3.5" />
+                      </button>
+                      <span>{option}</span>
+                    </div>
+
+                    {isAnswerChecked && option === currentQ.answer && (
+                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                    )}
+                    {isAnswerChecked && isSelected && !isCorrect && (
+                      <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Bottom Section: Unified Action Button & Feedback (Positioned at bottom with 15px padding) */}
+      <div className="w-full pt-4">
+        <AnimatePresence>
+          {isAnswerChecked && (
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25 }}
+              className={`p-3.5 sm:p-4 rounded-2xl mb-3 border-2 ${
+                isCorrect
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60'
+                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-2">
+                  {isCorrect ? (
+                    <>
+                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                      <span className="font-black text-sm text-emerald-700 dark:text-emerald-300">
+                        {lang === 'hi' ? 'शाबाश! सही उत्तर 🎉' : 'Nicely done! 🎉'}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                      <span className="font-black text-sm text-rose-700 dark:text-rose-300">
+                        {t('lostAHeart')}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <GkooBirdAvatar size="sm" mood={isCorrect ? 'celebrate' : 'sad'} />
+              </div>
+
+              {/* Fact Explanation & Audio */}
+              {currentQ.explanation && (
+                <div className="flex items-start justify-between gap-2 bg-white/70 dark:bg-black/25 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
+                  <p className="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed flex-1">
+                    {currentQ.explanation}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('click');
+                      speakText(currentQ.explanation || '', lang);
+                    }}
+                    className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white shrink-0"
+                    title={lang === 'hi' ? 'तथ्य सुनें' : 'Listen fact'}
+                  >
+                    <Volume2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Unified Action Button: CHECK -> in-place replaces with -> CONTINUE */}
+        <motion.button
+          whileTap={(!isAnswerChecked && !selectedOption) ? {} : { scale: 0.96, y: 2 }}
+          whileHover={(!isAnswerChecked && !selectedOption) ? {} : { scale: 1.01 }}
+          onClick={() => {
+            triggerHaptic('click');
+            if (!isAnswerChecked) {
+              handleCheck();
+            } else {
+              handleNext();
+            }
+          }}
+          disabled={!isAnswerChecked && !selectedOption}
+          className={`w-full py-4 rounded-2xl font-black text-white text-sm sm:text-base tracking-wide transition-all shadow-md ${
+            !isAnswerChecked
+              ? selectedOption
+                ? 'bg-[#FF5F6D] hover:bg-[#E64553] shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none'
+                : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
+              : isCorrect
+              ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_0_#059669] active:translate-y-1 active:shadow-none'
+              : 'bg-rose-500 hover:bg-rose-600 shadow-[0_4px_0_0_#E11D48] active:translate-y-1 active:shadow-none'
+          }`}
+        >
+          {!isAnswerChecked ? t('checkBtn') : t('continueBtn')}
+        </motion.button>
+      </div>
+
+      {/* CUTE SAD G-KOO QUIT CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showQuitModal && (
+          <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 24 }}
+              className="bg-white dark:bg-[#151B28] rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-rose-100 dark:border-rose-900/40 text-center relative overflow-hidden"
+            >
+              {/* Center Extra-Large Sad Crying G-koo Mascot */}
+              <motion.div
+                animate={{
+                  y: [0, 4, 0],
+                  scale: [1, 0.97, 1],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 2.2,
+                  ease: 'easeInOut',
+                }}
+                className="w-36 h-36 sm:w-44 sm:h-44 mx-auto mb-2 relative select-none"
+              >
+                <GkooBirdSvg mood="sad" className="w-full h-full drop-shadow-2xl" />
+              </motion.div>
+
+              {/* Title */}
+              <h3 className="text-lg sm:text-xl font-black text-gray-900 dark:text-white leading-tight mb-2">
+                {lang === 'hi' ? QUIT_MESSAGES[quitMessageIdx].titleHi : QUIT_MESSAGES[quitMessageIdx].titleEn}
+              </h3>
+
+              {/* Emotional Description */}
+              <p className="text-xs sm:text-[13px] font-bold text-gray-600 dark:text-gray-300 leading-relaxed mb-6 px-1">
+                {lang === 'hi' ? QUIT_MESSAGES[quitMessageIdx].msgHi : QUIT_MESSAGES[quitMessageIdx].msgEn}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <motion.button
+                  whileTap={{ scale: 0.95, y: 2 }}
+                  whileHover={{ scale: 1.02 }}
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('success');
+                    setShowQuitModal(false);
+                  }}
+                  className="w-full py-3.5 bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black rounded-2xl shadow-[0_4px_0_0_#D93848] text-sm active:translate-y-1 active:shadow-none flex items-center justify-center space-x-2 select-none cursor-pointer"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{lang === 'hi' ? 'नहीं, खेलना जारी रखें! 🚀' : 'Keep Learning / Stay 🚀'}</span>
+                </motion.button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    triggerHaptic('click');
+                    setShowQuitModal(false);
+                    stopSpeech();
+                    setIsSpeaking(false);
+                    navigate('/');
+                  }}
+                  className="w-full py-2.5 text-xs font-bold text-gray-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors select-none cursor-pointer"
+                >
+                  {lang === 'hi' ? 'हाँ, बाद में खेलूँगा (Exit)' : 'End Session / Exit'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
