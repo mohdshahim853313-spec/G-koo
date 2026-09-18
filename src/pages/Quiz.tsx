@@ -5,10 +5,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
 import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
 import { recordQuestionAnswer } from '../lib/questionTracker';
+import { MistakesReviewModal, type MistakeRecord } from '../components/MistakesReviewModal';
 
 const QUIT_MESSAGES = [
   {
@@ -79,8 +80,16 @@ export default function Quiz() {
     spendHeart,
     refillHearts,
     completeCategoryLevel,
+    isOnline,
+    bookmarks,
+    toggleBookmark,
+    isBookmarked,
+    examTimerEnabled,
+    examTimerSeconds,
+    recordCategoryAnswers,
   } = useAppContext();
 
+  const isSavedQuiz = categoryId === 'saved';
   const isLevelQuiz = !!(categoryId && categoryId.startsWith('level-'));
   const isDailyChallenge = searchParams.get('daily') === 'true' || categoryId === 'daily';
   let levelCategory = 'india';
@@ -104,6 +113,8 @@ export default function Quiz() {
   const [quizHearts, setQuizHearts] = useState(5);
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isOfflineQuiz, setIsOfflineQuiz] = useState(false);
+  const [showOfflineBanner, setShowOfflineBanner] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -111,6 +122,12 @@ export default function Quiz() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
   const [quitMessageIdx, setQuitMessageIdx] = useState(0);
+
+  // Mistakes & Bookmarks & Timer States
+  const [mistakesList, setMistakesList] = useState<MistakeRecord[]>([]);
+  const [showMistakesModal, setShowMistakesModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number>(examTimerSeconds || 20);
+  const [bookmarkToast, setBookmarkToast] = useState<string | null>(null);
 
   // Score and Gamified Combos
   const [correctCount, setCorrectCount] = useState(0);
@@ -180,40 +197,61 @@ export default function Quiz() {
 
     let generated: QuizQuestion[] = [];
 
-    // Check if questions were already generated for this level on 1st load
-    if (levelQuestionsKey) {
-      try {
-        const saved = localStorage.getItem(levelQuestionsKey);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            generated = parsed;
+    // If practicing saved questions
+    if (isSavedQuiz) {
+      if (bookmarks.length === 0) {
+        navigate('/');
+        return;
+      }
+      generated = bookmarks.map(b => ({
+        id: b.id,
+        text: b.text,
+        options: b.options,
+        answer: b.answer,
+        explanation: b.explanation,
+        category: b.category || "Saved Questions",
+      }));
+    } else {
+      // Check if questions were already generated for this level on 1st load
+      if (levelQuestionsKey) {
+        try {
+          const saved = localStorage.getItem(levelQuestionsKey);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              generated = parsed;
+            }
+          }
+        } catch (e) {
+          // Fallback to generation
+        }
+      }
+
+      if (generated.length === 0) {
+        generated = await generateAiQuiz(geminiApiKey, {
+          topic: topicName,
+          categoryId: isLevelQuiz ? levelCategory : (categoryId || 'mix'),
+          customPrompt: customPrompt || undefined,
+          difficulty: effectiveDifficulty,
+          count: effectiveCount,
+          lang
+        }, lang);
+
+        // Save the 1st-time generated questions for this level permanently
+        if (levelQuestionsKey && generated.length > 0) {
+          try {
+            localStorage.setItem(levelQuestionsKey, JSON.stringify(generated));
+          } catch (e) {
+            // ignore
           }
         }
-      } catch (e) {
-        // Fallback to generation
       }
     }
 
-    if (generated.length === 0) {
-      generated = await generateAiQuiz(geminiApiKey, {
-        topic: topicName,
-        categoryId: isLevelQuiz ? levelCategory : (categoryId || 'mix'),
-        customPrompt: customPrompt || undefined,
-        difficulty: effectiveDifficulty,
-        count: effectiveCount,
-        lang
-      }, lang);
-
-      // Save the 1st-time generated questions for this level permanently
-      if (levelQuestionsKey && generated.length > 0) {
-        try {
-          localStorage.setItem(levelQuestionsKey, JSON.stringify(generated));
-        } catch (e) {
-          // ignore
-        }
-      }
-    }
+    const isCurrentlyOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
+    const wasOfflineGenerated = generated.length > 0 && generated[0]?.source === 'offline';
+    setIsOfflineQuiz(isCurrentlyOffline || wasOfflineGenerated);
+    setMistakesList([]);
 
     setQuestions(shuffleQuestionsAndOptions(generated));
     setIsLoading(false);
@@ -222,6 +260,26 @@ export default function Quiz() {
   const handleRestartSameQuiz = () => {
     stopSpeech();
     setQuestions(prev => shuffleQuestionsAndOptions(prev));
+    setCurrentIndex(0);
+    setQuizHearts(5);
+    setCorrectCount(0);
+    setCurrentCombo(0);
+    setMaxCombo(0);
+    setBonusXp(0);
+    setMistakesList([]);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setIsSpeaking(false);
+    refillHearts();
+  };
+
+  const handleRetestMistakes = () => {
+    setShowMistakesModal(false);
+    if (mistakesList.length === 0) return;
+    const missedQuestions = mistakesList.map(m => m.question);
+    setQuestions(shuffleQuestionsAndOptions(missedQuestions));
+    setMistakesList([]);
     setCurrentIndex(0);
     setQuizHearts(5);
     setCorrectCount(0);
@@ -239,8 +297,51 @@ export default function Quiz() {
     loadQuizData();
   }, [categoryId, customTopic, customPrompt, difficulty, questionCount, geminiApiKey, lang]);
 
-
   const currentQ = questions[currentIndex];
+
+  // Exam Countdown Timer Effect
+  useEffect(() => {
+    if (!examTimerEnabled || isAnswerChecked || isLoading || !currentQ || currentIndex >= questions.length) {
+      return;
+    }
+
+    setTimeLeft(examTimerSeconds || 20);
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (!isAnswerChecked) {
+            handleTimeout();
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [currentIndex, isAnswerChecked, isLoading, examTimerEnabled, examTimerSeconds, currentQ]);
+
+  const handleTimeout = () => {
+    if (isAnswerChecked || !currentQ) return;
+    stopSpeech();
+    setIsSpeaking(false);
+    setIsCorrect(false);
+    setIsAnswerChecked(true);
+
+    // Record mistake
+    setMistakesList(prev => [...prev, { question: currentQ, userAnswer: '' }]);
+    recordQuestionAnswer(currentQ, false, isLevelQuiz ? levelCategory : (categoryId || 'mix'));
+    recordCategoryAnswers(isLevelQuiz ? levelCategory : (categoryId || 'mix'), 1, 0);
+
+    if (!isDailyChallenge && !isSavedQuiz) {
+      setQuizHearts(prev => Math.max(0, prev - 1));
+      spendHeart();
+    }
+    setCurrentCombo(0);
+    playSound('error', soundEnabled);
+    triggerHaptic('error', hapticsEnabled);
+  };
 
   const handleSelect = (option: string) => {
     if (isAnswerChecked) return;
@@ -258,8 +359,12 @@ export default function Quiz() {
     setIsCorrect(correct);
     setIsAnswerChecked(true);
 
+    // Track category accuracy
+    const activeCatKey = isLevelQuiz ? levelCategory : (categoryId || 'mix');
+    recordCategoryAnswers(activeCatKey, 1, correct ? 1 : 0);
+
     // Track mastered and weak/incorrect questions for deduplication and spaced repetition
-    recordQuestionAnswer(currentQ, correct, isLevelQuiz ? levelCategory : (categoryId || 'mix'));
+    recordQuestionAnswer(currentQ, correct, activeCatKey);
 
     if (correct) {
       const nextCombo = currentCombo + 1;
@@ -275,7 +380,10 @@ export default function Quiz() {
       }
       triggerHaptic('success', hapticsEnabled);
     } else {
-      if (!isDailyChallenge) {
+      // Record in mistakes list for end-of-quiz review & re-test
+      setMistakesList(prev => [...prev, { question: currentQ, userAnswer: selectedOption }]);
+
+      if (!isDailyChallenge && !isSavedQuiz) {
         setQuizHearts(prev => Math.max(0, prev - 1));
         spendHeart();
       }
@@ -283,6 +391,15 @@ export default function Quiz() {
       playSound('error', soundEnabled);
       triggerHaptic('error', hapticsEnabled);
     }
+  };
+
+  const handleBookmarkCurrent = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!currentQ) return;
+    triggerHaptic('success', hapticsEnabled);
+    const added = toggleBookmark(currentQ);
+    setBookmarkToast(added ? t('questionSavedToast') : t('questionRemovedToast'));
+    setTimeout(() => setBookmarkToast(null), 2500);
   };
 
   const toggleSpeakQuestion = () => {
@@ -367,7 +484,7 @@ export default function Quiz() {
 
   // Loading Screen for AI Question Generation (Engaging Animated G-koo with 15 dynamic sentence templates)
   if (isLoading) {
-    return <GkooQuizLoadingArena />;
+    return <GkooQuizLoadingArena isOffline={!isOnline || isOfflineQuiz || (typeof navigator !== 'undefined' && !navigator.onLine)} />;
   }
 
   // Out of Hearts Game Over Screen (When all 5 hearts are lost in this quiz)
@@ -427,6 +544,14 @@ export default function Quiz() {
           <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-0.5">
             {lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn}
           </p>
+        )}
+
+        {/* Offline Badge on Completion */}
+        {isOfflineQuiz && (
+          <div className="inline-flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3.5 py-1 rounded-full text-xs font-black text-amber-800 dark:text-amber-300 mt-2 shadow-xs">
+            <span>📡</span>
+            <span>{lang === 'hi' ? 'ऑफलाइन मोड में पूरा किया गया' : 'Completed in Offline Mode'}</span>
+          </div>
         )}
 
         {/* 3-Star Rating Showcase on Level Finish */}
@@ -504,6 +629,17 @@ export default function Quiz() {
         )}
 
         <div className="space-y-2.5 w-full">
+          {/* Review Mistakes Button */}
+          {mistakesList.length > 0 && (
+            <motion.button 
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setShowMistakesModal(true)}
+              className="w-full bg-gradient-to-r from-rose-500/15 via-orange-500/15 to-amber-500/15 dark:from-rose-950/50 dark:to-amber-950/50 border-2 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-black py-3.5 rounded-2xl text-xs flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+            >
+              <span>📝 {t('reviewMistakes')} ({mistakesList.length})</span>
+            </motion.button>
+          )}
+
           {isLevelQuiz && nextUnlockedLevel ? (
             <button 
               onClick={() => {
@@ -568,6 +704,17 @@ export default function Quiz() {
               />
             </div>
 
+            {/* Offline Status Badge in Top Bar */}
+            {isOfflineQuiz && (
+              <div 
+                className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2.5 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 shrink-0 shadow-xs"
+                title={lang === 'hi' ? 'ऑफलाइन प्रश्न बैंक' : 'Offline Question Bank'}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                <span>{lang === 'hi' ? '📡 ऑफलाइन' : '📡 Offline'}</span>
+              </div>
+            )}
+
             {/* 5-Heart HUD Indicator or Unlimited Hearts for Daily Challenge */}
             {isDailyChallenge ? (
               <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-rose-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
@@ -599,6 +746,31 @@ export default function Quiz() {
           </div>
         </div>
 
+        {/* Offline Notification Banner */}
+        {isOfflineQuiz && showOfflineBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-amber-900 dark:text-amber-200 shadow-xs"
+          >
+            <div className="flex items-center space-x-2 truncate">
+              <span className="text-sm">📡</span>
+              <span className="truncate">
+                {lang === 'hi'
+                  ? 'ऑफलाइन मोड: सवाल ऑफलाइन बैंक से लोड किए गए हैं'
+                  : 'Offline Mode: Questions loaded from offline bank'}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowOfflineBanner(false)}
+              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 p-0.5 ml-2 cursor-pointer shrink-0"
+              title={lang === 'hi' ? 'बंद करें' : 'Dismiss'}
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+
         {/* Question Prompt & Options Grid */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -608,27 +780,60 @@ export default function Quiz() {
             exit={{ x: -25, opacity: 0 }}
             className="w-full"
           >
-            <div className="flex items-start justify-between gap-3 mb-5 md:mb-6 w-full">
-              <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-snug flex-1">
-                {currentQ.text}
-              </h2>
-              {/* Question Audio Speaker Button */}
-              <motion.button
-                whileTap={{ scale: 0.88, y: 1 }}
-                onClick={toggleSpeakQuestion}
-                className={`p-3 rounded-2xl border-2 transition-all shadow-md shrink-0 flex items-center justify-center ${
-                  isSpeaking
-                    ? 'bg-[#FF5F6D] border-[#D93848] text-white shadow-[0_3px_0_0_#991B1B] animate-pulse'
-                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-[#FF5F6D] hover:bg-rose-50 dark:hover:bg-rose-950/30 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
-                }`}
-                title={lang === 'hi' ? 'सवाल सुनें (Audio)' : 'Listen Question (Audio)'}
-              >
-                {isSpeaking ? (
-                  <VolumeX className="w-5 h-5 stroke-[2.5]" />
-                ) : (
-                  <Volume2 className="w-5 h-5 stroke-[2.5]" />
+            <div className="flex items-start justify-between gap-2.5 mb-5 md:mb-6 w-full">
+              <div className="flex-1">
+                {/* Active Exam Timer countdown pill */}
+                {examTimerEnabled && !isAnswerChecked && (
+                  <div className="mb-2">
+                    <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border text-xs font-black shadow-xs ${
+                      timeLeft <= 5 
+                        ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 text-rose-600 animate-pulse' 
+                        : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-700 dark:text-amber-300'
+                    }`}>
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>{timeLeft}s</span>
+                    </span>
+                  </div>
                 )}
-              </motion.button>
+                <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-snug">
+                  {currentQ.text}
+                </h2>
+              </div>
+
+              {/* Action Buttons: Bookmark & Audio Speaker */}
+              <div className="flex items-center space-x-2 shrink-0">
+                {/* Bookmark Toggle Button */}
+                <motion.button
+                  whileTap={{ scale: 0.88, y: 1 }}
+                  onClick={handleBookmarkCurrent}
+                  className={`p-3 rounded-2xl border-2 transition-all shadow-md flex items-center justify-center cursor-pointer ${
+                    isBookmarked(currentQ.text)
+                      ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-400 text-amber-500 shadow-[0_3px_0_0_#D97706]'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-amber-500 hover:bg-amber-50 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
+                  }`}
+                  title={isBookmarked(currentQ.text) ? t('removeBookmark') : t('bookmarkQuestion')}
+                >
+                  <Star className={`w-5 h-5 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                </motion.button>
+
+                {/* Question Audio Speaker Button */}
+                <motion.button
+                  whileTap={{ scale: 0.88, y: 1 }}
+                  onClick={toggleSpeakQuestion}
+                  className={`p-3 rounded-2xl border-2 transition-all shadow-md flex items-center justify-center cursor-pointer ${
+                    isSpeaking
+                      ? 'bg-[#FF5F6D] border-[#D93848] text-white shadow-[0_3px_0_0_#991B1B] animate-pulse'
+                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-[#FF5F6D] hover:bg-rose-50 dark:hover:bg-rose-950/30 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
+                  }`}
+                  title={lang === 'hi' ? 'सवाल सुनें (Audio)' : 'Listen Question (Audio)'}
+                >
+                  {isSpeaking ? (
+                    <VolumeX className="w-5 h-5 stroke-[2.5]" />
+                  ) : (
+                    <Volume2 className="w-5 h-5 stroke-[2.5]" />
+                  )}
+                </motion.button>
+              </div>
             </div>
 
             {/* 3D Tactile Option Buttons */}
@@ -850,6 +1055,29 @@ export default function Quiz() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Floating Bookmark Toast */}
+      <AnimatePresence>
+        {bookmarkToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-14 left-1/2 -translate-x-1/2 z-50 bg-amber-500 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2 pointer-events-none"
+          >
+            <Star className="w-4 h-4 fill-white shrink-0" />
+            <span>{bookmarkToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Mistakes Review Modal */}
+      <MistakesReviewModal
+        isOpen={showMistakesModal}
+        onClose={() => setShowMistakesModal(false)}
+        mistakes={mistakesList}
+        onRetest={handleRetestMistakes}
+      />
     </div>
   );
 }

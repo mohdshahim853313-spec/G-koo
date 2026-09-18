@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { Volume2, Globe, Sun, Moon, Monitor, Key, Smartphone, AlertTriangle, Check, Vibrate, LogIn, Bell, BellRing, Music, Play, Upload, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Volume2, Globe, Sun, Moon, Monitor, Key, Smartphone, AlertTriangle, Check, Vibrate, LogIn, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic, previewCustomSound, type SuccessSoundPreset, type ErrorSoundPreset } from '../lib/audio';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
@@ -7,6 +8,7 @@ import { getGeminiKeyPoolInfo } from '../lib/gemini';
 import { motion } from 'framer-motion';
 
 export default function Settings() {
+  const navigate = useNavigate();
   const {
     lang,
     setLang,
@@ -27,6 +29,10 @@ export default function Settings() {
     currentUser,
     setIsAuthModalOpen,
     signOut,
+    examTimerEnabled,
+    setExamTimerEnabled,
+    examTimerSeconds,
+    setExamTimerSeconds,
   } = useAppContext();
 
   // Custom Sound Effects State (Default: Gentle Harp for correct, Gentle Chime Down for error)
@@ -319,6 +325,62 @@ export default function Settings() {
             />
           </button>
         </div>
+      </div>
+
+      {/* Exam Timer Mode Settings Card */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-500">
+              <Timer className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="font-bold text-xs text-gray-800 dark:text-gray-100">{t('examTimer')}</p>
+              <p className="text-[10px] text-gray-400">{t('examTimerDesc')}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              triggerHaptic('click');
+              setExamTimerEnabled(!examTimerEnabled);
+            }}
+            className={`w-12 h-6 rounded-full p-1 flex items-center transition-colors duration-300 ${
+              examTimerEnabled ? 'bg-[#FF5F6D]' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+          >
+            <div
+              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-300 ${
+                examTimerEnabled ? 'translate-x-6' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {examTimerEnabled && (
+          <div className="pt-3 border-t border-gray-100 dark:border-gray-700/60">
+            <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">
+              {lang === 'hi' ? 'प्रति प्रश्न समय (सेकंड)' : 'Time Per Question (Seconds)'}
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {([15, 20, 30, 45] as const).map((secs) => (
+                <button
+                  key={secs}
+                  onClick={() => {
+                    triggerHaptic('click');
+                    setExamTimerSeconds(secs);
+                  }}
+                  className={`py-2 rounded-xl text-xs font-black transition-all ${
+                    examTimerSeconds === secs
+                      ? 'bg-[#FF5F6D] text-white shadow-xs'
+                      : 'bg-gray-100 dark:bg-gray-900 text-gray-500 dark:text-gray-400 hover:text-gray-800'
+                  }`}
+                >
+                  {secs}s
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sound Effects Customizer (Presets & Device Uploads) */}
@@ -666,6 +728,78 @@ export default function Settings() {
         >
           {t('installNow')}
         </button>
+      </div>
+
+      {/* Legal & About Us Info Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm">
+        <h2 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2.5">
+          {lang === 'hi' ? 'कानूनी जानकारी एवं सहायता (Legal & Info)' : 'Legal & Information'}
+        </h2>
+        <div className="divide-y divide-gray-100 dark:divide-gray-700/60">
+          <button
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/privacy');
+            }}
+            className="w-full py-2.5 flex items-center justify-between text-left hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="flex items-center space-x-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                {lang === 'hi' ? 'गोपनीयता नीति (Privacy Policy)' : 'Privacy Policy'}
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/terms');
+            }}
+            className="w-full py-2.5 flex items-center justify-between text-left hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="flex items-center space-x-2.5">
+              <FileText className="w-4 h-4 text-blue-500" />
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                {lang === 'hi' ? 'सेवा की शर्तें (Terms of Service)' : 'Terms of Service'}
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/about');
+            }}
+            className="w-full py-2.5 flex items-center justify-between text-left hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="flex items-center space-x-2.5">
+              <Info className="w-4 h-4 text-[#FF5F6D]" />
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                {lang === 'hi' ? 'G-koo के बारे में (About Us)' : 'About G-koo'}
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+
+          <button
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/contact');
+            }}
+            className="w-full py-2.5 flex items-center justify-between text-left hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <div className="flex items-center space-x-2.5">
+              <Mail className="w-4 h-4 text-purple-500" />
+              <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                {lang === 'hi' ? 'संपर्क एवं सहायता (Contact & Support)' : 'Contact & Support'}
+              </span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
       </div>
 
       {/* Danger Zone: Reset Progress */}

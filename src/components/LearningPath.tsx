@@ -40,7 +40,8 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
     claimedChests, 
     claimChest, 
     soundEnabled, 
-    hapticsEnabled 
+    hapticsEnabled,
+    isOnline
   } = useAppContext();
 
   const currentCatId = activeCategory || 'ssc_cgl';
@@ -528,6 +529,18 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
               <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight mb-3">
                 {lang === 'hi' ? `लेवल ${selectedLevel.level}` : `LEVEL ${selectedLevel.level}`}
               </h3>
+
+              {/* Offline notice if device is offline */}
+              {!isOnline && (
+                <div className="flex items-center space-x-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 p-2.5 rounded-2xl mb-4 text-xs font-bold text-amber-900 dark:text-amber-200 shadow-xs">
+                  <span className="text-base">📡</span>
+                  <span>
+                    {lang === 'hi'
+                      ? 'आप ऑफलाइन हैं — यह स्तर ऑफलाइन प्रश्न बैंक से लोड होगा'
+                      : 'You are offline — This level will load from offline question bank'}
+                  </span>
+                </div>
+              )}
 
               {/* Star Target Rules */}
               <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl mb-5 space-y-1.5">

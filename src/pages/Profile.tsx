@@ -1,18 +1,21 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../useAppContext';
-import { Award, LogOut, Edit2, Check, Lock, Sparkles, Target, Zap } from 'lucide-react';
+import { Award, LogOut, Edit2, Check, Lock, Sparkles, Target, Zap, Bookmark, BarChart2, TrendingUp, ChevronRight } from 'lucide-react';
 import { triggerHaptic } from '../lib/audio';
 import { GkooBirdAvatar } from '../components/Mascot';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
+import { SavedQuestionsModal } from '../components/SavedQuestionsModal';
 import { motion } from 'framer-motion';
 import type { UserBadge } from '../appContextStore';
-
 
 const AVATARS = ['🦉', '🦁', '🦊', '🐼', '🐯', '🐨', '🦄', '🚀', '👑', '⚡'];
 
 export default function Profile() {
+  const navigate = useNavigate();
   const {
     t,
+    lang,
     xp,
     streak,
     profile,
@@ -22,11 +25,14 @@ export default function Profile() {
     isGuest,
     currentUser,
     setIsAuthModalOpen,
-    signOut
+    signOut,
+    bookmarks,
+    categoryStats,
   } = useAppContext();
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(profile.name);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showSavedModal, setShowSavedModal] = useState(false);
 
   // Level Progression: 100 XP per Level
   const currentLevel = Math.floor(xp / 100) + 1;
@@ -260,6 +266,134 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Quick Action: Saved Bookmarked Questions */}
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        onClick={() => {
+          triggerHaptic('click');
+          setShowSavedModal(true);
+        }}
+        className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-amber-800 flex items-center justify-between mb-6 select-none"
+      >
+        <div className="flex items-center space-x-3.5">
+          <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+            <Bookmark className="w-6 h-6 fill-white" />
+          </div>
+          <div className="text-left">
+            <h4 className="text-sm font-black text-white">{t('savedQuestions')}</h4>
+            <p className="text-xs text-amber-100 font-semibold">
+              {bookmarks.length > 0 
+                ? (lang === 'hi' ? `${bookmarks.length} प्रश्न सेव किए गए हैं • अभ्यास करें` : `${bookmarks.length} questions saved • Practice now`)
+                : (lang === 'hi' ? 'क्विज़ के दौरान प्रश्नों को बुकमार्क करें' : 'Bookmark tricky questions during quiz')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-1.5 bg-white/20 px-3 py-1.5 rounded-2xl text-xs font-black">
+          <span>{bookmarks.length}</span>
+          <ChevronRight className="w-4 h-4 stroke-[3]" />
+        </div>
+      </motion.button>
+
+      {/* Subject Performance & Weakness Analytics */}
+      <div className="bg-white dark:bg-gray-800/90 border-2 border-gray-100 dark:border-gray-800 border-b-4 rounded-3xl p-5 shadow-sm mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <div className="p-1.5 bg-rose-100 dark:bg-rose-950/60 text-[#FF5F6D] rounded-xl">
+              <BarChart2 className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-black text-gray-800 dark:text-white uppercase tracking-wider">
+              {t('subjectPerformance')}
+            </h3>
+          </div>
+          <span className="text-[10px] font-bold text-gray-400">
+            {lang === 'hi' ? 'सटीकता विश्लेषण' : 'Accuracy Analysis'}
+          </span>
+        </div>
+
+        {Object.keys(categoryStats).length === 0 ? (
+          <div className="text-center py-6 px-4 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
+            <TrendingUp className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-2">
+              {lang === 'hi' ? 'विषयवार सटीकता देखने के लिए क्विज़ खेलें!' : 'Play quizzes to track your subject mastery!'}
+            </p>
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="text-xs font-black text-[#FF5F6D] hover:underline"
+            >
+              {lang === 'hi' ? 'क्विज़ शुरू करें →' : 'Start a Quiz →'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {Object.entries(categoryStats).map(([catId, stat]) => {
+              const catAccuracy = stat.totalAttempted > 0 ? Math.round((stat.totalCorrect / stat.totalAttempted) * 100) : 0;
+              const isStrong = catAccuracy >= 75;
+              const isModerate = catAccuracy >= 50 && catAccuracy < 75;
+
+              // Friendly label resolver
+              const getCatName = (id: string) => {
+                const map: Record<string, { hi: string; en: string; icon: string }> = {
+                  india: { hi: 'भारत सामान्य ज्ञान', en: 'India GK', icon: '🇮🇳' },
+                  world: { hi: 'विश्व सामान्य ज्ञान', en: 'World GK', icon: '🌍' },
+                  subjects: { hi: 'शैक्षणिक विषय', en: 'Core Subjects', icon: '📚' },
+                  mix: { hi: 'मिश्रित अभ्यास', en: 'Mix Practice', icon: '⚡' },
+                  ca_india: { hi: 'करेंट अफेयर्स (भारत)', en: 'India Current Affairs', icon: '📰' },
+                  ca_world: { hi: 'करेंट अफेयर्स (विश्व)', en: 'World Current Affairs', icon: '🌐' },
+                  ssc_cgl: { hi: 'SSC CGL', en: 'SSC CGL', icon: '🏛️' },
+                  ssc_chsl: { hi: 'SSC CHSL', en: 'SSC CHSL', icon: '📑' },
+                  uppsc: { hi: 'UPPSC / State PSC', en: 'State PSC', icon: '🎯' },
+                  upsc: { hi: 'UPSC Civil Services', en: 'UPSC CSE', icon: '👑' },
+                  railway: { hi: 'Railway RRB', en: 'Railway RRB', icon: '🚆' },
+                  banking: { hi: 'Banking & IBPS', en: 'Banking Exams', icon: '🏦' }
+                };
+                const found = map[id];
+                if (found) return `${found.icon} ${lang === 'hi' ? found.hi : found.en}`;
+                return `📖 ${id.toUpperCase()}`;
+              };
+
+              return (
+                <div 
+                  key={catId} 
+                  className="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-700/60"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black text-gray-800 dark:text-gray-200">
+                      {getCatName(catId)}
+                    </span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[11px] font-bold text-gray-400">
+                        {stat.totalCorrect}/{stat.totalAttempted}
+                      </span>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        isStrong 
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' 
+                          : isModerate
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                            : 'bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300'
+                      }`}>
+                        {catAccuracy}% • {isStrong ? t('strongSubject') : isModerate ? (lang === 'hi' ? 'औसत' : 'Moderate') : t('weakSubject')}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        isStrong 
+                          ? 'bg-emerald-500' 
+                          : isModerate 
+                            ? 'bg-amber-500' 
+                            : 'bg-rose-500'
+                      }`}
+                      style={{ width: `${catAccuracy}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Achievement Badges - 3D Colorful Boxes */}
       <div className="bg-white dark:bg-gray-800/90 border-2 border-gray-100 dark:border-gray-800 border-b-4 rounded-3xl p-5 shadow-sm mb-6">
         <h3 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-4">
@@ -297,6 +431,11 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* SAVED QUESTIONS MODAL */}
+      <SavedQuestionsModal
+        isOpen={showSavedModal}
+        onClose={() => setShowSavedModal(false)}
+      />
 
       {/* Avatar Picker Modal */}
       {showAvatarPicker && (

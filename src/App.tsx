@@ -5,6 +5,10 @@ import Quiz from './pages/Quiz';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import Leaderboard from './pages/Leaderboard';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
+import AboutUs from './pages/AboutUs';
+import ContactUs from './pages/ContactUs';
 import { BottomNav } from './components/BottomNav';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider } from './AppContext';
@@ -42,6 +46,10 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/contact" element={<ContactUs />} />
         </Routes>
         {!isQuiz && <BottomNav />}
         <AuthModal />

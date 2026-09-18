@@ -61,6 +61,21 @@ export interface LevelRecord {
   bestScore: number;
 }
 
+export interface BookmarkedQuestion {
+  id: number | string;
+  text: string;
+  options: string[];
+  answer: string;
+  explanation?: string;
+  category?: string;
+  savedAt: number;
+}
+
+export interface CategoryAccuracyStat {
+  totalAttempted: number;
+  totalCorrect: number;
+}
+
 export interface AppContextType {
   lang: LangKey;
   setLang: (lang: LangKey) => void;
@@ -114,6 +129,22 @@ export interface AppContextType {
   getCategoryMaxUnlocked: (catId: string) => number;
   getCategoryTotalStars: (catId: string) => number;
   completeCategoryLevel: (catId: string, levelNum: number, accuracy: number, score: number) => { starsEarned: number; nextUnlocked: number };
+  // Network Status
+  isOnline: boolean;
+  // Bookmarks / Saved Questions
+  bookmarks: BookmarkedQuestion[];
+  toggleBookmark: (question: { id: number | string; text: string; options: string[]; answer: string; explanation?: string; category?: string }) => boolean;
+  isBookmarked: (questionText: string) => boolean;
+  removeBookmark: (id: number | string) => void;
+  clearAllBookmarks: () => void;
+  // Exam Timer Mode
+  examTimerEnabled: boolean;
+  setExamTimerEnabled: (enabled: boolean) => void;
+  examTimerSeconds: number;
+  setExamTimerSeconds: (seconds: number) => void;
+  // Subject Performance & Analytics
+  categoryStats: Record<string, CategoryAccuracyStat>;
+  recordCategoryAnswers: (categoryId: string, attempted: number, correct: number) => void;
 }
 
 

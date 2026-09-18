@@ -115,6 +115,58 @@ const translations: Record<LangKey, Record<string, string>> = {
     tryAgain: "PRACTICE AGAIN",
     aiGenerating: "G-koo is consulting Gemini AI for questions...",
     lostAHeart: "Oops! -1 Heart 💔",
+    offlineMode: "Offline Mode",
+    offlineNotice: "No internet connection. Playing from offline question bank.",
+    offlineBadge: "📡 Offline",
+    offlineLevelLoaded: "📡 Offline Mode: Level questions loaded from offline bank.",
+    youAreOffline: "You are currently offline",
+    backOnline: "Back online! 🟢",
+
+    // Bookmarks / Saved Questions
+    savedQuestions: "Saved Questions",
+    savedQuestionsTitle: "My Bookmarked Questions",
+    savedQuestionsSubtitle: "Review & practice questions you saved during tests",
+    bookmarkQuestion: "Bookmark Question",
+    removeBookmark: "Remove Bookmark",
+    questionSavedToast: "Question added to Bookmarks! ⭐",
+    questionRemovedToast: "Removed from Bookmarks",
+    practiceSavedQuestions: "Practice Saved Questions",
+    noSavedQuestions: "No saved questions yet! Tap ⭐ during a quiz to save important questions.",
+    clearAllSaved: "Clear All Saved",
+    clearSavedConfirm: "Are you sure you want to clear all bookmarked questions?",
+    totalSaved: "{count} Questions Saved",
+
+    // Mistakes Review
+    reviewMistakes: "Review Mistakes",
+    mistakesNotebook: "Mistakes Notebook",
+    mistakesSubtitle: "Analyze questions you missed & understand concepts",
+    retestMistakes: "Practice Mistakes Only",
+    flawlessNoMistakes: "Flawless Round! You made 0 mistakes! 🌟",
+    yourAnswer: "Your Answer",
+    correctAnswer: "Correct Answer",
+    explanation: "Educational Fact",
+
+    // Daily GK Flashcards
+    dailyFlashcards: "Daily 1-Min GK Flashcards",
+    dailyFactTitle: "Fact of the Day",
+    tapToFlip: "Tap to Flip Card 🔄",
+    factsExplored: "{count}/6 Daily Facts Read Today",
+
+    // Exam Timer
+    examTimer: "Exam Timer Mode",
+    examTimerDesc: "Add a countdown timer to questions for real exam speed practice",
+    timerSeconds: "{sec}s per question",
+    timeUp: "Time's Up! ⏰",
+
+    // Analytics
+    subjectPerformance: "Subject Mastery & Weak Areas",
+    subjectPerformanceDesc: "Real-time accuracy analytics based on your quiz attempts",
+    strongSubjects: "Strong Subjects (80%+)",
+    moderateSubjects: "Average (60-80%)",
+    weakSubjects: "Needs Practice (<60%)",
+    noAnalyticsYet: "Complete quizzes across different subjects to see your performance graph!",
+    accuracyRate: "{rate}% Accuracy",
+    practiceWeakArea: "Strengthen Now",
 
     // Daily Quests Modal
     dailyQuestsTitle: "Daily Quests",
@@ -332,6 +384,58 @@ const translations: Record<LangKey, Record<string, string>> = {
     tryAgain: "पुनः अभ्यास करें",
     aiGenerating: "G-koo नए सवाल ला रहा है...",
     lostAHeart: "ओह! -1 हार्ट 💔",
+    offlineMode: "ऑफलाइन मोड",
+    offlineNotice: "इंटरनेट कनेक्ट नहीं है। ऑफलाइन प्रश्न बैंक से सवाल लोड किए गए हैं।",
+    offlineBadge: "📡 ऑफलाइन",
+    offlineLevelLoaded: "📡 ऑफलाइन मोड: लेवल के सवाल ऑफलाइन बैंक से तैयार किए गए हैं।",
+    youAreOffline: "आप अभी ऑफलाइन हैं",
+    backOnline: "आप वापस ऑनलाइन आ गए हैं! 🟢",
+
+    // Bookmarks / Saved Questions
+    savedQuestions: "बुकमार्क प्रश्न",
+    savedQuestionsTitle: "मेरे सहेजे गए सवाल (Bookmarks)",
+    savedQuestionsSubtitle: "क्विज के दौरान सहेजे गए महत्वपूर्ण सवालों का रिवीजन करें",
+    bookmarkQuestion: "सवाल बुकमार्क करें",
+    removeBookmark: "बुकमार्क हटाएं",
+    questionSavedToast: "सवाल बुकमार्क में सहेजा गया! ⭐",
+    questionRemovedToast: "बुकमार्क से हटा दिया गया",
+    practiceSavedQuestions: "सहेजे गए सवालों का टेस्ट दें",
+    noSavedQuestions: "अभी कोई सहेजा गया सवाल नहीं है! क्विज के दौरान ⭐ दबाकर सवाल सेव करें।",
+    clearAllSaved: "सभी बुकमार्क हटाएं",
+    clearSavedConfirm: "क्या आप सभी सहेजे गए सवाल हटाना चाहते हैं?",
+    totalSaved: "{count} सवाल सहेजे गए",
+
+    // Mistakes Review
+    reviewMistakes: "गलतियां देखें (Review)",
+    mistakesNotebook: "गलतियों की डायरी (Mistakes Notebook)",
+    mistakesSubtitle: "गलत हुए सवालों का विश्लेषण करें और सही तथ्य समझें",
+    retestMistakes: "सिर्फ गलत सवालों का री-टेस्ट दें",
+    flawlessNoMistakes: "शानदार प्रदर्शन! आपने शून्य (0) गलतियां की हैं! 🌟",
+    yourAnswer: "आपका उत्तर",
+    correctAnswer: "सही उत्तर",
+    explanation: "ज्ञानवर्धक तथ्य",
+
+    // Daily GK Flashcards
+    dailyFlashcards: "दैनिक 1-मिनट ज्ञान कार्ड्स (Flashcards)",
+    dailyFactTitle: "आज का प्रमुख तथ्य",
+    tapToFlip: "तथ्य देखने के लिए कार्ड छुएं 🔄",
+    factsExplored: "आज {count}/6 ज्ञान कार्ड्स पढ़े गए",
+
+    // Exam Timer
+    examTimer: "एग्जाम टाइमर मोड (Timer Mode)",
+    examTimerDesc: "असली परीक्षा जैसी स्पीड प्रैक्टिस के लिए हर सवाल पर टाइमर लगाएं",
+    timerSeconds: "{sec} सेकंड प्रति सवाल",
+    timeUp: "समय समाप्त! ⏰",
+
+    // Analytics
+    subjectPerformance: "विषय-वार मजबूती व कमजोरी रिपोर्ट",
+    subjectPerformanceDesc: "आपके टेस्ट प्रयासों के आधार पर वास्तविक सटीकता विश्लेषण",
+    strongSubjects: "मजबूत विषय (80%+ सटीकता)",
+    moderateSubjects: "सामान्य (60-80%)",
+    weakSubjects: "सुधार की आवश्यकता (<60%)",
+    noAnalyticsYet: "अपना प्रदर्शन ग्राफ देखने के लिए अलग-अलग विषयों के क्विज हल करें!",
+    accuracyRate: "{rate}% सटीकता",
+    practiceWeakArea: "अभी मजबूत करें",
 
     // Daily Quests Modal
     dailyQuestsTitle: "दैनिक मिशन",
@@ -536,6 +640,118 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(() => {
     return localStorage.getItem('gkoo_current_user_id') || null;
   });
+
+  // Online / Offline Network Status Detection
+  const [isOnline, setIsOnline] = useState<boolean>(() => 
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 1. Bookmarks / Saved Questions
+  const [bookmarks, setBookmarks] = useState<import('./appContextStore').BookmarkedQuestion[]>(() => {
+    const saved = localStorage.getItem('gkoo_bookmarks');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gkoo_bookmarks', JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  const toggleBookmark = (question: { id: number | string; text: string; options: string[]; answer: string; explanation?: string; category?: string }): boolean => {
+    const norm = question.text.trim().toLowerCase();
+    const exists = bookmarks.some(b => b.text.trim().toLowerCase() === norm);
+    if (exists) {
+      setBookmarks(prev => prev.filter(b => b.text.trim().toLowerCase() !== norm));
+      return false;
+    } else {
+      const newBookmark: import('./appContextStore').BookmarkedQuestion = {
+        ...question,
+        id: question.id || `bm-${Date.now()}`,
+        savedAt: Date.now(),
+      };
+      setBookmarks(prev => [newBookmark, ...prev]);
+      return true;
+    }
+  };
+
+  const isBookmarked = (questionText: string): boolean => {
+    const norm = questionText.trim().toLowerCase();
+    return bookmarks.some(b => b.text.trim().toLowerCase() === norm);
+  };
+
+  const removeBookmark = (id: number | string) => {
+    setBookmarks(prev => prev.filter(b => b.id !== id));
+  };
+
+  const clearAllBookmarks = () => {
+    setBookmarks([]);
+  };
+
+  // 2. Exam Timer Mode
+  const [examTimerEnabled, setExamTimerEnabled] = useState<boolean>(() => {
+    return localStorage.getItem('gkoo_exam_timer_enabled') === 'true';
+  });
+
+  const [examTimerSeconds, setExamTimerSeconds] = useState<number>(() => {
+    const saved = localStorage.getItem('gkoo_exam_timer_seconds');
+    return saved ? parseInt(saved, 10) : 20;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gkoo_exam_timer_enabled', examTimerEnabled ? 'true' : 'false');
+  }, [examTimerEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem('gkoo_exam_timer_seconds', examTimerSeconds.toString());
+  }, [examTimerSeconds]);
+
+  // 3. Subject-wise Accuracy Stats
+  const [categoryStats, setCategoryStats] = useState<Record<string, import('./appContextStore').CategoryAccuracyStat>>(() => {
+    const saved = localStorage.getItem('gkoo_category_stats');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+    }
+    return {
+      india: { totalAttempted: 15, totalCorrect: 13 },
+      world: { totalAttempted: 10, totalCorrect: 8 },
+      subjects: { totalAttempted: 12, totalCorrect: 10 },
+      mix: { totalAttempted: 15, totalCorrect: 12 }
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('gkoo_category_stats', JSON.stringify(categoryStats));
+  }, [categoryStats]);
+
+  const recordCategoryAnswers = (categoryId: string, attempted: number, correct: number) => {
+    if (!categoryId) return;
+    const cleanId = categoryId.toLowerCase();
+    setCategoryStats(prev => {
+      const current = prev[cleanId] || { totalAttempted: 0, totalCorrect: 0 };
+      return {
+        ...prev,
+        [cleanId]: {
+          totalAttempted: current.totalAttempted + attempted,
+          totalCorrect: current.totalCorrect + correct,
+        }
+      };
+    });
+  };
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
 
@@ -1066,6 +1282,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       mix: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
     });
     setClaimedChests({});
+    setBookmarks([]);
+    setCategoryStats({});
     clearQuestionHistory();
     localStorage.removeItem('xp');
     localStorage.removeItem('streak');
@@ -1076,6 +1294,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     localStorage.removeItem('gkoo_level_progress');
     localStorage.removeItem('gkoo_cat_level_progress');
     localStorage.removeItem('gkoo_claimed_chests');
+    localStorage.removeItem('gkoo_bookmarks');
+    localStorage.removeItem('gkoo_category_stats');
     Object.keys(localStorage).forEach(k => {
       if (k.startsWith('gkoo_level_q_')) {
         localStorage.removeItem(k);
@@ -1146,6 +1366,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         getCategoryMaxUnlocked,
         getCategoryTotalStars,
         completeCategoryLevel,
+        isOnline,
+        // Bookmarks
+        bookmarks,
+        toggleBookmark,
+        isBookmarked,
+        removeBookmark,
+        clearAllBookmarks,
+        // Exam Timer
+        examTimerEnabled,
+        setExamTimerEnabled,
+        examTimerSeconds,
+        setExamTimerSeconds,
+        // Category Performance Stats
+        categoryStats,
+        recordCategoryAnswers,
       }}
 
     >

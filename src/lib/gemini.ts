@@ -12,6 +12,7 @@ export interface QuizQuestion {
   answer: string;
   explanation?: string;
   category?: string;
+  source?: 'ai' | 'offline' | 'saved';
 }
 
 export interface AiQuizOptions {
@@ -320,11 +321,14 @@ export async function generateAiQuiz(
   const count = options.count || 15;
   const lang = options.lang || langFallback || 'en';
 
-  // 1. Get all available API keys from custom settings or .env pool
-  const keysPool = parseGeminiApiKeys(apiKey);
+  // 1. Check if device is currently offline
+  const isDeviceOffline = typeof navigator !== 'undefined' && !navigator.onLine;
 
-  // 2. Try calling Google Gemini AI REST API with multi-key pool
-  if (keysPool.length > 0) {
+  // 2. Get all available API keys from custom settings or .env pool
+  const keysPool = isDeviceOffline ? [] : parseGeminiApiKeys(apiKey);
+
+  // 3. Try calling Google Gemini AI REST API with multi-key pool
+  if (!isDeviceOffline && keysPool.length > 0) {
     // Round-robin start index so load is distributed evenly across all keys
     const startIndex = currentKeyRotationIndex % keysPool.length;
     currentKeyRotationIndex = (currentKeyRotationIndex + 1) % keysPool.length;
@@ -421,7 +425,8 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
                   options: shuffleArray(q.options || []),
                   answer: q.answer,
                   explanation: q.explanation || (lang === 'hi' ? "शानदार उत्तर! हर सवाल से आपका ज्ञान और मजबूत होता है।" : "Great job learning this key concept!"),
-                  category: cleanTopic || categoryId || "Gemini AI"
+                  category: cleanTopic || categoryId || "Gemini AI",
+                  source: 'ai'
                 }));
 
                 // 1. Exclude already mastered questions so they never repeat
@@ -567,6 +572,7 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
     ...q,
     id: `dyn-${Date.now()}-${idx}`,
     options: shuffleArray(q.options),
-    category: cleanTopic || categoryId || (lang === 'hi' ? "क्विज" : "Quiz")
+    category: cleanTopic || categoryId || (lang === 'hi' ? "क्विज" : "Quiz"),
+    source: 'offline'
   }));
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Wand2, ArrowRight, Compass, Layers, Zap, ChevronRight, GraduationCap, Globe, Newspaper, Pin, Play, BookOpen } from 'lucide-react';
+import { Sparkles, Wand2, ArrowRight, Compass, Layers, Zap, ChevronRight, GraduationCap, Globe, Newspaper, Pin, Play, BookOpen, Bookmark } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { TopBar } from '../components/TopBar';
 import { LearningPath } from '../components/LearningPath';
@@ -8,6 +8,7 @@ import { DailyQuestsModal } from '../components/DailyQuestsModal';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
 import { StateExamModal } from '../components/StateExamModal';
 import { SubjectDirectoryModal } from '../components/SubjectDirectoryModal';
+import { SavedQuestionsModal } from '../components/SavedQuestionsModal';
 import { triggerHaptic } from '../lib/audio';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES_LIST } from '../lib/levelData';
@@ -29,12 +30,13 @@ import { type StateData } from '../data/stateExamsData';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { t, lang, setActiveCategory, getCategoryMaxUnlocked } = useAppContext();
+  const { t, lang, setActiveCategory, getCategoryMaxUnlocked, bookmarks } = useAppContext();
   const [activeView, setActiveView] = useState<'categories' | 'path'>('categories');
   const [showQuestsModal, setShowQuestsModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
+  const [showSavedModal, setShowSavedModal] = useState(false);
   const [modalInitialStateId, setModalInitialStateId] = useState<string | null>(null);
   const [pinnedStates, setPinnedStates] = useState<StateData[]>([]);
   const [pinnedExams, setPinnedExams] = useState<PinnedExamWithState[]>([]);
@@ -223,6 +225,33 @@ export default function Dashboard() {
                 </motion.div>
               )}
             </div>
+
+            {/* Quick Actions Bar: Saved Bookmarked Questions Button */}
+            {bookmarks.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  triggerHaptic('click');
+                  setShowSavedModal(true);
+                }}
+                className="w-full bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700/60 rounded-2xl p-3 flex items-center justify-between shadow-xs hover:border-amber-400 transition-all text-left"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs">
+                    <Bookmark className="w-5 h-5 fill-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-amber-900 dark:text-amber-200">
+                      {t('savedQuestions')} ({bookmarks.length})
+                    </h4>
+                    <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400">
+                      {lang === 'hi' ? 'सेव किए गए प्रश्नों का अभ्यास करें' : 'Practice your bookmarked questions anytime'}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+              </motion.button>
+            )}
 
             {/* SECTION 0: CURRENT AFFAIRS (NATIONAL & WORLD) */}
             <div className="space-y-3 pt-1">
@@ -799,6 +828,12 @@ export default function Dashboard() {
         isOpen={showSubjectsModal}
         onClose={() => setShowSubjectsModal(false)}
         onSelectCategory={handleSelectCategory}
+      />
+
+      {/* SAVED / BOOKMARKED QUESTIONS MODAL */}
+      <SavedQuestionsModal
+        isOpen={showSavedModal}
+        onClose={() => setShowSavedModal(false)}
       />
 
     </div>
