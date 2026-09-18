@@ -119,7 +119,7 @@ export default function PrivacyPolicy() {
             If you have questions regarding this Privacy Policy or wish to delete your account data, please reach out to:
           </p>
           <div className="mt-2 p-3.5 bg-gray-50 dark:bg-gray-900 rounded-2xl font-mono text-xs text-[#FF5F6D] font-bold">
-            support@gkoo.app • Global Score Analytics
+            gkoosupport@gmail.com • Global Score Analytics
           </div>
         </section>
 
