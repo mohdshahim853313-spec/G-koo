@@ -15,6 +15,7 @@ import {
 import { useAppContext } from '../useAppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic, playSound } from '../lib/audio';
+import { OfflineModal } from './OfflineModal';
 import { 
   getCategoryLevelConfig, 
   getCategoryWorldConfig, 
@@ -56,6 +57,10 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
   const [selectedLevel, setSelectedLevel] = useState<LevelConfig | null>(null);
   const [lockedToast, setLockedToast] = useState<string | null>(null);
   const [rewardToast, setRewardToast] = useState<string | null>(null);
+  const [showOfflineModal, setShowOfflineModal] = useState(false);
+  const [offlineModalLevel, setOfflineModalLevel] = useState<number | null>(null);
+
+  const isDeviceOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
 
   const worldConfig = getCategoryWorldConfig(currentCatId, selectedWorldId);
   const [startLevel, endLevel] = worldConfig.levelsRange;
@@ -83,11 +88,32 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
       return;
     }
 
+    // Offline check: If offline and this level is NOT yet completed, block and show Offline modal!
+    const isCompleted = !!catProgress[level.level]?.completed;
+    if (isDeviceOffline && !isCompleted) {
+      triggerHaptic('error', hapticsEnabled);
+      playSound('error', soundEnabled);
+      setOfflineModalLevel(level.level);
+      setShowOfflineModal(true);
+      return;
+    }
+
     triggerHaptic('click', hapticsEnabled);
     setSelectedLevel(level);
   };
 
   const handleStartLevel = (levelNum: number) => {
+    // Offline check before starting quiz
+    const isCompleted = !!catProgress[levelNum]?.completed;
+    if (isDeviceOffline && !isCompleted) {
+      triggerHaptic('error', hapticsEnabled);
+      playSound('error', soundEnabled);
+      setSelectedLevel(null);
+      setOfflineModalLevel(levelNum);
+      setShowOfflineModal(true);
+      return;
+    }
+
     triggerHaptic('click', hapticsEnabled);
     setSelectedLevel(null);
     navigate(`/quiz/level-${currentCatId}-${levelNum}`);
@@ -531,13 +557,13 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
               </h3>
 
               {/* Offline notice if device is offline */}
-              {!isOnline && (
-                <div className="flex items-center space-x-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 p-2.5 rounded-2xl mb-4 text-xs font-bold text-amber-900 dark:text-amber-200 shadow-xs">
-                  <span className="text-base">📡</span>
+              {isDeviceOffline && (
+                <div className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 p-2.5 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs">
+                  <span className="text-base">💾</span>
                   <span>
                     {lang === 'hi'
-                      ? 'आप ऑफलाइन हैं — यह स्तर ऑफलाइन प्रश्न बैंक से लोड होगा'
-                      : 'You are offline — This level will load from offline question bank'}
+                      ? 'ऑफलाइन रेडी: यह लेवल पास हो चुका है और सुरक्षित डेटा से खेला जा सकता है'
+                      : 'Offline Ready: This level was completed and will play from saved data'}
                   </span>
                 </div>
               )}
@@ -582,6 +608,20 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           </div>
         )}
       </AnimatePresence>
+
+      {/* Offline Alert Modal for new/unpassed levels */}
+      <OfflineModal
+        isOpen={showOfflineModal}
+        levelNumber={offlineModalLevel || undefined}
+        categoryName={catInfo?.titleEn || currentCatId}
+        onClose={() => setShowOfflineModal(false)}
+        onRetrySuccess={() => {
+          setShowOfflineModal(false);
+          if (offlineModalLevel) {
+            handleStartLevel(offlineModalLevel);
+          }
+        }}
+      />
 
     </div>
   );

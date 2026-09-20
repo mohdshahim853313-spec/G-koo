@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
 import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
 import { recordQuestionAnswer } from '../lib/questionTracker';
@@ -81,6 +81,7 @@ export default function Quiz() {
     refillHearts,
     completeCategoryLevel,
     isOnline,
+    categoryLevelProgress,
     bookmarks,
     toggleBookmark,
     isBookmarked,
@@ -114,6 +115,7 @@ export default function Quiz() {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isOfflineQuiz, setIsOfflineQuiz] = useState(false);
+  const [isOfflineBlocked, setIsOfflineBlocked] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -197,6 +199,30 @@ export default function Quiz() {
 
     let generated: QuizQuestion[] = [];
 
+    const isCurrentlyOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
+    const isPassedLevel = isLevelQuiz && levelNumber
+      ? !!categoryLevelProgress[levelCategory]?.[levelNumber]?.completed
+      : false;
+
+    // Strict Offline Check:
+    // If device is offline:
+    // - For Level Quiz: only allow if this level has already been passed/completed!
+    // - If it's a new unpassed level -> block and show "You Are Offline" screen
+    if (isCurrentlyOffline && isLevelQuiz && !isPassedLevel) {
+      setIsOfflineBlocked(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // - If AI custom quiz and offline -> block and show "You Are Offline" screen
+    if (isCurrentlyOffline && categoryId === 'ai') {
+      setIsOfflineBlocked(true);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsOfflineBlocked(false);
+
     // If practicing saved questions
     if (isSavedQuiz) {
       if (bookmarks.length === 0) {
@@ -248,7 +274,6 @@ export default function Quiz() {
       }
     }
 
-    const isCurrentlyOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
     const wasOfflineGenerated = generated.length > 0 && generated[0]?.source === 'offline';
     setIsOfflineQuiz(isCurrentlyOffline || wasOfflineGenerated);
     setMistakesList([]);
@@ -482,6 +507,98 @@ export default function Quiz() {
   };
 
 
+  // Offline Blocked Screen (Shown when trying to play an unpassed new level or online-only quiz while offline)
+  if (isOfflineBlocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md mx-auto bg-[#FCF9F7] dark:bg-[#121217] select-none">
+        <div className="relative mb-3">
+          <div className="w-20 h-20 rounded-3xl bg-amber-100 dark:bg-amber-950/60 border-2 border-amber-300 dark:border-amber-700/60 flex items-center justify-center text-amber-600 dark:text-amber-400 shadow-lg mx-auto">
+            <WifiOff className="w-10 h-10 animate-pulse" />
+          </div>
+          <div className="absolute -bottom-1 -right-1 bg-red-500 text-white rounded-full p-1.5 shadow-sm">
+            <X className="w-4 h-4 stroke-[3]" />
+          </div>
+        </div>
+
+        <div className="my-1">
+          <Mascot size="md" mood="sad" />
+        </div>
+
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white mt-2 mb-2">
+          {lang === 'hi' ? 'इंटरनेट कनेक्शन नहीं है!' : "You're Offline!"}
+        </h2>
+
+        <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 rounded-2xl p-4 mb-6 text-xs font-semibold text-gray-700 dark:text-gray-300 max-w-xs leading-relaxed space-y-2 text-left shadow-xs">
+          {levelNumber ? (
+            <p>
+              {lang === 'hi' ? (
+                <>
+                  लेवल <strong>{levelNumber}</strong> {categoryInfo ? `(${categoryInfo.titleHi})` : ''} एक <span className="text-rose-500 dark:text-rose-400 font-bold">नया लेवल</span> है जो अभी तक पास नहीं हुआ है।
+                </>
+              ) : (
+                <>
+                  Level <strong>{levelNumber}</strong> {categoryInfo ? `(${categoryInfo.titleEn})` : ''} is a <span className="text-rose-500 dark:text-rose-400 font-bold">new level</span> that has not been completed yet.
+                </>
+              )}
+            </p>
+          ) : null}
+
+          <p>
+            {lang === 'hi' ? (
+              <>
+                📡 <strong>ऑफ़लाइन नियम:</strong> आप बिना इंटरनेट केवल अपने <span className="text-emerald-600 dark:text-emerald-400 font-bold">पास किए हुए लेवल्स</span> ही खेल सकते हैं (जिनका डेटा पहले से सेव है)।
+              </>
+            ) : (
+              <>
+                📡 <strong>Offline Rule:</strong> While offline, you can only replay levels you have <span className="text-emerald-600 dark:text-emerald-400 font-bold">already completed</span> using saved data.
+              </>
+            )}
+          </p>
+
+          <p className="text-[11px] text-gray-500 dark:text-gray-400">
+            {lang === 'hi'
+              ? 'नए लेवल्स अनलॉक और डाउनलोड करने के लिए कृपया अपना इंटरनेट चालू करें।'
+              : 'Please connect to the internet to unlock and download questions for new levels.'}
+          </p>
+        </div>
+
+        <div className="space-y-3 w-full max-w-xs">
+          {/* Retry Connection Button */}
+          <button
+            onClick={() => {
+              triggerHaptic('click', hapticsEnabled);
+              const isNowOnline = typeof navigator !== 'undefined' ? navigator.onLine : isOnline;
+              if (isNowOnline) {
+                setIsOfflineBlocked(false);
+                loadQuizData();
+              } else {
+                playSound('error', soundEnabled);
+                triggerHaptic('error', hapticsEnabled);
+                alert(lang === 'hi' ? 'अभी भी इंटरनेट कनेक्ट नहीं है! कृपया Wi-Fi या मोबाइल डेटा चालू करें।' : 'Still offline! Please enable Wi-Fi or Mobile Data.');
+              }
+            }}
+            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black py-3.5 rounded-2xl shadow-[0_4px_0_0_#B45309] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+          >
+            <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+            <span>{lang === 'hi' ? 'इंटरनेट दोबारा जाँचें (Retry)' : 'Check Connection / Retry'}</span>
+          </button>
+
+          {/* Go to Passed Levels button */}
+          <button
+            onClick={() => {
+              triggerHaptic('click', hapticsEnabled);
+              navigate('/');
+            }}
+            className="w-full bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 font-black py-3.5 rounded-2xl text-xs flex items-center justify-center space-x-2 hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-98 transition-all cursor-pointer shadow-xs"
+          >
+            <ArrowRight className="w-4 h-4 rotate-180" />
+            <span>{lang === 'hi' ? 'पास किए लेवल्स खेलें (Back to Levels)' : 'Choose Completed Level'}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // Loading Screen for AI Question Generation (Engaging Animated G-koo with 15 dynamic sentence templates)
   if (isLoading) {
     return <GkooQuizLoadingArena isOffline={!isOnline || isOfflineQuiz || (typeof navigator !== 'undefined' && !navigator.onLine)} />;
@@ -643,6 +760,12 @@ export default function Quiz() {
           {isLevelQuiz && nextUnlockedLevel ? (
             <button 
               onClick={() => {
+                const isCurrentlyOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
+                const isNextPassed = !!categoryLevelProgress[levelCategory]?.[nextUnlockedLevel]?.completed;
+                if (isCurrentlyOffline && !isNextPassed) {
+                  setIsOfflineBlocked(true);
+                  return;
+                }
                 navigate(`/quiz/level-${levelCategory}-${nextUnlockedLevel}`);
               }}
               className="w-full bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#991B1B] active:translate-y-1 active:shadow-none transition-all text-sm flex items-center justify-center space-x-2"
@@ -660,7 +783,7 @@ export default function Quiz() {
                 : 'bg-[#FF5F6D] text-white shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none text-sm'
             }`}
           >
-            {t('returnHome')}
+            {isLevelQuiz ? (lang === 'hi' ? 'लेवल्स मैप पर लौटें' : 'Back to Level Map') : t('returnHome')}
           </button>
 
           <button 
@@ -677,26 +800,24 @@ export default function Quiz() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between px-4 pt-[max(env(safe-area-inset-top,0px),20px)] md:pt-6 pb-[25px] max-w-md md:max-w-3xl lg:max-w-4xl mx-auto font-sans bg-[#FCF9F7] dark:bg-[#121217]">
-      {/* Top Section: HUD + Question & Options */}
-      <div className="w-full flex flex-col">
-        {/* Top HUD (Duolingo Style: Exit 'X', Smooth Coral Progress Bar, Hearts) */}
-        <div className="w-full mb-4 md:mb-6">
-          <div className="flex items-center space-x-3 w-full">
-            <button 
-              type="button"
-              onClick={() => {
-                triggerHaptic('click');
-                setQuitMessageIdx(Math.floor(Math.random() * QUIT_MESSAGES.length));
-                setShowQuitModal(true);
-              }} 
-              className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-white shrink-0 cursor-pointer"
-              title={lang === 'hi' ? 'क्विज छोड़ें' : 'Quit quiz'}
-            >
-              <X className="w-6 h-6 stroke-[2.5]" />
-            </button>
+    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] flex flex-col justify-between pt-[max(env(safe-area-inset-top,0px),8px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none">
+      {/* Top Navigation HUD */}
+      <div className="max-w-md mx-auto w-full px-4 mb-2">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          {/* Close/Quit Cross */}
+          <button 
+            onClick={() => {
+              const randIdx = Math.floor(Math.random() * QUIT_MESSAGES.length);
+              setQuitMessageIdx(randIdx);
+              setShowQuitModal(true);
+            }} 
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5 stroke-[2.5]" />
+          </button>
 
-            {/* Clean Coral Progress Bar */}
+          {/* Duolingo Progress Bar + Hearts */}
+          <div className="flex items-center space-x-2.5 flex-1 min-w-0">
             <div className="flex-1 bg-gray-200 dark:bg-gray-800 h-3.5 rounded-full overflow-hidden">
               <motion.div 
                 className="bg-gradient-to-r from-[#FF7B7B] to-[#FF5F6D] h-full rounded-full transition-all duration-300" 
@@ -708,10 +829,10 @@ export default function Quiz() {
             {isOfflineQuiz && (
               <div 
                 className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2.5 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 shrink-0 shadow-xs"
-                title={lang === 'hi' ? 'ऑफलाइन प्रश्न बैंक' : 'Offline Question Bank'}
+                title={lang === 'hi' ? 'ऑफलाइन सुरक्षित डेटा' : 'Offline Saved Data'}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                <span>{lang === 'hi' ? '📡 ऑफलाइन' : '📡 Offline'}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>{lang === 'hi' ? '💾 ऑफलाइन सेव्ड' : '💾 Offline Saved'}</span>
               </div>
             )}
 
@@ -751,19 +872,19 @@ export default function Quiz() {
           <motion.div
             initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-amber-900 dark:text-amber-200 shadow-xs"
+            className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs"
           >
             <div className="flex items-center space-x-2 truncate">
-              <span className="text-sm">📡</span>
+              <span className="text-sm">💾</span>
               <span className="truncate">
                 {lang === 'hi'
-                  ? 'ऑफलाइन मोड: सवाल ऑफलाइन बैंक से लोड किए गए हैं'
-                  : 'Offline Mode: Questions loaded from offline bank'}
+                  ? 'ऑफलाइन मोड: पास किए गए स्तर का सुरक्षित डेटा लोड हुआ है'
+                  : 'Offline Mode: Playing completed level from saved data'}
               </span>
             </div>
             <button
               onClick={() => setShowOfflineBanner(false)}
-              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 p-0.5 ml-2 cursor-pointer shrink-0"
+              className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 p-0.5 ml-2 cursor-pointer shrink-0"
               title={lang === 'hi' ? 'बंद करें' : 'Dismiss'}
             >
               <X className="w-4 h-4" />
