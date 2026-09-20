@@ -1,9 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../useAppContext';
 import { GkooBirdAvatar } from './Mascot';
 import { playSound, triggerHaptic } from '../lib/audio';
-import { triggerGoogleSignIn, initGoogleInAppAuth, renderGoogleButton, type GoogleUserProfile } from '../lib/googleAuth';
 import { X, Mail, Lock, User, Eye, EyeOff, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const AVATAR_OPTIONS = ['🦉', '🦁', '🦊', '🐼', '🐯', '🦄', '🚀', '👑'];
@@ -28,49 +27,6 @@ export const AuthModal = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
-
-  const handleGoogleSuccess = async (googleUser: GoogleUserProfile) => {
-    const result = await signInWithGoogle({
-      id: googleUser.sub,
-      name: googleUser.name,
-      email: googleUser.email,
-      avatar: googleUser.picture || '🦁',
-    });
-
-    if (result.success) {
-      playSound('complete');
-      triggerHaptic('success');
-      setSuccessMessage(result.message || (lang === 'hi' ? 'Google से लॉगिन सफल!' : 'Signed in with Google!'));
-      setTimeout(() => {
-        setIsAuthModalOpen(false);
-        setIsGoogleLoading(false);
-        setSuccessMessage('');
-      }, 1200);
-    } else {
-      playSound('error');
-      triggerHaptic('error');
-      setErrorMessage(result.message || 'Google sign-in failed');
-      setIsGoogleLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (isAuthModalOpen) {
-      initGoogleInAppAuth(
-        (user) => handleGoogleSuccess(user),
-        (err) => console.debug('Google In-App Prompt notice:', err)
-      );
-
-      if (googleBtnContainerRef.current) {
-        renderGoogleButton(
-          googleBtnContainerRef.current,
-          (user) => handleGoogleSuccess(user),
-          (err) => console.debug('Google Button render error:', err)
-        );
-      }
-    }
-  }, [isAuthModalOpen]);
 
   if (!isAuthModalOpen) return null;
 
@@ -81,7 +37,6 @@ export const AuthModal = () => {
       setIsGoogleLoading(true);
       triggerHaptic('click');
 
-      // 1. First attempt Firebase Google Sign In
       const result = await signInWithGoogle();
       if (result.success) {
         playSound('complete');
@@ -92,12 +47,12 @@ export const AuthModal = () => {
           setIsGoogleLoading(false);
           setSuccessMessage('');
         }, 1200);
-        return;
+      } else {
+        playSound('error');
+        triggerHaptic('error');
+        setErrorMessage(result.message || 'Google sign-in failed');
+        setIsGoogleLoading(false);
       }
-
-      // 2. Fallback to Google Identity Services SDK popup if needed
-      const googleUser = await triggerGoogleSignIn();
-      handleGoogleSuccess(googleUser);
     } catch (err: any) {
       console.warn('Google sign-in error:', err);
       setIsGoogleLoading(false);
@@ -189,8 +144,6 @@ export const AuthModal = () => {
 
           {/* Real Google 1-Tap Sign-In Button */}
           <div className="mb-3.5 flex flex-col items-center w-full">
-            <div ref={googleBtnContainerRef} className="w-full flex justify-center mb-1 empty:hidden" />
-
             <motion.button
               whileTap={{ scale: 0.96 }}
               type="button"
