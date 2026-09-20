@@ -6,6 +6,7 @@ import { triggerHaptic } from '../lib/audio';
 import { GkooBirdAvatar } from '../components/Mascot';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
 import { SavedQuestionsModal } from '../components/SavedQuestionsModal';
+import { getQuestionTrackerStats } from '../lib/questionTracker';
 import { motion } from 'framer-motion';
 import type { UserBadge } from '../appContextStore';
 
@@ -38,6 +39,7 @@ export default function Profile() {
   const currentLevel = Math.floor(xp / 100) + 1;
   const currentLevelXp = xp % 100;
   const accuracyRate = stats.totalAnswered > 0 ? Math.round((stats.correctAnswers / stats.totalAnswered) * 100) : 0;
+  const { incorrectCount: mistakesCount } = getQuestionTrackerStats();
 
   const handleSaveName = () => {
     if (nameInput.trim()) {
@@ -273,7 +275,7 @@ export default function Profile() {
           triggerHaptic('click');
           setShowSavedModal(true);
         }}
-        className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-amber-800 flex items-center justify-between mb-6 select-none"
+        className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-amber-800 flex items-center justify-between mb-4 select-none"
       >
         <div className="flex items-center space-x-3.5">
           <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
@@ -293,6 +295,44 @@ export default function Profile() {
           <ChevronRight className="w-4 h-4 stroke-[3]" />
         </div>
       </motion.button>
+
+      {/* Quick Action: Weak Spots / Mistakes Revision Hub */}
+      <motion.div
+        whileHover={{ scale: 1.01 }}
+        className="w-full bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-rose-800 flex items-center justify-between mb-6 select-none"
+      >
+        <div className="flex items-center space-x-3.5 flex-1 min-w-0 pr-2">
+          <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner shrink-0">
+            <span className="text-xl">🎯</span>
+          </div>
+          <div className="text-left min-w-0">
+            <h4 className="text-sm font-black text-white truncate">
+              {lang === 'hi' ? 'कमजोर सवालों का सुधार केंद्र' : 'Mistakes & Weak Spots Hub'}
+            </h4>
+            <p className="text-xs text-rose-100 font-semibold truncate">
+              {mistakesCount > 0
+                ? (lang === 'hi' ? `${mistakesCount} गलत सवालों का संग्रह • री-टेस्ट दें` : `${mistakesCount} missed questions • Retest now`)
+                : (lang === 'hi' ? 'शानदार! कोई कमजोर सवाल शेष नहीं' : 'Flawless! No weak spots pending')}
+            </p>
+          </div>
+        </div>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          disabled={mistakesCount === 0}
+          onClick={() => {
+            triggerHaptic('click');
+            navigate('/quiz/mistakes?mistakes=true');
+          }}
+          className={`px-3.5 py-2 rounded-2xl text-xs font-black shrink-0 shadow-xs flex items-center space-x-1 transition-all ${
+            mistakesCount > 0
+              ? 'bg-white text-rose-600 hover:bg-rose-50 cursor-pointer active:translate-y-0.5'
+              : 'bg-white/20 text-white/60 cursor-not-allowed'
+          }`}
+        >
+          <span>{lang === 'hi' ? 'सुधारें' : 'Practice'}</span>
+          <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
+        </motion.button>
+      </motion.div>
 
       {/* Subject Performance & Weakness Analytics */}
       <div className="bg-white dark:bg-gray-800/90 border-2 border-gray-100 dark:border-gray-800 border-b-4 rounded-3xl p-5 shadow-sm mb-6">

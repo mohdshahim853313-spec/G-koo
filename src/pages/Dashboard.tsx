@@ -9,6 +9,8 @@ import { GkooCompanionCard } from '../components/GkooCompanionCard';
 import { StateExamModal } from '../components/StateExamModal';
 import { SubjectDirectoryModal } from '../components/SubjectDirectoryModal';
 import { SavedQuestionsModal } from '../components/SavedQuestionsModal';
+import { DailyLoginRewardModal } from '../components/DailyLoginRewardModal';
+import { StreakFreezeModal } from '../components/StreakFreezeModal';
 import { triggerHaptic } from '../lib/audio';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CATEGORIES_LIST } from '../lib/levelData';
@@ -37,6 +39,8 @@ export default function Dashboard() {
   const [showSubjectsModal, setShowSubjectsModal] = useState(false);
   const [showStateModal, setShowStateModal] = useState(false);
   const [showSavedModal, setShowSavedModal] = useState(false);
+  const [showDailyRewardModal, setShowDailyRewardModal] = useState(false);
+  const [showStreakFreezeModal, setShowStreakFreezeModal] = useState(false);
   const [modalInitialStateId, setModalInitialStateId] = useState<string | null>(null);
   const [pinnedStates, setPinnedStates] = useState<StateData[]>([]);
   const [pinnedExams, setPinnedExams] = useState<PinnedExamWithState[]>([]);
@@ -55,6 +59,30 @@ export default function Dashboard() {
       return false;
     }
   });
+
+  // Daily Login Reward claim status
+  const [hasUnclaimedDailyReward, setHasUnclaimedDailyReward] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('gkoo_daily_reward_last_claim') !== new Date().toDateString();
+    } catch {
+      return false;
+    }
+  });
+
+  // Auto-open Daily Login Reward modal on first daily visit
+  useEffect(() => {
+    try {
+      const today = new Date().toDateString();
+      if (localStorage.getItem('gkoo_daily_reward_last_claim') !== today) {
+        const timer = setTimeout(() => {
+          setShowDailyRewardModal(true);
+        }, 700);
+        return () => clearTimeout(timer);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Sync Pinned States & Exams + Pinned Subject Slots + Daily completion
   useEffect(() => {
@@ -118,11 +146,45 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] pb-28 font-sans transition-colors duration-300">
       {/* Duolingo-Style HUD Top Bar */}
-      <TopBar onOpenQuests={() => setShowQuestsModal(true)} />
+      <TopBar 
+        onOpenQuests={() => setShowQuestsModal(true)} 
+        onOpenStreakFreeze={() => setShowStreakFreezeModal(true)} 
+      />
 
       {/* Main Container */}
       <main className="p-4 max-w-md md:max-w-5xl lg:max-w-6xl mx-auto">
         
+        {/* Daily Login Reward Prompt Banner (when unclaimed today) */}
+        {hasUnclaimedDailyReward && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              triggerHaptic('click');
+              setShowDailyRewardModal(true);
+            }}
+            className="mb-4 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 p-3 rounded-2xl text-white shadow-md flex items-center justify-between cursor-pointer border-b-2 border-orange-600 active:translate-y-0.5"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-xl shadow-inner shrink-0">
+                🎁
+              </div>
+              <div>
+                <h4 className="font-black text-xs sm:text-sm leading-tight">
+                  {lang === 'hi' ? 'आज का दैनिक उपहार प्राप्त करें!' : 'Claim Your Daily Login Reward!'}
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-white/90 font-medium">
+                  {lang === 'hi' ? 'मुफ्त जेम्स 💎 और स्ट्रीक शील्ड ❄️ अनलॉक करें' : 'Earn free Gems 💎 and Streak Shield ❄️'}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-black bg-white text-orange-600 px-3 py-1.5 rounded-xl shadow-xs whitespace-nowrap">
+              {lang === 'hi' ? 'खोलें' : 'Claim'}
+            </span>
+          </motion.div>
+        )}
+
         {/* Clean 3D View Switcher: Categories vs Learning Path */}
         {/* View Switcher: Categories vs Learning Path */}
         <div className="flex bg-gray-200/90 dark:bg-gray-800/90 p-1.5 rounded-2xl mb-5 text-xs font-black shadow-inner border border-gray-300/40 dark:border-gray-700/50 max-w-md mx-auto">
@@ -834,6 +896,26 @@ export default function Dashboard() {
       <SavedQuestionsModal
         isOpen={showSavedModal}
         onClose={() => setShowSavedModal(false)}
+      />
+
+      {/* 7-DAY DAILY LOGIN REWARD MODAL */}
+      <DailyLoginRewardModal
+        isOpen={showDailyRewardModal}
+        onClose={() => {
+          setShowDailyRewardModal(false);
+          try {
+            const today = new Date().toDateString();
+            setHasUnclaimedDailyReward(localStorage.getItem('gkoo_daily_reward_last_claim') !== today);
+          } catch (e) {
+            // ignore
+          }
+        }}
+      />
+
+      {/* STREAK FREEZE SHIELD MODAL */}
+      <StreakFreezeModal
+        isOpen={showStreakFreezeModal}
+        onClose={() => setShowStreakFreezeModal(false)}
       />
 
     </div>

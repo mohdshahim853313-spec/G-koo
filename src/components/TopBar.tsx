@@ -7,10 +7,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 interface TopBarProps {
   onOpenQuests?: () => void;
+  onOpenStreakFreeze?: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests }) => {
-  const { t, streak, hearts, gems, refillHearts, addGems, setIsAuthModalOpen, isGuest } = useAppContext();
+export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze }) => {
+  const { t, streak, hearts, gems, refillHearts, addGems, setIsAuthModalOpen, isGuest, streakFreezes } = useAppContext();
   const [showHeartsModal, setShowHeartsModal] = useState(false);
 
   const handleRefillWithGems = () => {
@@ -56,10 +57,27 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests }) => {
           {/* Right Stats: Streak, Gems, Hearts, Quests */}
           <div className="flex items-center space-x-2.5 sm:space-x-3.5 shrink-0 whitespace-nowrap">
           {/* Streak */}
-          <div className="flex items-center space-x-1 text-[#FF9F1A] dark:text-[#FFB020] cursor-default">
+          <motion.button
+            whileTap={onOpenStreakFreeze ? { scale: 0.9 } : {}}
+            onClick={() => {
+              if (onOpenStreakFreeze) {
+                triggerHaptic('click');
+                onOpenStreakFreeze();
+              }
+            }}
+            className={`flex items-center space-x-1 text-[#FF9F1A] dark:text-[#FFB020] ${
+              onOpenStreakFreeze ? 'cursor-pointer hover:opacity-85' : 'cursor-default'
+            }`}
+            title="Daily Streak & Streak Freeze"
+          >
             <Flame className="w-5 h-5 fill-[#FF9F1A] dark:fill-[#FFB020] animate-pulse" />
             <span className="text-sm font-black">{streak}</span>
-          </div>
+            {streakFreezes > 0 && (
+              <span className="text-[10px] bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 px-1 py-0.2 rounded-full font-bold ml-0.5" title={`${streakFreezes} Streak Freeze active`}>
+                ❄️{streakFreezes}
+              </span>
+            )}
+          </motion.button>
 
           {/* Gems */}
           <div className="flex items-center space-x-1 text-sky-500 cursor-default">

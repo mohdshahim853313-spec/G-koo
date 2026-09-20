@@ -145,6 +145,10 @@ export interface AppContextType {
   // Subject Performance & Analytics
   categoryStats: Record<string, CategoryAccuracyStat>;
   recordCategoryAnswers: (categoryId: string, attempted: number, correct: number) => void;
+  // Streak Freeze System
+  streakFreezes: number;
+  buyStreakFreeze: () => boolean;
+  addStreakFreeze: (count?: number) => void;
 }
 
 

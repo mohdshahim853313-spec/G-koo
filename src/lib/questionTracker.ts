@@ -222,3 +222,24 @@ export function getQuestionTrackerStats(): { masteredCount: number; incorrectCou
     incorrectCount: incorrect.size
   };
 }
+
+/**
+ * Get all currently recorded incorrect questions for focused practice.
+ */
+export function getAllIncorrectQuestions(): QuizQuestion[] {
+  const incorrect = loadIncorrect();
+  const mastered = loadMastered();
+  const results: QuizQuestion[] = [];
+  const entries = Array.from(incorrect.values());
+  
+  // Sort entries: most missed or most recently missed first
+  entries.sort((a, b) => b.missedCount - a.missedCount || b.lastMissedAt - a.lastMissedAt);
+  
+  for (const entry of entries) {
+    if (!mastered.has(entry.key) && entry.question) {
+      results.push(entry.question);
+    }
+  }
+  return results;
+}
+

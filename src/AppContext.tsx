@@ -566,6 +566,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [streak, setStreak] = useState<number>(() => parseInt(localStorage.getItem('streak') || '3', 10));
   const [hearts, setHearts] = useState<number>(() => parseInt(localStorage.getItem('hearts') || '5', 10));
   const [gems, setGems] = useState<number>(() => parseInt(localStorage.getItem('gems') || '85', 10));
+  const [streakFreezes, setStreakFreezes] = useState<number>(() => parseInt(localStorage.getItem('gkoo_streak_freezes') || '1', 10));
+
+  useEffect(() => {
+    localStorage.setItem('gkoo_streak_freezes', streakFreezes.toString());
+  }, [streakFreezes]);
 
   // Audio, Haptics and Notifications settings
   const [soundEnabled, setSoundEnabled] = useState<boolean>(() => localStorage.getItem('soundEnabled') !== 'false');
@@ -1003,19 +1008,39 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           const diffTime = Math.abs(todayDate.getTime() - lastDate.getTime());
           const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
 
-          if (diffDays === 1) {
-             setStreak(prev => prev + 1);
-          } else if (diffDays > 1) {
-             setStreak(1);
-          }
-       } else {
-          setStreak(1);
-       }
-       localStorage.setItem('lastLoginDate', today);
-       // Reset daily hearts and quests on new day
-       setHearts(5);
-    }
+           if (diffDays === 1) {
+              setStreak(prev => prev + 1);
+           } else if (diffDays > 1) {
+              // If user has a Streak Freeze, save the streak!
+              const currentFreezes = parseInt(localStorage.getItem('gkoo_streak_freezes') || '0', 10);
+              if (currentFreezes > 0) {
+                 setStreakFreezes(prev => Math.max(0, prev - 1));
+                 console.log('[Streak] Streak saved by Streak Freeze! ❄️');
+              } else {
+                 setStreak(1);
+              }
+           }
+        } else {
+           setStreak(1);
+        }
+        localStorage.setItem('lastLoginDate', today);
+        // Reset daily hearts and quests on new day
+        setHearts(5);
+     }
   }, []);
+
+  const buyStreakFreeze = (): boolean => {
+    if (gems >= 30) {
+      setGems(prev => prev - 30);
+      setStreakFreezes(prev => prev + 1);
+      return true;
+    }
+    return false;
+  };
+
+  const addStreakFreeze = (count = 1) => {
+    setStreakFreezes(prev => prev + count);
+  };
 
   const addXp = (amount: number) => {
     setXp(prev => prev + amount);
@@ -1381,6 +1406,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         // Category Performance Stats
         categoryStats,
         recordCategoryAnswers,
+        // Streak Freeze System
+        streakFreezes,
+        buyStreakFreeze,
+        addStreakFreeze,
       }}
 
     >

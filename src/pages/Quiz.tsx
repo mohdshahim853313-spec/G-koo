@@ -5,14 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
 import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Share2, Play } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Share2, Play, Award } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
-import { recordQuestionAnswer } from '../lib/questionTracker';
+import { recordQuestionAnswer, getAllIncorrectQuestions } from '../lib/questionTracker';
 import { saveCategoryAssignedQuestions, isLevelCacheCorruptedWithDuplicates } from '../lib/levelDeduplicator';
 import { MistakesReviewModal, type MistakeRecord } from '../components/MistakesReviewModal';
 import { RateAppModal } from '../components/RateAppModal';
 import { AdMobRewardModal } from '../components/AdMobRewardModal';
+import { AchievementCertificateModal } from '../components/AchievementCertificateModal';
 import { isAndroidApp, PLAY_STORE_APP_URL } from '../utils/platform';
 
 const QUIT_MESSAGES = [
@@ -98,6 +99,7 @@ export default function Quiz() {
   } = useAppContext();
 
   const isSavedQuiz = categoryId === 'saved';
+  const isMistakesQuiz = categoryId === 'mistakes' || searchParams.get('mistakes') === 'true';
   const isLevelQuiz = !!(categoryId && categoryId.startsWith('level-'));
   const isDailyChallenge = searchParams.get('daily') === 'true' || categoryId === 'daily';
   let levelCategory = 'india';
@@ -133,6 +135,11 @@ export default function Quiz() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [showQuitModal, setShowQuitModal] = useState(false);
   const [quitMessageIdx, setQuitMessageIdx] = useState(0);
+
+  // Lifelines & Certificate States
+  const [removedOptions, setRemovedOptions] = useState<string[]>([]);
+  const [lifelineToast, setLifelineToast] = useState<string | null>(null);
+  const [showCertificateModal, setShowCertificateModal] = useState(false);
 
   // Mistakes & Bookmarks & Timer States
   const [mistakesList, setMistakesList] = useState<MistakeRecord[]>([]);
@@ -246,6 +253,13 @@ export default function Quiz() {
         explanation: b.explanation,
         category: b.category || "Saved Questions",
       }));
+    } else if (isMistakesQuiz) {
+      const pastMistakes = getAllIncorrectQuestions();
+      if (pastMistakes.length === 0) {
+        navigate('/');
+        return;
+      }
+      generated = pastMistakes.slice(0, 15);
     } else {
       // Check if questions were already generated for this level on 1st load
       if (levelQuestionsKey) {
@@ -318,6 +332,7 @@ export default function Quiz() {
     setIsAnswerChecked(false);
     setIsCorrect(null);
     setIsSpeaking(false);
+    setRemovedOptions([]);
     refillHearts();
   };
 
@@ -337,7 +352,50 @@ export default function Quiz() {
     setIsAnswerChecked(false);
     setIsCorrect(null);
     setIsSpeaking(false);
+    setRemovedOptions([]);
     refillHearts();
+  };
+
+  const handleFiftyFifty = () => {
+    if (isAnswerChecked || removedOptions.length > 0 || !currentQ) return;
+    if (gems < 10) {
+      triggerHaptic('error', hapticsEnabled);
+      setLifelineToast(lang === 'hi' ? 'पर्याप्त जेम्स नहीं हैं! कम से कम 10 💎 चाहिए।' : 'Not enough Gems! You need at least 10 💎.');
+      setTimeout(() => setLifelineToast(null), 2500);
+      return;
+    }
+
+    addGems(-10);
+    triggerHaptic('success', hapticsEnabled);
+    playSound('success', soundEnabled);
+
+    const wrongOptions = currentQ.options.filter(opt => opt !== currentQ.answer);
+    const toRemove = wrongOptions.slice(0, 2);
+    setRemovedOptions(toRemove);
+    setLifelineToast(lang === 'hi' ? '✂️ 50:50 लागू! दो गलत विकल्प हट गए (-10 💎)' : '✂️ 50:50 Applied! Two wrong options removed (-10 💎)');
+    setTimeout(() => setLifelineToast(null), 2500);
+  };
+
+  const handleSkipQuestion = () => {
+    if (isAnswerChecked || !currentQ) return;
+    if (gems < 15) {
+      triggerHaptic('error', hapticsEnabled);
+      setLifelineToast(lang === 'hi' ? 'पर्याप्त जेम्स नहीं हैं! कम से कम 15 💎 चाहिए।' : 'Not enough Gems! You need at least 15 💎.');
+      setTimeout(() => setLifelineToast(null), 2500);
+      return;
+    }
+
+    addGems(-15);
+    triggerHaptic('click', hapticsEnabled);
+    setLifelineToast(lang === 'hi' ? '⏭️ सवाल छोड़ दिया गया (-15 💎)' : '⏭️ Question Skipped (-15 💎)');
+    setTimeout(() => setLifelineToast(null), 2000);
+
+    setRemovedOptions([]);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setCurrentIndex(prev => prev + 1);
+    if (examTimerEnabled) setTimeLeft(examTimerSeconds || 20);
   };
 
   useEffect(() => {
@@ -525,6 +583,7 @@ export default function Quiz() {
     setSelectedOption(null);
     setIsAnswerChecked(false);
     setIsCorrect(null);
+    setRemovedOptions([]);
     setCurrentIndex(prev => prev + 1);
   };
 
@@ -902,6 +961,19 @@ export default function Quiz() {
             <span>{lang === 'hi' ? '💬 WhatsApp पर स्कोर शेयर करें' : '💬 Share Score on WhatsApp'}</span>
           </motion.button>
 
+          {/* Achievement Certificate Button */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              triggerHaptic('click', hapticsEnabled);
+              setShowCertificateModal(true);
+            }}
+            className="w-full bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-600 hover:to-orange-700 text-white font-black py-3.5 rounded-2xl shadow-[0_4px_0_0_#B45309] active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <Award className="w-4 h-4" />
+            <span>{lang === 'hi' ? '🎓 प्रशस्ति प्रमाण-पत्र देखें व शेयर करें' : '🎓 View & Share Certificate'}</span>
+          </motion.button>
+
           <button 
             onClick={handleRestartSameQuiz}
             className="w-full bg-transparent text-gray-500 dark:text-gray-400 font-bold py-2.5 rounded-2xl active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs"
@@ -911,6 +983,17 @@ export default function Quiz() {
           </button>
 
         </div>
+
+        {/* Achievement Certificate Modal */}
+        <AchievementCertificateModal
+          isOpen={showCertificateModal}
+          onClose={() => setShowCertificateModal(false)}
+          title={isLevelQuiz ? `Level ${levelNumber}` : (customTopic || 'GK Master')}
+          categoryName={categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'G-koo'}
+          stars={earnedStars || (accuracy >= 90 ? 3 : accuracy >= 65 ? 2 : 1)}
+          accuracy={accuracy}
+          score={totalGained}
+        />
 
         {/* Rate Us on Google Play Modal (Android App Only) */}
         <RateAppModal
@@ -1097,14 +1180,60 @@ export default function Quiz() {
               </div>
             </div>
 
+            {/* Lifeline Toast Banner */}
+            {lifelineToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-center space-x-1.5 shadow-xs"
+              >
+                <span>{lifelineToast}</span>
+              </motion.div>
+            )}
+
+            {/* Lifelines Toolbar (50:50 & Skip Question) */}
+            <div className="flex items-center justify-end space-x-2 mb-3">
+              {/* 50:50 Lifeline */}
+              <button
+                type="button"
+                onClick={handleFiftyFifty}
+                disabled={isAnswerChecked || removedOptions.length > 0}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs ${
+                  removedOptions.length > 0
+                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
+                    : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-[0_2px_0_0_#4338CA] active:translate-y-0.5 active:shadow-none cursor-pointer'
+                }`}
+                title={lang === 'hi' ? '50:50 लाइफलाइन (10 जेम्स)' : '50:50 Lifeline (10 Gems)'}
+              >
+                <span>✂️ 50:50</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">10 💎</span>
+              </button>
+
+              {/* Skip Question Lifeline */}
+              <button
+                type="button"
+                onClick={handleSkipQuestion}
+                disabled={isAnswerChecked}
+                className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-[0_2px_0_0_#0284C7] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                title={lang === 'hi' ? 'सवाल छोड़ें (15 जेम्स)' : 'Skip Question (15 Gems)'}
+              >
+                <span>⏭️ {lang === 'hi' ? 'स्किप' : 'Skip'}</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">15 💎</span>
+              </button>
+            </div>
+
             {/* 3D Tactile Option Buttons */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
               {currentQ.options.map((option) => {
                 const isSelected = selectedOption === option;
+                const isRemoved = removedOptions.includes(option);
 
                 let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
 
-                if (!isAnswerChecked) {
+                if (isRemoved) {
+                  btnStyles += "border-dashed border-gray-300 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-gray-400 line-through opacity-30 cursor-not-allowed";
+                } else if (!isAnswerChecked) {
                   if (isSelected) {
                     btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
                   } else {
@@ -1123,25 +1252,28 @@ export default function Quiz() {
                 return (
                   <motion.button 
                     key={option} 
-                    whileTap={!isAnswerChecked ? { scale: 0.96, y: 3 } : {}}
-                    whileHover={!isAnswerChecked ? { scale: 1.01 } : {}}
+                    whileTap={!isAnswerChecked && !isRemoved ? { scale: 0.96, y: 3 } : {}}
+                    whileHover={!isAnswerChecked && !isRemoved ? { scale: 1.01 } : {}}
                     onClick={() => {
+                      if (isRemoved) return;
                       triggerHaptic('click');
                       handleSelect(option);
                     }} 
-                    disabled={isAnswerChecked}
+                    disabled={isAnswerChecked || isRemoved}
                     className={btnStyles}
                   >
                     <div className="flex items-center space-x-2.5 flex-1 pr-2">
                       {/* Optional micro audio button on option */}
-                      <button
-                        type="button"
-                        onClick={(e) => speakSingleOption(e, option)}
-                        className="p-1 rounded-lg text-gray-400 hover:text-[#FF5F6D] dark:hover:text-rose-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                        title={lang === 'hi' ? 'विकल्प सुनें' : 'Listen option'}
-                      >
-                        <Volume2 className="w-3.5 h-3.5" />
-                      </button>
+                      {!isRemoved && (
+                        <button
+                          type="button"
+                          onClick={(e) => speakSingleOption(e, option)}
+                          className="p-1 rounded-lg text-gray-400 hover:text-[#FF5F6D] dark:hover:text-rose-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                          title={lang === 'hi' ? 'विकल्प सुनें' : 'Listen option'}
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <span>{option}</span>
                     </div>
 
