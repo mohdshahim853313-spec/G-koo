@@ -4,6 +4,8 @@ import {
   isQuestionMastered, 
   normalizeQuestionKey 
 } from './questionTracker';
+import { CURATED_BANK_HI, CURATED_BANK_EN } from '../data/curatedQuestionBank';
+import { deduplicateForLevel, saveCategoryAssignedQuestions } from './levelDeduplicator';
 
 export interface QuizQuestion {
   id: number | string;
@@ -18,6 +20,7 @@ export interface QuizQuestion {
 export interface AiQuizOptions {
   topic?: string;
   categoryId?: string;
+  levelNumber?: number;
   customPrompt?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   count?: number;
@@ -224,6 +227,37 @@ const QUESTION_BANK_HI: Record<string, QuizQuestion[]> = {
   ]
 };
 
+// Merge curated high-yield question repositories into banks to eliminate repetition
+Object.entries(CURATED_BANK_HI).forEach(([cat, list]) => {
+  if (!QUESTION_BANK_HI[cat]) {
+    QUESTION_BANK_HI[cat] = [...list];
+  } else {
+    const existingKeys = new Set(QUESTION_BANK_HI[cat].map(q => normalizeQuestionKey(q.text)));
+    for (const q of list) {
+      const k = normalizeQuestionKey(q.text);
+      if (!existingKeys.has(k)) {
+        existingKeys.add(k);
+        QUESTION_BANK_HI[cat].push(q);
+      }
+    }
+  }
+});
+
+Object.entries(CURATED_BANK_EN).forEach(([cat, list]) => {
+  if (!QUESTION_BANK_EN[cat]) {
+    QUESTION_BANK_EN[cat] = [...list];
+  } else {
+    const existingKeys = new Set(QUESTION_BANK_EN[cat].map(q => normalizeQuestionKey(q.text)));
+    for (const q of list) {
+      const k = normalizeQuestionKey(q.text);
+      if (!existingKeys.has(k)) {
+        existingKeys.add(k);
+        QUESTION_BANK_EN[cat].push(q);
+      }
+    }
+  }
+});
+
 // -------------------------------------------------------------
 // MULTI-API-KEY POOL & ROTATION SYSTEM
 // -------------------------------------------------------------
@@ -342,11 +376,10 @@ export async function generateAiQuiz(
     const modelsToTry = [
       'gemini-2.5-flash',
       'gemini-flash-latest',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
       'gemini-3.1-flash-lite',
-      'gemini-pro-latest',
-      'gemini-2.5-pro'
+      'gemini-3-flash-preview',
+      'gemini-1.5-flash',
+      'gemini-pro-latest'
     ];
 
     // Iterate through keys in the pool (Auto-Failover / Load Balancing)
@@ -360,9 +393,13 @@ export async function generateAiQuiz(
             ? "CRITICAL LANGUAGE REQUIREMENT: PURE HINDI (हिंदी). Everything including question 'text', all 4 'options', 'answer', and 'explanation' MUST be written in 100% natural, correct Devanagari Hindi. Do NOT use English words."
             : "Language: English.";
 
+          const levelContext = options.levelNumber
+            ? `LEVEL NUMBER: ${options.levelNumber}. CRITICAL: Ensure all questions are uniquely tailored for Level ${options.levelNumber} and completely distinct. Do NOT repeat standard questions.`
+            : '';
+
           const promptInstruction = customPrompt
             ? `User Custom Instructions: "${customPrompt}"`
-            : `Generate a brand-new, educational quiz on: "${cleanTopic || categoryId || 'General Knowledge & Current Affairs'}"`;
+            : `Generate a brand-new, educational quiz on: "${cleanTopic || categoryId || 'General Knowledge & Current Affairs'}". ${levelContext}`;
 
           const systemPrompt = `You are an expert quiz master. Create an engaging multiple-choice quiz of exactly ${count} questions.
 Instructions:
@@ -402,7 +439,7 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
               contents: [{ parts: [{ text: systemPrompt }] }],
               generationConfig: {
                 temperature: 0.8,
-                maxOutputTokens: 2048,
+                maxOutputTokens: 4096,
               }
             })
           });
@@ -470,7 +507,11 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
                 }
 
                 if (finalAiList.length > 0) {
-                  return finalAiList.slice(0, count);
+                  const result = finalAiList.slice(0, count);
+                  if (options.levelNumber && (categoryId || cleanTopic)) {
+                    saveCategoryAssignedQuestions(categoryId || cleanTopic, options.levelNumber, result);
+                  }
+                  return result;
                 }
               }
             }
@@ -500,6 +541,17 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
 
   if (categoryId && repo[categoryId]) {
     pool = [...repo[categoryId]];
+    // If pool has fewer than 35 items, blend in mix questions to ensure no level repeats
+    if (pool.length < 35 && repo.mix) {
+      const existingKeys = new Set(pool.map(q => normalizeQuestionKey(q.text)));
+      for (const mq of repo.mix) {
+        const k = normalizeQuestionKey(mq.text);
+        if (!existingKeys.has(k)) {
+          existingKeys.add(k);
+          pool.push(mq);
+        }
+      }
+    }
   } else if (cleanTopic) {
     const topicLower = cleanTopic.toLowerCase();
     if (topicLower.includes('current') || topicLower.includes('समसामयिकी') || topicLower.includes('affair')) {
@@ -524,10 +576,27 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
     pool = Object.values(QUESTION_BANK_HI).flat();
   }
 
-  // 1. Get past incorrect questions for spaced repetition (up to 3)
+  const activeCategory = categoryId || cleanTopic || 'mix';
+
+  // 1. Cross-Level Deduplication: If levelNumber is given, ensure questions never repeat across levels!
+  if (options.levelNumber) {
+    const deduplicated = deduplicateForLevel(pool, activeCategory, options.levelNumber, count);
+    if (deduplicated.length > 0) {
+      saveCategoryAssignedQuestions(activeCategory, options.levelNumber, deduplicated);
+      return deduplicated.map((q, idx) => ({
+        ...q,
+        id: `dyn-${Date.now()}-${idx}`,
+        options: shuffleArray(q.options),
+        category: cleanTopic || categoryId || (lang === 'hi' ? "क्विज" : "Quiz"),
+        source: 'offline'
+      }));
+    }
+  }
+
+  // 2. Get past incorrect questions for spaced repetition (up to 3)
   const retryQuestions = getRetryQuestions(categoryId || cleanTopic, 3);
 
-  // 2. Filter out already mastered questions from pool
+  // 3. Filter out already mastered questions from pool
   const unmasteredPool = filterUnmasteredQuestions(pool);
   const shuffledUnmastered = shuffleArray(unmasteredPool);
 

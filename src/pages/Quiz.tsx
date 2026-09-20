@@ -5,11 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
 import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Share2, Play } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
 import { recordQuestionAnswer } from '../lib/questionTracker';
+import { saveCategoryAssignedQuestions, isLevelCacheCorruptedWithDuplicates } from '../lib/levelDeduplicator';
 import { MistakesReviewModal, type MistakeRecord } from '../components/MistakesReviewModal';
+import { RateAppModal } from '../components/RateAppModal';
+import { AdMobRewardModal } from '../components/AdMobRewardModal';
+import { isAndroidApp, PLAY_STORE_APP_URL } from '../utils/platform';
 
 const QUIT_MESSAGES = [
   {
@@ -72,6 +76,7 @@ export default function Quiz() {
   const {
     addXp,
     soundEnabled,
+    setSoundEnabled,
     hapticsEnabled,
     geminiApiKey,
     lang,
@@ -88,6 +93,8 @@ export default function Quiz() {
     examTimerEnabled,
     examTimerSeconds,
     recordCategoryAnswers,
+    gems,
+    addGems,
   } = useAppContext();
 
   const isSavedQuiz = categoryId === 'saved';
@@ -117,6 +124,8 @@ export default function Quiz() {
   const [isOfflineQuiz, setIsOfflineQuiz] = useState(false);
   const [isOfflineBlocked, setIsOfflineBlocked] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(true);
+  const [showRateModal, setShowRateModal] = useState(false);
+  const [showAdMobModal, setShowAdMobModal] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -245,7 +254,16 @@ export default function Quiz() {
           if (saved) {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              generated = parsed;
+              // Check if cached questions are duplicates of other levels (from prior bug)
+              if (isLevelQuiz && levelNumber && isLevelCacheCorruptedWithDuplicates(levelCategory, levelNumber, parsed)) {
+                console.warn(`[Quiz] Level ${levelNumber} cache has duplicate questions from prior levels, regenerating clean unique questions...`);
+                generated = [];
+              } else {
+                generated = parsed;
+                if (isLevelQuiz && levelNumber) {
+                  saveCategoryAssignedQuestions(levelCategory, levelNumber, parsed);
+                }
+              }
             }
           }
         } catch (e) {
@@ -257,6 +275,7 @@ export default function Quiz() {
         generated = await generateAiQuiz(geminiApiKey, {
           topic: topicName,
           categoryId: isLevelQuiz ? levelCategory : (categoryId || 'mix'),
+          levelNumber: isLevelQuiz ? (levelNumber || undefined) : undefined,
           customPrompt: customPrompt || undefined,
           difficulty: effectiveDifficulty,
           count: effectiveCount,
@@ -267,6 +286,9 @@ export default function Quiz() {
         if (levelQuestionsKey && generated.length > 0) {
           try {
             localStorage.setItem(levelQuestionsKey, JSON.stringify(generated));
+            if (isLevelQuiz && levelNumber) {
+              saveCategoryAssignedQuestions(levelCategory, levelNumber, generated);
+            }
           } catch (e) {
             // ignore
           }
@@ -507,6 +529,30 @@ export default function Quiz() {
   };
 
 
+  // Google Play Store 5-Star Rating Prompt (Android App Only)
+  useEffect(() => {
+    if (currentIndex >= questions.length && questions.length > 0 && isAndroidApp()) {
+      const finalAccuracy = Math.round((correctCount / questions.length) * 100);
+      if (finalAccuracy >= 65) {
+        try {
+          const hasRated = localStorage.getItem('gkoo_has_rated_app');
+          const lastPrompt = localStorage.getItem('gkoo_last_rate_prompt');
+          const now = Date.now();
+          const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+
+          if (!hasRated && (!lastPrompt || (now - parseInt(lastPrompt, 10)) > sevenDaysMs)) {
+            const timer = setTimeout(() => {
+              setShowRateModal(true);
+            }, 1800);
+            return () => clearTimeout(timer);
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, [currentIndex, questions.length, correctCount]);
+
   // Offline Blocked Screen (Shown when trying to play an unpassed new level or online-only quiz while offline)
   if (isOfflineBlocked) {
     return (
@@ -618,20 +664,61 @@ export default function Quiz() {
             : 'You used up all 5 hearts in this quiz. You can restart the test with the exact same 15 questions!'}
         </p>
         <div className="space-y-3 w-full">
+          {/* Option A: Watch Ad to Refill (ONLY on Android App) */}
+          {isAndroidApp() ? (
+            <button
+              onClick={() => {
+                triggerHaptic('click', hapticsEnabled);
+                setShowAdMobModal(true);
+              }}
+              className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#065F46] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 animate-pulse cursor-pointer"
+            >
+              <Play className="w-4 h-4 fill-white" />
+              <span>{lang === 'hi' ? '🎬 वीडियो देखें और 5 हार्ट्स पाएँ (Free)' : '🎬 Watch Video to Refill 5 Hearts (Free)'}</span>
+            </button>
+          ) : (
+            /* Option B: Refill with Gems on Web / Desktop */
+            gems >= 30 && (
+              <button
+                onClick={() => {
+                  addGems(-30);
+                  refillHearts();
+                  setQuizHearts(5);
+                  playSound('success', soundEnabled);
+                  triggerHaptic('success', hapticsEnabled);
+                }}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#B45309] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 cursor-pointer"
+              >
+                <span>{lang === 'hi' ? '💎 30 जेम्स से 5 हार्ट्स रिफिल करें' : '💎 Refill 5 Hearts for 30 Gems'}</span>
+              </button>
+            )
+          )}
+
           <button
             onClick={handleRestartSameQuiz}
-            className="w-full bg-[#FF5F6D] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2"
+            className="w-full bg-[#FF5F6D] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 stroke-[2.5]" />
             <span>{lang === 'hi' ? '🔄 दोबारा टेस्ट दें' : '🔄 Restart Test'}</span>
           </button>
           <button
             onClick={() => navigate('/')}
-            className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs"
+            className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs cursor-pointer"
           >
             {t('returnHome')}
           </button>
         </div>
+
+        {/* AdMob Rewarded Video Modal for Android */}
+        <AdMobRewardModal
+          isOpen={showAdMobModal}
+          onClose={() => setShowAdMobModal(false)}
+          onRewardGranted={() => {
+            refillHearts();
+            setQuizHearts(5);
+            setShowAdMobModal(false);
+          }}
+        />
       </div>
     );
   }
@@ -786,6 +873,35 @@ export default function Quiz() {
             {isLevelQuiz ? (lang === 'hi' ? 'लेवल्स मैप पर लौटें' : 'Back to Level Map') : t('returnHome')}
           </button>
 
+          {/* WhatsApp / Social Share Score Button */}
+          <motion.button
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              triggerHaptic('success', hapticsEnabled);
+              const title = categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'G-koo GK';
+              const lvlText = levelNumber ? `Level ${levelNumber}` : 'Quiz';
+              const shareText = lang === 'hi'
+                ? `🏆 मैंने G-koo ऐप में ${title} (${lvlText}) में ${accuracy}% स्कोर किया और ${totalGained} XP हासिल किया! 🧠✨\nक्या आप मेरे स्कोर को हरा सकते हैं? 🚀\n👉 अभी मुफ़्त में डाउनलोड करें और खेलें: ${PLAY_STORE_APP_URL}`
+                : `🏆 I scored ${accuracy}% and won ${totalGained} XP in G-koo Quiz (${title} - ${lvlText})! 🧠✨\nCan you beat my score? 🚀\n👉 Download & Play now: ${PLAY_STORE_APP_URL}`;
+
+              if (typeof navigator !== 'undefined' && navigator.share) {
+                navigator.share({
+                  title: 'G-koo - AI Quiz & GK Arena',
+                  text: shareText,
+                  url: PLAY_STORE_APP_URL,
+                }).catch(() => {
+                  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+                });
+              } else {
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`, '_blank');
+              }
+            }}
+            className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-600 hover:from-emerald-600 hover:to-green-700 text-white font-black py-3.5 rounded-2xl shadow-[0_4px_0_0_#065F46] active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer"
+          >
+            <Share2 className="w-4 h-4" />
+            <span>{lang === 'hi' ? '💬 WhatsApp पर स्कोर शेयर करें' : '💬 Share Score on WhatsApp'}</span>
+          </motion.button>
+
           <button 
             onClick={handleRestartSameQuiz}
             className="w-full bg-transparent text-gray-500 dark:text-gray-400 font-bold py-2.5 rounded-2xl active:scale-98 transition-all flex items-center justify-center space-x-2 text-xs"
@@ -795,6 +911,12 @@ export default function Quiz() {
           </button>
 
         </div>
+
+        {/* Rate Us on Google Play Modal (Android App Only) */}
+        <RateAppModal
+          isOpen={showRateModal}
+          onClose={() => setShowRateModal(false)}
+        />
       </motion.div>
     );
   }
@@ -803,18 +925,36 @@ export default function Quiz() {
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] flex flex-col justify-between pt-[max(env(safe-area-inset-top,0px),8px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none">
       {/* Top Navigation HUD */}
       <div className="max-w-md mx-auto w-full px-4 mb-2">
-        <div className="flex items-center justify-between gap-3 mb-2">
-          {/* Close/Quit Cross */}
-          <button 
-            onClick={() => {
-              const randIdx = Math.floor(Math.random() * QUIT_MESSAGES.length);
-              setQuitMessageIdx(randIdx);
-              setShowQuitModal(true);
-            }} 
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer shrink-0"
-          >
-            <X className="w-5 h-5 stroke-[2.5]" />
-          </button>
+        <div className="flex items-center justify-between gap-2.5 mb-2">
+          {/* Top Left Actions: Close/Quit Cross + Quick Sound Toggle */}
+          <div className="flex items-center space-x-1 shrink-0">
+            <button 
+              onClick={() => {
+                const randIdx = Math.floor(Math.random() * QUIT_MESSAGES.length);
+                setQuitMessageIdx(randIdx);
+                setShowQuitModal(true);
+              }} 
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+              title={lang === 'hi' ? 'क्विज छोड़ें' : 'Quit quiz'}
+            >
+              <X className="w-5 h-5 stroke-[2.5]" />
+            </button>
+
+            <button
+              onClick={() => {
+                setSoundEnabled(!soundEnabled);
+                triggerHaptic('click', hapticsEnabled);
+              }}
+              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                soundEnabled
+                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                  : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              title={soundEnabled ? (lang === 'hi' ? 'आवाज़ बंद करें' : 'Mute Sound') : (lang === 'hi' ? 'आवाज़ चालू करें' : 'Unmute Sound')}
+            >
+              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
+            </button>
+          </div>
 
           {/* Duolingo Progress Bar + Hearts */}
           <div className="flex items-center space-x-2.5 flex-1 min-w-0">
