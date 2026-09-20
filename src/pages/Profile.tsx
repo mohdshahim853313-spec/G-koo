@@ -215,7 +215,7 @@ export default function Profile() {
             whileTap={{ scale: 0.94, y: 2 }}
             className="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-orange-800 flex items-center space-x-3 select-none"
           >
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
               <Zap className="w-5 h-5 fill-white" />
             </div>
             <div>
@@ -229,7 +229,7 @@ export default function Profile() {
             whileTap={{ scale: 0.94, y: 2 }}
             className="bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-teal-900 flex items-center space-x-3 select-none"
           >
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
               <Target className="w-5 h-5" />
             </div>
             <div>
@@ -243,7 +243,7 @@ export default function Profile() {
             whileTap={{ scale: 0.94, y: 2 }}
             className="bg-gradient-to-br from-blue-500 via-indigo-500 to-blue-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-indigo-900 flex items-center space-x-3 select-none"
           >
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
               <Award className="w-5 h-5" />
             </div>
             <div>
@@ -257,7 +257,7 @@ export default function Profile() {
             whileTap={{ scale: 0.94, y: 2 }}
             className="bg-gradient-to-br from-[#FF5F6D] via-[#E64553] to-[#D93848] text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-[#991B1B] flex items-center space-x-3 select-none"
           >
-            <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
               <span className="text-xl">🔥</span>
             </div>
             <div>
@@ -278,7 +278,7 @@ export default function Profile() {
         className="w-full bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-amber-800 flex items-center justify-between mb-4 select-none"
       >
         <div className="flex items-center space-x-3.5">
-          <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner">
+          <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
             <Bookmark className="w-6 h-6 fill-white" />
           </div>
           <div className="text-left">
@@ -302,7 +302,7 @@ export default function Profile() {
         className="w-full bg-gradient-to-r from-rose-500 via-red-500 to-rose-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-rose-800 flex items-center justify-between mb-6 select-none"
       >
         <div className="flex items-center space-x-3.5 flex-1 min-w-0 pr-2">
-          <div className="p-3 rounded-2xl bg-white/20 backdrop-blur-xs text-white shadow-inner shrink-0">
+          <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner shrink-0">
             <span className="text-xl">🎯</span>
           </div>
           <div className="text-left min-w-0">

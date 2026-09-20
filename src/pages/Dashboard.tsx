@@ -623,7 +623,7 @@ export default function Dashboard() {
                   className="perf-card col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white border-b-4 border-emerald-950 rounded-3xl p-4 sm:p-5 text-left shadow-xl active:shadow-none transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group select-none relative overflow-hidden ring-2 ring-emerald-400/50"
                 >
                   <div className="flex items-start sm:items-center space-x-3.5 min-w-0 flex-1">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-2xl sm:text-3xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/25 flex items-center justify-center text-2xl sm:text-3xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
                       🏛️
                     </div>
                     <div className="min-w-0 flex-1">
@@ -701,7 +701,7 @@ export default function Dashboard() {
               className="bg-gradient-to-tr from-purple-600 via-indigo-600 to-violet-700 text-white rounded-3xl p-4 shadow-lg border-b-[5px] border-purple-950 flex items-center justify-between gap-3 relative overflow-hidden"
             >
               <div className="flex items-center space-x-3 z-10 min-w-0 flex-1">
-                <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-xs flex items-center justify-center text-2xl shadow-inner shrink-0">
+                <div className="w-11 h-11 rounded-2xl bg-white/25 flex items-center justify-center text-2xl shadow-inner shrink-0">
                   🤖
                 </div>
                 <div className="min-w-0 flex-1">
