@@ -2,6 +2,13 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { AppContext, type LangKey, type ThemeKey, type UserProfile, type UserAccount, type UserStats, type UserBadge, type Quest, type LevelRecord } from './appContextStore';
 import { scheduleDailyReminders, sendImmediateTestNotification } from './lib/notifications';
 import { clearQuestionHistory } from './lib/questionTracker';
+import {
+  firebaseSignUp,
+  firebaseSignIn,
+  firebaseSignInWithGoogle,
+  firebaseSignOutUser,
+} from './lib/firebaseAuthService';
+import { isFirebaseConfigured } from './lib/firebase';
 
 const translations: Record<LangKey, Record<string, string>> = {
   en: {
@@ -1133,7 +1140,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const signUp = (name: string, email: string, password = '', avatar = '🦉') => {
+  const signUp = async (name: string, email: string, password = '', avatar = '🦉') => {
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedName = name.trim();
 
@@ -1141,7 +1148,38 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       return { success: false, message: t('fillAllFields') };
     }
 
-    // Check if email already registered
+    if (password && password.length < 6) {
+      return { success: false, message: lang === 'hi' ? 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए' : 'Password must be at least 6 characters' };
+    }
+
+    // Try Firebase Sign Up if configured
+    if (isFirebaseConfigured() && password) {
+      const fbResult = await firebaseSignUp(trimmedName, trimmedEmail, password, avatar, { xp, streak, gems, hearts, stats });
+      if (fbResult.success && fbResult.user) {
+        const u = fbResult.user;
+        const newAccount: UserAccount = {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          avatar: u.avatar || avatar,
+          joinedDate: u.joinedDate || '2026',
+          xp: u.xp ?? xp,
+          streak: u.streak ?? streak,
+          gems: u.gems ?? gems,
+          hearts: 5,
+          stats: u.stats || stats,
+          isGuest: false,
+        };
+        setAccounts(prev => ({ ...prev, [u.id]: newAccount }));
+        setCurrentUserId(u.id);
+        setProfile({ name: newAccount.name, avatar: newAccount.avatar, joinedDate: newAccount.joinedDate });
+        return { success: true, message: t('accountCreatedSuccess') };
+      } else if (fbResult.message) {
+        return { success: false, message: fbResult.message };
+      }
+    }
+
+    // Fallback to local accounts
     const existing = Object.values(accounts).find(a => a.email.toLowerCase() === trimmedEmail);
     if (existing) {
       return { success: false, message: t('accountExists') };
@@ -1174,12 +1212,45 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return { success: true, message: t('accountCreatedSuccess') };
   };
 
-  const signIn = (email: string, password = '') => {
+  const signIn = async (email: string, password = '') => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
       return { success: false, message: t('fillAllFields') };
     }
 
+    // Try Firebase Sign In if configured
+    if (isFirebaseConfigured() && password) {
+      const fbResult = await firebaseSignIn(trimmedEmail, password);
+      if (fbResult.success && fbResult.user) {
+        const u = fbResult.user;
+        const newAccount: UserAccount = {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          avatar: u.avatar || '🦉',
+          joinedDate: u.joinedDate || '2026',
+          xp: u.xp ?? xp,
+          streak: u.streak ?? streak,
+          gems: u.gems ?? gems,
+          hearts: u.hearts ?? 5,
+          stats: u.stats || stats,
+          isGuest: false,
+        };
+        setAccounts(prev => ({ ...prev, [u.id]: newAccount }));
+        setCurrentUserId(u.id);
+        setProfile({ name: newAccount.name, avatar: newAccount.avatar, joinedDate: newAccount.joinedDate });
+        if (u.xp !== undefined) setXp(u.xp);
+        if (u.streak !== undefined) setStreak(u.streak);
+        if (u.gems !== undefined) setGems(u.gems);
+        if (u.hearts !== undefined) setHearts(u.hearts);
+        if (u.stats) setStats(u.stats);
+        return { success: true, message: t('loginSuccess') };
+      } else if (fbResult.message) {
+        return { success: false, message: fbResult.message };
+      }
+    }
+
+    // Fallback to local accounts
     const account = Object.values(accounts).find(
       a => a.email.toLowerCase() === trimmedEmail && (!a.password || a.password === password.trim())
     );
@@ -1203,7 +1274,43 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return { success: true, message: t('loginSuccess') };
   };
 
-  const signInWithGoogle = (googleProfile: { id?: string; name: string; email: string; avatar?: string }) => {
+  const signInWithGoogle = async (googleProfile?: { id?: string; name: string; email: string; avatar?: string }) => {
+    // If Firebase is configured and no manual profile provided, use Firebase Google Popup
+    if (isFirebaseConfigured() && !googleProfile) {
+      const fbResult = await firebaseSignInWithGoogle({ xp, streak, gems, hearts, stats });
+      if (fbResult.success && fbResult.user) {
+        const u = fbResult.user;
+        const newAccount: UserAccount = {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          avatar: u.avatar || '🦁',
+          joinedDate: u.joinedDate || '2026',
+          xp: u.xp ?? xp,
+          streak: u.streak ?? streak,
+          gems: u.gems ?? gems,
+          hearts: u.hearts ?? 5,
+          stats: u.stats || stats,
+          isGuest: false,
+        };
+        setAccounts(prev => ({ ...prev, [u.id]: newAccount }));
+        setCurrentUserId(u.id);
+        setProfile({ name: newAccount.name, avatar: newAccount.avatar, joinedDate: newAccount.joinedDate });
+        if (u.xp !== undefined) setXp(u.xp);
+        if (u.streak !== undefined) setStreak(u.streak);
+        if (u.gems !== undefined) setGems(u.gems);
+        if (u.hearts !== undefined) setHearts(u.hearts);
+        if (u.stats) setStats(u.stats);
+        return { success: true, message: t('loginSuccess') };
+      } else if (fbResult.message) {
+        return { success: false, message: fbResult.message };
+      }
+    }
+
+    if (!googleProfile) {
+      return { success: false, message: 'Google profile missing' };
+    }
+
     const trimmedEmail = (googleProfile.email || '').trim().toLowerCase();
     const cleanName = (googleProfile.name || 'Google User').trim();
     const cleanAvatar = googleProfile.avatar || '🦉';
@@ -1265,6 +1372,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = () => {
+    firebaseSignOutUser();
     setCurrentUserId(null);
     localStorage.removeItem('gkoo_current_user_id');
     setProfile({

@@ -111,9 +111,9 @@ export interface AppContextType {
   isGuest: boolean;
   isAuthModalOpen: boolean;
   setIsAuthModalOpen: (open: boolean) => void;
-  signIn: (email: string, password?: string) => { success: boolean; message?: string };
-  signUp: (name: string, email: string, password?: string, avatar?: string) => { success: boolean; message?: string };
-  signInWithGoogle: (googleProfile: { id?: string; name: string; email: string; avatar?: string }) => { success: boolean; message?: string };
+  signIn: (email: string, password?: string) => Promise<{ success: boolean; message?: string }>;
+  signUp: (name: string, email: string, password?: string, avatar?: string) => Promise<{ success: boolean; message?: string }>;
+  signInWithGoogle: (googleProfile?: { id?: string; name: string; email: string; avatar?: string }) => Promise<{ success: boolean; message?: string }>;
   signOut: () => void;
   // Level Progression System
   levelProgress: Record<number, LevelRecord>;

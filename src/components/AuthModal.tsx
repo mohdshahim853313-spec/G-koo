@@ -30,8 +30,8 @@ export const AuthModal = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
-  const handleGoogleSuccess = (googleUser: GoogleUserProfile) => {
-    const result = signInWithGoogle({
+  const handleGoogleSuccess = async (googleUser: GoogleUserProfile) => {
+    const result = await signInWithGoogle({
       id: googleUser.sub,
       name: googleUser.name,
       email: googleUser.email,
@@ -81,6 +81,21 @@ export const AuthModal = () => {
       setIsGoogleLoading(true);
       triggerHaptic('click');
 
+      // 1. First attempt Firebase Google Sign In
+      const result = await signInWithGoogle();
+      if (result.success) {
+        playSound('complete');
+        triggerHaptic('success');
+        setSuccessMessage(result.message || (lang === 'hi' ? 'Google से लॉगिन सफल!' : 'Signed in with Google!'));
+        setTimeout(() => {
+          setIsAuthModalOpen(false);
+          setIsGoogleLoading(false);
+          setSuccessMessage('');
+        }, 1200);
+        return;
+      }
+
+      // 2. Fallback to Google Identity Services SDK popup if needed
       const googleUser = await triggerGoogleSignIn();
       handleGoogleSuccess(googleUser);
     } catch (err: any) {
@@ -90,13 +105,13 @@ export const AuthModal = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setSuccessMessage('');
 
     if (mode === 'signup') {
-      const result = signUp(name, email, password, selectedAvatar);
+      const result = await signUp(name, email, password, selectedAvatar);
       if (result.success) {
         playSound('success');
         triggerHaptic('success');
@@ -114,7 +129,7 @@ export const AuthModal = () => {
         setErrorMessage(result.message || 'Failed to sign up');
       }
     } else {
-      const result = signIn(email, password);
+      const result = await signIn(email, password);
       if (result.success) {
         playSound('success');
         triggerHaptic('success');
