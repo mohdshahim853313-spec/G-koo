@@ -5,9 +5,9 @@ import { Sidebar } from './components/Sidebar';
 import { AppProvider } from './AppContext';
 import { AuthModal } from './components/AuthModal';
 import { GkooSplashScreen } from './components/GkooSplashScreen';
+import Dashboard from './pages/Dashboard';
 
 // Route-level code splitting for instantaneous mobile navigation
-const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Quiz = lazy(() => import('./pages/Quiz'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Settings = lazy(() => import('./pages/Settings'));

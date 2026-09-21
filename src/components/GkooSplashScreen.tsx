@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { isAndroidApp } from '../utils/platform';
 
 interface GkooSplashScreenProps {
   onFinish?: () => void;
@@ -9,7 +10,7 @@ interface GkooSplashScreenProps {
 
 export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
   onFinish,
-  minDuration = 1200,
+  minDuration = isAndroidApp() ? 1000 : 300,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 

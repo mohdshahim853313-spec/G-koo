@@ -1,7 +1,5 @@
-const CACHE_NAME = 'g-koo-v2';
-const ASSETS = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'g-koo-v5';
+const STATIC_ASSETS = [
   '/manifest.webmanifest',
   '/gkoo-logo.svg',
   '/pwa-192x192.png',
@@ -13,7 +11,7 @@ const ASSETS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
   );
   self.skipWaiting();
 });
@@ -31,8 +29,45 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+
+  const url = new URL(e.request.url);
+
+  // 1. Navigation requests (HTML) -> Network First with cache fallback for offline
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  // 2. Static hashed Vite assets (/assets/...) -> Cache first, network fallback (NEVER return HTML on fail)
+  if (url.pathname.startsWith('/assets/')) {
+    e.respondWith(
+      caches.match(e.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(e.request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // 3. Other static assets -> Cache first, then network
   e.respondWith(
-    caches.match(e.request).then((cached) => cached || fetch(e.request).catch(() => caches.match('/')))
+    caches.match(e.request).then((cached) => cached || fetch(e.request))
   );
 });
 

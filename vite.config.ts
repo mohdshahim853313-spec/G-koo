@@ -15,7 +15,7 @@ export default defineConfig({
             if (id.includes('firebase')) return 'vendor-firebase';
             if (id.includes('framer-motion')) return 'vendor-motion';
             if (id.includes('lucide-react')) return 'vendor-icons';
-            if (id.includes('react') || id.includes('scheduler')) return 'vendor-react';
+            if (id.includes('react') || id.includes('scheduler') || id.includes('@remix-run')) return 'vendor-react';
             return 'vendor';
           }
         }

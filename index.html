@@ -14,7 +14,7 @@
   </head>
   <body class="bg-[#0B0E17] select-none m-0 p-0">
     <div id="root">
-      <div style="position:fixed;inset:0;background:#0B0E17;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;z-index:99999;">
+      <div id="initial-splash" style="position:fixed;inset:0;background:#0B0E17;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;z-index:99999;">
         <div style="width:160px;height:160px;margin-bottom:24px;">
           <img src="/gkoo-logo.svg" alt="G-koo Mascot" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 12px 28px rgba(255,95,109,0.3));" />
         </div>
@@ -23,6 +23,9 @@
         <div style="width:130px;height:5px;background:#1F2937;border-radius:9999px;overflow:hidden;position:relative;">
           <div style="width:100%;height:100%;background:linear-gradient(90deg,#FF5F6D,#FF7B7B);border-radius:9999px;animation:gkooProgress 1.4s ease-in-out infinite;"></div>
         </div>
+        <button id="splash-retry-btn" onclick="if ('caches' in window) { caches.keys().then(function(keys){ return Promise.all(keys.map(function(k){ return caches.delete(k); })); }).then(function(){ window.location.reload(true); }); } else { window.location.reload(true); }" style="display:none;margin-top:24px;padding:10px 22px;background:#FF5F6D;color:#ffffff;font-family:inherit;font-size:14px;font-weight:700;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(255,95,109,0.4);">
+          लोड नहीं हुआ? यहाँ टैप करें 🔄
+        </button>
       </div>
       <style>
         @keyframes gkooProgress {
@@ -31,14 +34,49 @@
         }
       </style>
     </div>
-    <script type="module" src="/src/main.tsx"></script>
     <script>
+      // 1. Vite chunk preload error handler (auto-reload on updated build)
+      window.addEventListener('vite:preloadError', function(event) {
+        event.preventDefault();
+        window.location.reload();
+      });
+
+      // 2. Watchdog: If splash is still visible after 3.8s, show retry & clear stale caches
+      setTimeout(function() {
+        var btn = document.getElementById('splash-retry-btn');
+        if (btn && document.getElementById('initial-splash')) {
+          btn.style.display = 'block';
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) {
+                if (k !== 'g-koo-v5') caches.delete(k);
+              });
+            });
+          }
+        }
+      }, 3800);
+
+      // 3. Service worker registration with auto-reload on update
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW registration skipped:', err));
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            reg.onupdatefound = function() {
+              var inst = reg.installing;
+              if (inst) {
+                inst.onstatechange = function() {
+                  if (inst.state === 'installed' && navigator.serviceWorker.controller) {
+                    window.location.reload();
+                  }
+                };
+              }
+            };
+          }).catch(function(err) {
+            console.log('SW registration skipped:', err);
+          });
         });
       }
     </script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
 
