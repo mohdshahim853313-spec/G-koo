@@ -63,7 +63,7 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
 
             {/* Tagline / Subtitle */}
             <p className="mt-2 text-sm sm:text-base font-bold text-gray-400 tracking-wide">
-              ज्ञान का नया अंदाज़ <span className="text-[#FF5F6D] mx-1">•</span> Gamified Learning
+              Gamified Learning <span className="text-[#FF5F6D] mx-1">•</span> Exam Prep
             </p>
           </div>
 

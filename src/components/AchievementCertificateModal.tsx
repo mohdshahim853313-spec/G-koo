@@ -29,7 +29,9 @@ export function AchievementCertificateModal({
 
   const handleShareWhatsApp = () => {
     triggerHaptic('click');
-    const shareText = `🎓 मैंने G-koo App पर "${title}" (${categoryName}) में शानदार प्रदर्शन किया!\n⭐ अर्जित सितारे: ${'⭐'.repeat(stars || 3)}\n🎯 सटीकता: ${accuracy}%\n🏆 कुल स्कोर: ${score} अंक\n\nआप भी भारत का सबसे लोकप्रिय क्विज ऐप खेलें 👉 https://gkoo.app`;
+    const shareText = lang === 'hi'
+      ? `🎓 मैंने G-koo App पर "${title}" (${categoryName}) में शानदार प्रदर्शन किया!\n⭐ अर्जित सितारे: ${'⭐'.repeat(stars || 3)}\n🎯 सटीकता: ${accuracy}%\n🏆 कुल स्कोर: ${score} अंक\n\nआप भी भारत का सबसे लोकप्रिय क्विज ऐप खेलें 👉 https://gkoo.app`
+      : `🎓 I achieved an outstanding score in "${title}" (${categoryName}) on G-koo!\n⭐ Stars Earned: ${'⭐'.repeat(stars || 3)}\n🎯 Accuracy: ${accuracy}%\n🏆 Total Score: ${score} pts\n\nJoin the smartest learning quiz app 👉 https://gkoo.app`;
     
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({

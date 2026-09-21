@@ -1039,7 +1039,7 @@ export default function Quiz() {
             </button>
           </div>
 
-          {/* Duolingo Progress Bar + Hearts */}
+          {/* G-koo Progress Bar + Hearts */}
           <div className="flex items-center space-x-2.5 flex-1 min-w-0">
             <div className="flex-1 bg-gray-200 dark:bg-gray-800 h-3.5 rounded-full overflow-hidden">
               <motion.div 

@@ -161,7 +161,7 @@ export function DailyLoginRewardModal({
 
                     {r.hasFreeze && (
                       <span className="mt-0.5 text-[9px] font-black text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md">
-                        +1 ❄️ शील्ड
+                        {lang === 'hi' ? '+1 ❄️ शील्ड' : '+1 ❄️ Shield'}
                       </span>
                     )}
                   </div>

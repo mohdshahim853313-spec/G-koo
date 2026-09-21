@@ -304,7 +304,7 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
         ))}
       </AnimatePresence>
 
-      {/* Left Duolingo-style Speech Message Bubble */}
+      {/* G-koo Speech Message Bubble */}
       <div className="flex-1 min-w-0">
         <AnimatePresence mode="wait">
           <motion.div

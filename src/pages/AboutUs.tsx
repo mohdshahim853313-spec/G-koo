@@ -59,7 +59,7 @@ export default function AboutUs() {
             <Heart className="w-5 h-5 text-[#FF5F6D]" />
           </div>
           <h3 className="text-sm font-black text-gray-900 dark:text-white">
-            {lang === 'hi' ? 'Duolingo-स्टाइल गेमिफिकेशन' : 'Duolingo-Style Gamification'}
+            {lang === 'hi' ? 'इंटरैक्टिव गेमिफिकेशन' : 'Interactive Gamification'}
           </h3>
           <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 leading-relaxed">
             {lang === 'hi'

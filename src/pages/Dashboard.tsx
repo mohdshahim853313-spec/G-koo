@@ -152,7 +152,7 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] pb-28 font-sans transition-colors duration-300">
-      {/* Duolingo-Style HUD Top Bar */}
+      {/* G-koo HUD Top Bar */}
       <TopBar 
         onOpenQuests={() => setShowQuestsModal(true)} 
         onOpenStreakFreeze={() => setShowStreakFreezeModal(true)} 

@@ -51,7 +51,7 @@ export const playSyntheticPreset = (audioCtx: AudioContext, type: 'success' | 'e
         osc.stop(now + i * 0.03 + 0.5);
       });
     } else {
-      // Default 'ding': Duolingo-style uplifting high ding
+      // Default 'ding': G-koo uplifting high ding
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
       osc.connect(gain);
