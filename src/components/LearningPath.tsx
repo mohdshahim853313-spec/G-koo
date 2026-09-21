@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Star, 
@@ -61,6 +61,11 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
   const [offlineModalLevel, setOfflineModalLevel] = useState<number | null>(null);
 
   const isDeviceOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
+
+  // Always reset scroll to the very top whenever the level map opens or world/category changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [currentCatId, selectedWorldId]);
 
   const worldConfig = getCategoryWorldConfig(currentCatId, selectedWorldId);
   const [startLevel, endLevel] = worldConfig.levelsRange;

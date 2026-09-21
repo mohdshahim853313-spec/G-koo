@@ -135,13 +135,20 @@ export default function Dashboard() {
     triggerHaptic('click');
     setActiveCategory(catId);
     setActiveView('path');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleSubjectCardClick = (card: DashboardSubjectCard) => {
     triggerHaptic('click');
     setActiveCategory(card.id);
     setActiveView('path');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
+
+  // Always reset scroll to the very top whenever view changes between categories and learning path
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [activeView]);
 
   return (
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] pb-28 font-sans transition-colors duration-300">
@@ -193,6 +200,7 @@ export default function Dashboard() {
             onClick={() => {
               triggerHaptic('click');
               setActiveView('categories');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             }}
             className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all select-none whitespace-nowrap ${
               activeView === 'categories'
@@ -208,6 +216,7 @@ export default function Dashboard() {
             onClick={() => {
               triggerHaptic('click');
               setActiveView('path');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
             }}
             className={`flex-1 py-2.5 px-2 rounded-xl flex items-center justify-center space-x-1.5 transition-all select-none whitespace-nowrap ${
               activeView === 'path'
@@ -223,7 +232,10 @@ export default function Dashboard() {
         {activeView === 'path' ? (
           /* Category-Specific Staged Level Map View */
           <div>
-            <LearningPath onBackToCategories={() => setActiveView('categories')} />
+            <LearningPath onBackToCategories={() => {
+              setActiveView('categories');
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            }} />
           </div>
         ) : (
           /* Classic Clean Category Cards View */

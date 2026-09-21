@@ -4,11 +4,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @layer base {
-  html, body, #root {
+  html {
+    -webkit-text-size-adjust: 100%;
     -webkit-overflow-scrolling: touch;
     scroll-behavior: auto;
-    overscroll-behavior-y: contain;
-    touch-action: pan-y;
+    overflow-x: hidden;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
   }
@@ -18,9 +18,21 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    min-height: 100%;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
   }
 
-  /* Completely hide scrollbars on all elements */
+  #root {
+    min-height: 100%;
+    overflow-x: hidden;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  /* Completely hide scrollbars on all elements without hindering touch inertia */
   * {
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
@@ -50,11 +62,11 @@
   padding-top: calc(max(env(safe-area-inset-top, 0px), 12px) + 8px);
 }
 
-/* 60-120 FPS Native Scrolling Optimizations */
+/* Card hardware-acceleration without layout thrashing or dynamic height jitter */
 .perf-card {
-  content-visibility: auto;
-  contain-intrinsic-size: 0 100px;
+  will-change: transform;
   transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Helper class */
