@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Volume2, Globe, Sun, Moon, Monitor, Key, Smartphone, AlertTriangle, Check, Vibrate, LogIn, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight } from 'lucide-react';
+import { Volume2, Globe, Sun, Moon, Monitor, Key, AlertTriangle, Check, Vibrate, LogIn, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic, previewCustomSound, type SuccessSoundPreset, type ErrorSoundPreset } from '../lib/audio';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
@@ -35,7 +35,7 @@ export default function Settings() {
     setExamTimerSeconds,
   } = useAppContext();
 
-  // Custom Sound Effects State (Default: Gentle Harp for correct, Gentle Chime Down for error)
+  // Custom Sound Effects State (Default: Gentle Harp for correct, Gentle Chime for error)
   const [successPreset, setSuccessPreset] = useState<SuccessSoundPreset>(() => {
     return (localStorage.getItem('gkoo_sound_success_preset') as SuccessSoundPreset) || 'harp';
   });
@@ -122,11 +122,7 @@ export default function Settings() {
     }
   };
 
-  const handleInstallApp = () => {
-    alert(
-      "To install G-koo as an App:\n\n• On Chrome/Android: Tap browser menu (⋮) -> 'Install App'\n• On Safari/iOS: Tap the Share button (⎋) -> 'Add to Home Screen'\n• On PC/Mac: Click the Install icon in the Chrome address bar"
-    );
-  };
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120] px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-8 text-gray-900 dark:text-white pb-28 font-sans transition-colors duration-300 select-none">
@@ -420,7 +416,7 @@ export default function Settings() {
 
             <div className="grid grid-cols-2 gap-2 mb-2.5">
               {[
-                { id: 'harp', label: lang === 'hi' ? '🪕 सौम्य वीणा (Default)' : '🪕 Gentle Harp' },
+                { id: 'harp', label: lang === 'hi' ? '🪕 सौम्य वीणा ' : '🪕 Gentle Harp' },
                 { id: 'ding', label: lang === 'hi' ? '🎵 ब्राइट डिंग' : '🎵 Bright Ding' },
                 { id: 'bell', label: lang === 'hi' ? '💎 क्रिस्टल बेल' : '💎 Crystal Bell' },
                 { id: 'arcade', label: lang === 'hi' ? '👾 आर्केड 8-बिट' : '👾 8-Bit Arcade' },
@@ -462,7 +458,7 @@ export default function Settings() {
                 <Upload className="w-3.5 h-3.5" />
                 <span>
                   {hasCustomSuccess
-                    ? (lang === 'hi' ? '📁 कस्टम ध्वनि बदलें (Device Audio)' : '📁 Replace Custom Sound')
+                    ? (lang === 'hi' ? '📁 कस्टम ध्वनि बदलें' : '📁 Replace Custom Sound')
                     : (lang === 'hi' ? '📁 डिवाइस से ध्वनि अपलोड करें' : '📁 Upload Sound from Device')}
                 </span>
               </button>
@@ -503,9 +499,9 @@ export default function Settings() {
 
             <div className="grid grid-cols-2 gap-2 mb-2.5">
               {[
-                { id: 'chime_down', label: lang === 'hi' ? '🎼 चाइम डाउन (Default)' : '🎼 Gentle Chime Down' },
+                { id: 'chime_down', label: lang === 'hi' ? '🎼 चाइम डाउन' : '🎼 Gentle Chime' },
                 { id: 'thump', label: lang === 'hi' ? '🥁 मधुर थंप' : '🥁 Warm Thump' },
-                { id: 'wood', label: lang === 'hi' ? '🪵 वुड ब्लॉक नॉक' : '🪵 Wood Block Knock' },
+                { id: 'wood', label: lang === 'hi' ? '🪵 वुड ब्लॉक' : '🪵 Wood Block Knock' },
                 { id: 'buzzer', label: lang === 'hi' ? '📢 धीमा बज़र' : '📢 Soft Buzzer' },
               ].map(item => (
                 <button
@@ -643,7 +639,7 @@ export default function Settings() {
                 </span>
               ) : (
                 <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
-                  Offline Fallback Ready
+                  Put Your Own AI
                 </span>
               )}
             </div>
@@ -714,23 +710,7 @@ export default function Settings() {
       })()}
 
       {/* PWA App Install Action */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-[#FF5F6D]">
-            <Smartphone className="w-4 h-4" />
-          </div>
-          <div>
-            <p className="font-bold text-xs text-gray-800 dark:text-gray-100">Progressive Web App (PWA)</p>
-            <p className="text-[10px] text-gray-400">Install to your phone home screen</p>
-          </div>
-        </div>
-        <button
-          onClick={handleInstallApp}
-          className="bg-rose-50 dark:bg-rose-950/50 text-[#FF5F6D] border border-[#FF5F6D] font-black text-xs px-3 py-1.5 rounded-xl hover:bg-rose-100"
-        >
-          {t('installNow')}
-        </button>
-      </div>
+      
 
       {/* Legal & About Us Info Section */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm">

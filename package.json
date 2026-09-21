@@ -9,6 +9,7 @@
     "cap:sync": "npm run build && npx cap sync",
     "cap:open": "npx cap open android",
     "lint": "oxlint",
+    "icons:generate": "node scripts/generate_android_icons.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
