@@ -97,6 +97,28 @@ export default function TermsOfService() {
           </p>
         </section>
 
+        <section className="p-4 bg-amber-500/10 dark:bg-amber-950/30 border border-amber-300/40 dark:border-amber-800/40 rounded-2xl">
+          <div className="flex items-center space-x-2 mb-2">
+            <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <h2 className="text-base font-black text-amber-950 dark:text-amber-200">
+              5. Non-Affiliation &amp; Government Information Sources (सरकारी संस्था अस्वीकरण)
+            </h2>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+            <strong>DISCLAIMER:</strong> G-koo is an independent private educational and gamified quiz platform. G-koo does <strong>NOT</strong> represent, and is <strong>NOT</strong> affiliated with, endorsed by, authorized by, or in any way officially connected with any government entity, agency, or official examination authority (such as UPSC, SSC, IBPS, Indian Railways/RRB, or State Public Service Commissions).
+          </p>
+          <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2 font-semibold">
+            Official Sources of Government Examination Information:
+          </p>
+          <ul className="text-xs space-y-1 list-disc list-inside text-gray-600 dark:text-gray-400">
+            <li>UPSC (Union Public Service Commission): <a href="https://upsc.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://upsc.gov.in</a></li>
+            <li>SSC (Staff Selection Commission): <a href="https://ssc.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://ssc.gov.in</a></li>
+            <li>Indian Railways (Railway Recruitment Boards): <a href="https://indianrailways.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://indianrailways.gov.in</a></li>
+            <li>IBPS (Institute of Banking Personnel Selection): <a href="https://www.ibps.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://www.ibps.in</a></li>
+            <li>National Portal of India: <a href="https://www.india.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://www.india.gov.in</a></li>
+          </ul>
+        </section>
+
         <div className="pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 text-center">
           © 2026 G-koo Platform • All Rights Reserved
         </div>

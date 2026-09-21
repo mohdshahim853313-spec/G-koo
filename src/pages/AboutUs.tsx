@@ -103,8 +103,29 @@ export default function AboutUs() {
           <span className="px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">React 19</span>
           <span className="px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">TypeScript</span>
           <span className="px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">Tailwind CSS</span>
-          <span className="px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">Capacitor Android & Windows PWA</span>
+          <span className="px-3 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">Capacitor Android &amp; Windows PWA</span>
         </div>
+      </div>
+
+      {/* Official Government Disclaimer & Sources */}
+      <div className="bg-amber-500/10 dark:bg-amber-950/30 border border-amber-300/40 dark:border-amber-800/40 rounded-3xl p-5 shadow-sm text-xs leading-relaxed space-y-2.5">
+        <h3 className="font-black text-amber-900 dark:text-amber-200 text-sm">
+          ⚖️ {lang === 'hi' ? 'सरकारी संस्था अस्वीकरण (Disclaimer)' : 'Government Entity Disclaimer'}
+        </h3>
+        <p className="text-gray-700 dark:text-gray-300 font-medium">
+          {lang === 'hi'
+            ? 'G-koo एक स्वतंत्र शैक्षणिक क्विज़ और लर्निंग ऐप है। G-koo किसी भी सरकारी संस्था, मंत्रालय या परीक्षा बोर्ड (जैसे UPSC, SSC, IBPS, Railways) से संबद्ध या अधिकृत नहीं है।'
+            : 'G-koo is an independent educational quiz platform and is NOT affiliated with, endorsed by, or representing any government entity or exam conducting board.'}
+        </p>
+        <p className="font-bold text-gray-800 dark:text-gray-200 pt-1">
+          {lang === 'hi' ? 'आधिकारिक सरकारी परीक्षा पोर्टल:' : 'Official Exam Portals & Sources:'}
+        </p>
+        <ul className="list-disc list-inside space-y-1 text-gray-600 dark:text-gray-400">
+          <li>UPSC: <a href="https://upsc.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://upsc.gov.in</a></li>
+          <li>SSC: <a href="https://ssc.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://ssc.gov.in</a></li>
+          <li>Indian Railways: <a href="https://indianrailways.gov.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://indianrailways.gov.in</a></li>
+          <li>IBPS: <a href="https://www.ibps.in" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">https://www.ibps.in</a></li>
+        </ul>
       </div>
     </div>
   );
