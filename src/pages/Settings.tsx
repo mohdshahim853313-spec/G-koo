@@ -420,7 +420,7 @@ export default function Settings() {
 
             <div className="grid grid-cols-2 gap-2 mb-2.5">
               {[
-                { id: 'harp', label: lang === 'hi' ? '🪕 सौम्य वीणा (Default)' : '🪕 Gentle Harp (Default)' },
+                { id: 'harp', label: lang === 'hi' ? '🪕 सौम्य वीणा (Default)' : '🪕 Gentle Harp' },
                 { id: 'ding', label: lang === 'hi' ? '🎵 ब्राइट डिंग' : '🎵 Bright Ding' },
                 { id: 'bell', label: lang === 'hi' ? '💎 क्रिस्टल बेल' : '💎 Crystal Bell' },
                 { id: 'arcade', label: lang === 'hi' ? '👾 आर्केड 8-बिट' : '👾 8-Bit Arcade' },
@@ -503,7 +503,7 @@ export default function Settings() {
 
             <div className="grid grid-cols-2 gap-2 mb-2.5">
               {[
-                { id: 'chime_down', label: lang === 'hi' ? '🎼 चाइम डाउन (Default)' : '🎼 Gentle Chime Down (Default)' },
+                { id: 'chime_down', label: lang === 'hi' ? '🎼 चाइम डाउन (Default)' : '🎼 Gentle Chime Down' },
                 { id: 'thump', label: lang === 'hi' ? '🥁 मधुर थंप' : '🥁 Warm Thump' },
                 { id: 'wood', label: lang === 'hi' ? '🪵 वुड ब्लॉक नॉक' : '🪵 Wood Block Knock' },
                 { id: 'buzzer', label: lang === 'hi' ? '📢 धीमा बज़र' : '📢 Soft Buzzer' },
@@ -649,7 +649,9 @@ export default function Settings() {
             </div>
 
             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-2.5 leading-relaxed">
-              एक या एक से अधिक API Keys कॉमा <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">(,)</span> लगाकर जोड़ें (10+ Keys समर्थित)। अगर एक Key की लिमिट खत्म होगी, तो G-koo अपने-आप अगली Key पर स्विच हो जाएगा:
+              {lang === 'hi'
+                ? 'एक या एक से अधिक API Keys कॉमा (,) लगाकर जोड़ें। अगर एक Key की लिमिट खत्म होगी, तो G-koo अपने-आप अगली Key पर स्विच हो जाएगा:'
+                : 'Add one or more comma-separated API keys. G-koo will auto-switch if a key limit is reached:'}
             </p>
 
             <div className="space-y-2">
@@ -658,7 +660,7 @@ export default function Settings() {
                   rows={2}
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSyKey1..., AIzaSyKey2..., AIzaSyKey3... (कॉमा लगाकर 10+ Keys डालें)"
+                  placeholder="AIzaSyKey1..., AIzaSyKey2..., AIzaSyKey3..."
                   className="w-full p-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-mono text-gray-800 dark:text-white focus:outline-none focus:border-purple-500 resize-none transition-colors"
                 />
                 {apiKeyInput.trim().length > 0 && (
