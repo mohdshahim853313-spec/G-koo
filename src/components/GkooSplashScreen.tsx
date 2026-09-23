@@ -10,7 +10,7 @@ interface GkooSplashScreenProps {
 
 export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
   onFinish,
-  minDuration = isAndroidApp() ? 1000 : 300,
+  minDuration = isAndroidApp() ? 250 : 150,
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
@@ -35,8 +35,8 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
       {isVisible && (
         <motion.div
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.02 }}
-          transition={{ duration: 0.35, ease: 'easeInOut' }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
           className="fixed inset-0 z-[9999] flex flex-col items-center justify-between py-12 px-6 bg-[#0B0E17] select-none overflow-hidden"
           style={{
             paddingTop: 'max(env(safe-area-inset-top, 0px), 48px)',
@@ -51,14 +51,14 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
             <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-6">
               <img
                 src="/gkoo-logo.svg"
-                alt="G-koo Mascot"
+                alt="Gkoo Mascot"
                 className="w-full h-full object-contain drop-shadow-[0_12px_28px_rgba(255,95,109,0.35)]"
               />
             </div>
 
             {/* App Brand Name */}
             <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#FF5F6D] drop-shadow-sm">
-              G-koo
+              Gkoo
             </h1>
 
             {/* Tagline / Subtitle */}
@@ -74,7 +74,7 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
                 transition={{
-                  duration: (minDuration - 200) / 1000,
+                  duration: Math.max(0.1, (minDuration - 50) / 1000),
                   ease: 'easeInOut',
                 }}
                 className="h-full bg-gradient-to-r from-[#FF5F6D] to-[#FF7B7B] rounded-full"

@@ -39,7 +39,7 @@ export const PwaInstallPrompt: React.FC = () => {
     } else {
       // Fallback instruction for iOS or non-prompting browsers
       alert(
-        "To install G-koo:\n\n• On iOS (Safari): Tap the Share button & choose 'Add to Home Screen'\n• On Android (Chrome): Tap the 3-dot menu & choose 'Install App'"
+        "To install Gkoo:\n\n• On iOS (Safari): Tap the Share button & choose 'Add to Home Screen'\n• On Android (Chrome): Tap the 3-dot menu & choose 'Install App'"
       );
     }
   };
@@ -53,7 +53,7 @@ export const PwaInstallPrompt: React.FC = () => {
           <Smartphone className="w-5 h-5 text-white" />
         </div>
         <div className="text-xs">
-          <p className="font-black text-[13px]">Install G-koo App</p>
+          <p className="font-black text-[13px]">Install Gkoo App</p>
           <p className="opacity-90 text-[11px] leading-tight">{t('installAppBanner')}</p>
         </div>
       </div>

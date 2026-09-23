@@ -19,16 +19,16 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '🔍',
     badgeHi: 'ज्ञान की खोज 🔍',
     badgeEn: 'Discovering Knowledge 🔍',
-    textHi: 'G-koo आपके लिए सबसे बेहतरीन और मजेदार सवाल खोज रहा है...',
-    textEn: 'G-koo is exploring the finest and most exciting questions for you...',
+    textHi: 'Gkoo आपके लिए सबसे बेहतरीन और मजेदार सवाल खोज रहा है...',
+    textEn: 'Gkoo is exploring the finest and most exciting questions for you...',
   },
   {
     mood: 'excited',
     particle: '📖',
     badgeHi: 'जादुई किताब 📖',
     badgeEn: 'Wisdom Book 📖',
-    textHi: 'G-koo अपनी जादुई ज्ञान की किताब से खास प्रश्न चुन रहा है...',
-    textEn: 'G-koo is picking special questions from his magical book of wisdom...',
+    textHi: 'Gkoo अपनी जादुई ज्ञान की किताब से खास प्रश्न चुन रहा है...',
+    textEn: 'Gkoo is picking special questions from his magical book of wisdom...',
   },
   {
     mood: 'fire',
@@ -43,8 +43,8 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '💎',
     badgeHi: 'सवालों का खजाना 💎',
     badgeEn: 'Treasure Hunt 💎',
-    textHi: 'G-koo नए और रोमांचक सवालों का खजाना खोल रहा है...',
-    textEn: 'G-koo is unlocking a treasure of exciting new challenges...',
+    textHi: 'Gkoo नए और रोमांचक सवालों का खजाना खोल रहा है...',
+    textEn: 'Gkoo is unlocking a treasure of exciting new challenges...',
   },
   {
     mood: 'ninja',
@@ -59,16 +59,16 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '🌟',
     badgeHi: 'लेवल रेडी 🌟',
     badgeEn: 'Level Ready 🌟',
-    textHi: 'G-koo आपके अगले लेवल के लिए एकदम परफेक्ट सवाल सेट कर रहा है...',
-    textEn: 'G-koo is setting up the perfect questions for your next triumph...',
+    textHi: 'Gkoo आपके अगले लेवल के लिए एकदम परफेक्ट सवाल सेट कर रहा है...',
+    textEn: 'Gkoo is setting up the perfect questions for your next triumph...',
   },
   {
     mood: 'eating',
     particle: '💎',
     badgeHi: 'डायमंड राउंड 💎',
     badgeEn: 'Diamond Grade 💎',
-    textHi: 'G-koo आपके लिए डायमंड ग्रेड के ज्ञानवर्धक सवाल ला रहा है...',
-    textEn: 'G-koo is bringing diamond-grade knowledge challenges for you...',
+    textHi: 'Gkoo आपके लिए डायमंड ग्रेड के ज्ञानवर्धक सवाल ला रहा है...',
+    textEn: 'Gkoo is bringing diamond-grade knowledge challenges for you...',
   },
   {
     mood: 'excited',
@@ -83,8 +83,8 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '📝',
     badgeHi: 'सीक्रेट डायरी 📝',
     badgeEn: 'Secret Diary 📝',
-    textHi: 'G-koo अपनी सीक्रेट डायरी से सबसे दिलचस्प सवाल निकाल रहा है...',
-    textEn: 'G-koo is pulling the most interesting questions from his secret diary...',
+    textHi: 'Gkoo अपनी सीक्रेट डायरी से सबसे दिलचस्प सवाल निकाल रहा है...',
+    textEn: 'Gkoo is pulling the most interesting questions from his secret diary...',
   },
   {
     mood: 'dance',
@@ -99,8 +99,8 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '🔥',
     badgeHi: 'हाई एनर्जी राउंड 🔥',
     badgeEn: 'High Energy Round 🔥',
-    textHi: 'G-koo आपके फोकस और मेमोरी को बूस्ट करने वाले सवाल बना रहा है...',
-    textEn: 'G-koo is crafting questions to supercharge your focus and memory...',
+    textHi: 'Gkoo आपके फोकस और मेमोरी को बूस्ट करने वाले सवाल बना रहा है...',
+    textEn: 'Gkoo is crafting questions to supercharge your focus and memory...',
   },
   {
     mood: 'celebrate',
@@ -115,8 +115,8 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '🥷',
     badgeHi: 'निंजा फोकस 🥷',
     badgeEn: 'Ninja Focus 🥷',
-    textHi: 'G-koo आपके लिए आज का सबसे रोमांचक चैलेंज डिजाइन कर रहा है...',
-    textEn: 'G-koo is designing today’s most thrilling and rewarding challenge...',
+    textHi: 'Gkoo आपके लिए आज का सबसे रोमांचक चैलेंज डिजाइन कर रहा है...',
+    textEn: 'Gkoo is designing today’s most thrilling and rewarding challenge...',
   },
   {
     mood: 'love',
@@ -131,8 +131,8 @@ const LOADING_TEMPLATES: LoadingTemplate[] = [
     particle: '👑',
     badgeHi: 'मास्टर क्लास 👑',
     badgeEn: 'Master Class 👑',
-    textHi: 'G-koo आपके लिए खास स्तर के रोचक सवाल सजा रहा है...',
-    textEn: 'G-koo is polishing high-reward questions for your learning journey...',
+    textHi: 'Gkoo आपके लिए खास स्तर के रोचक सवाल सजा रहा है...',
+    textEn: 'Gkoo is polishing high-reward questions for your learning journey...',
   },
 ];
 
@@ -253,8 +253,8 @@ export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = ({ isOf
             <p className="text-sm sm:text-base font-black text-gray-900 dark:text-gray-100 leading-snug">
               {isOffline
                 ? (lang === 'hi' 
-                    ? '📡 आप ऑफलाइन हैं! G-koo ऑफलाइन प्रश्न बैंक से आपके लिए सवाल तैयार कर रहा है...' 
-                    : '📡 You are offline! G-koo is preparing questions from the offline question bank...')
+                    ? '📡 आप ऑफलाइन हैं! Gkoo ऑफलाइन प्रश्न बैंक से आपके लिए सवाल तैयार कर रहा है...' 
+                    : '📡 You are offline! Gkoo is preparing questions from the offline question bank...')
                 : (lang === 'hi' ? currentTemplate.textHi : currentTemplate.textEn)}
             </p>
           </motion.div>

@@ -1,7 +1,7 @@
 {
-  "name": "G-koo - AI Quiz & Gamified Learning",
-  "short_name": "G-koo",
-  "description": "Fun AI Quiz and Gamified GK Learning Adventure with G-koo Mascot",
+  "name": "Gkoo - AI Quiz & Gamified Learning",
+  "short_name": "Gkoo",
+  "description": "Fun AI Quiz and Gamified GK Learning Adventure with Gkoo Mascot",
   "start_url": "/",
   "id": "/",
   "display": "standalone",
@@ -35,13 +35,13 @@
       "sizes": "1920x1080",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "G-koo AI Quiz & Gamified Learning Dashboard"
+      "label": "Gkoo AI Quiz & Gamified Learning Dashboard"
     },
     {
       "src": "/screenshot-desktop.png",
       "sizes": "1920x1080",
       "type": "image/png",
-      "label": "G-koo Interactive Learning Arena"
+      "label": "Gkoo Interactive Learning Arena"
     }
   ],
   "shortcuts": [
@@ -69,8 +69,8 @@
   ],
   "widgets": [
     {
-      "name": "G-koo Daily Streak & GK",
-      "short_name": "G-koo",
+      "name": "Gkoo Daily Streak & GK",
+      "short_name": "Gkoo",
       "description": "Daily GK Streak, Daily Challenge & Mascot companion widget for Windows 11",
       "tag": "gkoo-daily-widget",
       "template": "gkoo-widget-template",
@@ -80,7 +80,7 @@
         {
           "src": "/screenshot-desktop.png",
           "sizes": "1920x1080",
-          "label": "G-koo Daily Streak Widget"
+          "label": "Gkoo Daily Streak Widget"
         }
       ],
       "icons": [

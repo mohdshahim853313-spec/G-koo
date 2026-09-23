@@ -28,6 +28,7 @@ import {
   PINNED_SUBJECTS_EVENT, 
   type DashboardSubjectCard 
 } from '../utils/pinnedSubjects';
+import { getDailyCaCount } from '../lib/dailyCurrentAffairs';
 import { type StateData } from '../data/stateExamsData';
 
 export default function Dashboard() {
@@ -49,6 +50,7 @@ export default function Dashboard() {
   const [customPrompt, setCustomPrompt] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [questionCount, setQuestionCount] = useState<10 | 15 | 20>(15);
+  const [dailyCaCount, setDailyCaCount] = useState<number>(() => getDailyCaCount());
 
   // Daily Challenge completion status for today
   const [isDailyCompletedToday, setIsDailyCompletedToday] = useState<boolean>(() => {
@@ -94,16 +96,19 @@ export default function Dashboard() {
     const checkDaily = () => {
       const today = new Date().toISOString().split('T')[0];
       setIsDailyCompletedToday(localStorage.getItem('gkoo_daily_challenge_completed_date') === today);
+      setDailyCaCount(getDailyCaCount());
     };
     syncPinned();
     checkDaily();
     window.addEventListener(PIN_EVENT_NAME, syncPinned);
     window.addEventListener(PINNED_SUBJECTS_EVENT, syncPinned);
     window.addEventListener('gkoo_daily_completed', checkDaily);
+    window.addEventListener('gkoo_daily_ca_updated', checkDaily);
     return () => {
       window.removeEventListener(PIN_EVENT_NAME, syncPinned);
       window.removeEventListener(PINNED_SUBJECTS_EVENT, syncPinned);
       window.removeEventListener('gkoo_daily_completed', checkDaily);
+      window.removeEventListener('gkoo_daily_ca_updated', checkDaily);
     };
   }, []);
 
@@ -243,7 +248,7 @@ export default function Dashboard() {
             
             {/* Top Banners Grid (Side-by-side on PC/Tablet, Stacked on Mobile) */}
             <div className={`grid grid-cols-1 ${!isDailyCompletedToday ? 'md:grid-cols-2' : ''} gap-4 md:gap-6`}>
-              {/* Interactive G-koo Study Buddy Companion Card */}
+              {/* Interactive Gkoo Study Buddy Companion Card */}
               <GkooCompanionCard 
                 panel="dashboard" 
                 defaultMood="excited" 
@@ -252,10 +257,9 @@ export default function Dashboard() {
               {/* Featured Daily Challenge 3D Card (Hidden automatically when completed today, reappears next day) */}
               {!isDailyCompletedToday && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.96 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.96 }}
-                  whileHover={{ scale: 1.01 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   className="bg-gradient-to-tr from-[#FF5F6D] via-[#FF7B54] to-[#FFB020] text-white rounded-3xl p-4.5 shadow-lg relative overflow-hidden border-b-[5px] border-[#D93848] flex flex-col justify-between"
                 >
                   <div>
@@ -285,13 +289,12 @@ export default function Dashboard() {
                   </div>
 
                   <motion.button
-                    whileTap={{ scale: 0.94, y: 3 }}
-                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => {
                       triggerHaptic('click');
                       navigate('/quiz/mix?daily=true&count=10');
                     }}
-                    className="w-full bg-white text-[#E64553] font-black py-3 rounded-2xl text-xs shadow-[0_4px_0_0_#FCD5D8] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center space-x-2 select-none whitespace-nowrap cursor-pointer"
+                    className="w-full bg-white text-[#E64553] font-black py-3 rounded-2xl text-xs shadow-[0_4px_0_0_#FCD5D8] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center space-x-2 select-none whitespace-nowrap cursor-pointer"
                   >
                     <span className="whitespace-nowrap">{t('startQuiz')} (10 Qs)</span>
                     <ChevronRight className="w-4 h-4 stroke-[3] shrink-0" />
@@ -303,7 +306,7 @@ export default function Dashboard() {
             {/* Quick Actions Bar: Saved Bookmarked Questions Button */}
             {bookmarks.length > 0 && (
               <motion.button
-                whileTap={{ scale: 0.98 }}
+                whileTap={{ scale: 0.99 }}
                 onClick={() => {
                   triggerHaptic('click');
                   setShowSavedModal(true);
@@ -327,7 +330,7 @@ export default function Dashboard() {
               </motion.button>
             )}
 
-            {/* SECTION 0: CURRENT AFFAIRS (NATIONAL & WORLD) */}
+            {/* SECTION 0: CURRENT AFFAIRS (DAILY ENDLESS FLOW) */}
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center space-x-1.5 text-rose-600 dark:text-rose-400 min-w-0 flex-1">
@@ -337,25 +340,22 @@ export default function Dashboard() {
                   </h3>
                 </div>
                 <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/50 px-2 py-0.5 rounded-full border border-rose-200 dark:border-rose-900 shrink-0 whitespace-nowrap">
-                  🔥 2024-2026 Latest
+                  🔥 2024-2026 Live
                 </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 gap-3.5 md:gap-5">
                 {caCategories.map((cat) => {
-                  const maxUnlocked = getCategoryMaxUnlocked(cat.id);
-
                   return (
                     <motion.button
                       key={cat.id}
-                      whileTap={{ scale: 0.94, y: 3 }}
-                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => handleSelectCategory(cat.id)}
-                      className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} ${cat.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:shadow-none transition-transform flex flex-col justify-between group select-none relative overflow-hidden`}
+                      className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} ${cat.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2.5 gap-1">
-                          <div className="w-11 h-11 rounded-2xl bg-white/30 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/30 flex items-center justify-center text-2xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
                             {cat.icon}
                           </div>
                           <span className={`text-[9px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full ${cat.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
@@ -373,10 +373,13 @@ export default function Dashboard() {
 
                       <div className="mt-4 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
                         <span className="text-[10px] sm:text-[11px] font-black bg-black/35 text-white px-2.5 py-1 rounded-xl whitespace-nowrap shrink-0 border border-white/15 shadow-xs">
-                          Lvl {maxUnlocked} Unlocked
+                          {dailyCaCount === 0 
+                            ? (lang === 'hi' ? '10 प्रश्न दैनिक' : '10 Qs Daily') 
+                            : `${dailyCaCount} ${lang === 'hi' ? 'आज पूरे' : 'Done Today'}`}
                         </span>
-                        <span className="w-6 h-6 rounded-full bg-white/30 flex items-center justify-center text-xs font-black text-white group-hover:translate-x-0.5 group-hover:bg-white group-hover:text-gray-900 transition-all shrink-0">
-                          →
+                        <span className="text-[10px] sm:text-[11px] font-black flex items-center space-x-1 text-white group-hover:translate-x-0.5 transition-transform shrink-0">
+                          <span>{dailyCaCount === 0 ? (lang === 'hi' ? 'खोलें' : 'Open') : (lang === 'hi' ? '+10 और' : '+10 More')}</span>
+                          <span className="w-5 h-5 rounded-full bg-white/30 flex items-center justify-center text-xs">→</span>
                         </span>
                       </div>
                     </motion.button>
@@ -395,15 +398,14 @@ export default function Dashboard() {
                   </h3>
                 </div>
                 <motion.button
-                  whileTap={{ scale: 0.94 }}
-                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     triggerHaptic('click');
                     setShowSubjectsModal(true);
                   }}
                   className="text-xs sm:text-sm font-black text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 px-3.5 py-2 sm:px-4.5 sm:py-2.5 rounded-2xl shadow-lg border-b-[3px] border-indigo-950 flex items-center space-x-1.5 sm:space-x-2 hover:opacity-95 shrink-0 whitespace-nowrap cursor-pointer active:translate-y-0.5"
                 >
-                  <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0 animate-bounce" />
+                  <BookOpen className="w-4 h-4 sm:w-4.5 sm:h-4.5 shrink-0" />
                   <span className="whitespace-nowrap">{lang === 'hi' ? '📚 + और विषय (More)' : '📚 + More Subjects'}</span>
                 </motion.button>
               </div>
@@ -415,10 +417,9 @@ export default function Dashboard() {
                   return (
                     <motion.button
                       key={`${card.id}_slot_${card.slotIndex}`}
-                      whileTap={{ scale: 0.94, y: 3 }}
-                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => handleSubjectCardClick(card)}
-                      className={`perf-card bg-gradient-to-br ${card.gradient} text-white ${card.border3d} ${card.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:shadow-none transition-transform flex flex-col justify-between group select-none relative overflow-hidden`}
+                      className={`perf-card bg-gradient-to-br ${card.gradient} text-white ${card.border3d} ${card.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2.5 gap-1">
@@ -495,8 +496,7 @@ export default function Dashboard() {
                   {pinnedStates.map(st => (
                     <motion.div
                       key={st.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => {
                         triggerHaptic('click');
                         setModalInitialStateId(st.id);
@@ -506,7 +506,7 @@ export default function Dashboard() {
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2">
-                          <div className="w-11 h-11 rounded-2xl bg-white/25 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/25 flex items-center justify-center text-2xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
                             {st.icon}
                           </div>
                           <div className="flex items-center space-x-1.5">
@@ -551,8 +551,7 @@ export default function Dashboard() {
                   {pinnedExams.map(({ exam, state }) => (
                     <motion.div
                       key={exam.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.96 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => {
                         triggerHaptic('click');
                         const topicParam = lang === 'hi' ? exam.syllabusTopicHi : exam.syllabusTopicEn;
@@ -625,17 +624,16 @@ export default function Dashboard() {
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 md:gap-5">
                 {/* ALL STATES HERO FEATURED CARD */}
                 <motion.button
-                  whileTap={{ scale: 0.95, y: 3 }}
-                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.99 }}
                   onClick={() => {
                     triggerHaptic('click');
                     setModalInitialStateId(null);
                     setShowStateModal(true);
                   }}
-                  className="perf-card col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white border-b-4 border-emerald-950 rounded-3xl p-4 sm:p-5 text-left shadow-xl active:shadow-none transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group select-none relative overflow-hidden ring-2 ring-emerald-400/50"
+                  className="perf-card col-span-2 sm:col-span-2 md:col-span-3 lg:col-span-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-700 text-white border-b-4 border-emerald-950 rounded-3xl p-4 sm:p-5 text-left shadow-xl active:brightness-95 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group select-none relative overflow-hidden ring-2 ring-emerald-400/50"
                 >
                   <div className="flex items-start sm:items-center space-x-3.5 min-w-0 flex-1">
-                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/25 flex items-center justify-center text-2xl sm:text-3xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/25 flex items-center justify-center text-2xl sm:text-3xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
                       🏛️
                     </div>
                     <div className="min-w-0 flex-1">
@@ -670,14 +668,13 @@ export default function Dashboard() {
                   return (
                     <motion.button
                       key={cat.id}
-                      whileTap={{ scale: 0.94, y: 3 }}
-                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.99 }}
                       onClick={() => handleSelectCategory(cat.id)}
-                      className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} ${cat.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:shadow-none transition-transform flex flex-col justify-between group select-none relative overflow-hidden`}
+                      className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} ${cat.activeBorder} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden`}
                     >
                       <div>
                         <div className="flex items-center justify-between mb-2.5 gap-1">
-                          <div className="w-11 h-11 rounded-2xl bg-white/30 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                          <div className="w-11 h-11 rounded-2xl bg-white/30 flex items-center justify-center text-2xl shadow-inner group-hover:scale-105 transition-transform shrink-0">
                             {cat.icon}
                           </div>
                           <span className={`text-[9px] sm:text-[10px] font-black px-2.5 py-0.5 rounded-full ${cat.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
@@ -708,10 +705,7 @@ export default function Dashboard() {
             </div>
 
             {/* Gemini AI Custom Quiz Launcher Card */}
-            <motion.div 
-              whileHover={{ scale: 1.01 }}
-              className="bg-gradient-to-tr from-purple-600 via-indigo-600 to-violet-700 text-white rounded-3xl p-4 shadow-lg border-b-[5px] border-purple-950 flex items-center justify-between gap-3 relative overflow-hidden"
-            >
+            <div className="bg-gradient-to-tr from-purple-600 via-indigo-600 to-violet-700 text-white rounded-3xl p-4 shadow-lg border-b-[5px] border-purple-950 flex items-center justify-between gap-3 relative overflow-hidden">
               <div className="flex items-center space-x-3 z-10 min-w-0 flex-1">
                 <div className="w-11 h-11 rounded-2xl bg-white/25 flex items-center justify-center text-2xl shadow-inner shrink-0">
                   🤖
@@ -723,18 +717,17 @@ export default function Dashboard() {
               </div>
 
               <motion.button
-                whileTap={{ scale: 0.92, y: 2 }}
-                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={() => {
                   triggerHaptic('click');
                   setShowAiModal(true);
                 }}
-                className="z-10 bg-white text-purple-700 font-black px-4 py-2.5 rounded-2xl text-xs shadow-[0_3px_0_0_#D8B4FE] hover:bg-purple-50 active:translate-y-0.5 active:shadow-none transition-all flex items-center space-x-1.5 shrink-0 whitespace-nowrap"
+                className="z-10 bg-white text-purple-700 font-black px-4 py-2.5 rounded-2xl text-xs shadow-[0_3px_0_0_#D8B4FE] hover:bg-purple-50 active:translate-y-0.5 active:shadow-none transition-all flex items-center space-x-1.5 shrink-0 whitespace-nowrap cursor-pointer"
               >
                 <span className="whitespace-nowrap">{t('playQuiz')}</span>
                 <ArrowRight className="w-3.5 h-3.5 shrink-0" />
               </motion.button>
-            </motion.div>
+            </div>
 
           </div>
         )}
@@ -742,10 +735,12 @@ export default function Dashboard() {
       </main>
 
       {/* Daily Quests Modal */}
-      <DailyQuestsModal
-        isOpen={showQuestsModal}
-        onClose={() => setShowQuestsModal(false)}
-      />
+      {showQuestsModal && (
+        <DailyQuestsModal
+          isOpen={showQuestsModal}
+          onClose={() => setShowQuestsModal(false)}
+        />
+      )}
 
       {/* Custom AI Prompt & Quiz Generator Modal */}
       <AnimatePresence>
@@ -888,47 +883,57 @@ export default function Dashboard() {
       </AnimatePresence>
 
       {/* ALL STATES COMPETITIVE EXAM MODAL */}
-      <StateExamModal
-        isOpen={showStateModal}
-        onClose={() => {
-          setShowStateModal(false);
-          setModalInitialStateId(null);
-        }}
-        initialStateId={modalInitialStateId}
-      />
+      {showStateModal && (
+        <StateExamModal
+          isOpen={showStateModal}
+          onClose={() => {
+            setShowStateModal(false);
+            setModalInitialStateId(null);
+          }}
+          initialStateId={modalInitialStateId}
+        />
+      )}
 
       {/* MORE SUBJECTS DIRECTORY MODAL */}
-      <SubjectDirectoryModal
-        isOpen={showSubjectsModal}
-        onClose={() => setShowSubjectsModal(false)}
-        onSelectCategory={handleSelectCategory}
-      />
+      {showSubjectsModal && (
+        <SubjectDirectoryModal
+          isOpen={showSubjectsModal}
+          onClose={() => setShowSubjectsModal(false)}
+          onSelectCategory={handleSelectCategory}
+        />
+      )}
 
       {/* SAVED / BOOKMARKED QUESTIONS MODAL */}
-      <SavedQuestionsModal
-        isOpen={showSavedModal}
-        onClose={() => setShowSavedModal(false)}
-      />
+      {showSavedModal && (
+        <SavedQuestionsModal
+          isOpen={showSavedModal}
+          onClose={() => setShowSavedModal(false)}
+        />
+      )}
 
       {/* 7-DAY DAILY LOGIN REWARD MODAL */}
-      <DailyLoginRewardModal
-        isOpen={showDailyRewardModal}
-        onClose={() => {
-          setShowDailyRewardModal(false);
-          try {
-            const today = new Date().toDateString();
-            setHasUnclaimedDailyReward(localStorage.getItem('gkoo_daily_reward_last_claim') !== today);
-          } catch (e) {
-            // ignore
-          }
-        }}
-      />
+      {showDailyRewardModal && (
+        <DailyLoginRewardModal
+          isOpen={showDailyRewardModal}
+          onClose={() => {
+            setShowDailyRewardModal(false);
+            try {
+              const today = new Date().toDateString();
+              setHasUnclaimedDailyReward(localStorage.getItem('gkoo_daily_reward_last_claim') !== today);
+            } catch (e) {
+              // ignore
+            }
+          }}
+        />
+      )}
 
       {/* STREAK FREEZE SHIELD MODAL */}
-      <StreakFreezeModal
-        isOpen={showStreakFreezeModal}
-        onClose={() => setShowStreakFreezeModal(false)}
-      />
+      {showStreakFreezeModal && (
+        <StreakFreezeModal
+          isOpen={showStreakFreezeModal}
+          onClose={() => setShowStreakFreezeModal(false)}
+        />
+      )}
 
     </div>
   );

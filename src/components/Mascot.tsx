@@ -17,6 +17,12 @@ export type MascotMood =
   | 'dizzy'
   | 'waving'
   | 'excited'
+  | 'looking_around'
+  | 'scratching'
+  | 'preening'
+  | 'head_tilt'
+  | 'wing_stretch'
+  | 'hop'
   | 'petting'
   | 'petting_love'
   | 'petting_wink'
@@ -257,6 +263,24 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           fill="url(#gkoo_wing)"
           d="M50 140 C14 100 24 50 64 68 C76 96 74 120 70 140 Z"
         />
+      ) : mood === 'wing_stretch' ? (
+        // Wing Stretch Out Wide
+        <motion.path
+          animate={{ rotate: [-32, -45, -32], scaleX: [1, 1.22, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+          style={{ transformOrigin: '70px 130px' }}
+          fill="url(#gkoo_wing)"
+          d="M54 118 C8 95 6 142 46 170 C64 160 76 142 82 122 Z"
+        />
+      ) : mood === 'preening' ? (
+        // Wing Open for Feather Grooming
+        <motion.path
+          animate={{ rotate: [-8, 12, -8] }}
+          transition={{ repeat: Infinity, duration: 0.85, ease: 'easeInOut' }}
+          style={{ transformOrigin: '65px 130px' }}
+          fill="url(#gkoo_wing)"
+          d="M56 128 C26 132 30 178 70 184 C80 166 84 148 78 126 Z"
+        />
       ) : mood === 'thinking' ? (
         // Thinking Wing (Hand on Beak/Cheek)
         <path fill="url(#gkoo_wing)" d="M60 140 C52 100 85 110 108 128 C96 142 75 155 60 140 Z" />
@@ -266,6 +290,15 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
       ) : mood === 'sad' ? (
         // Drooping Sad Wing
         <path fill="url(#gkoo_wing)" d="M54 130 C30 145 28 185 64 195 C74 175 78 155 76 132 Z" />
+      ) : mood === 'hop' ? (
+        // Flapping Wing during Hop
+        <motion.path
+          animate={{ rotate: [-24, 12, -24] }}
+          transition={{ repeat: Infinity, duration: 0.5, ease: 'easeInOut' }}
+          style={{ transformOrigin: '65px 130px' }}
+          fill="url(#gkoo_wing)"
+          d="M54 118 C22 126 20 170 60 182 C74 164 82 146 82 122 Z"
+        />
       ) : (
         // Standard / Happy Left Wing
         <motion.path
@@ -288,13 +321,40 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           d="M206 140 C242 100 232 50 192 68 C180 96 182 120 186 140 Z"
         />
       ) : mood === 'waving' ? (
-        // Friendly Waving Hand/Wing
+        // Energetic Wing Waving Hello (👋 Hello!)
         <motion.path
-          animate={{ rotate: [-28, 22, -28] }}
-          transition={{ repeat: Infinity, duration: 0.75, ease: 'easeInOut' }}
-          style={{ transformOrigin: '190px 130px' }}
+          animate={{ rotate: [-36, 32, -36] }}
+          transition={{ repeat: Infinity, duration: 0.52, ease: 'easeInOut' }}
+          style={{ transformOrigin: '190px 126px' }}
           fill="url(#gkoo_wing)"
-          d="M192 128 C232 90 248 60 215 54 C190 76 182 105 186 128 Z"
+          d="M192 128 C238 80 256 46 220 42 C192 66 182 100 186 128 Z"
+        />
+      ) : mood === 'scratching' ? (
+        // Cute Foot/Wing Itch Scratching at Cheek
+        <motion.path
+          animate={{ rotate: [22, -14, 26, -10, 22], y: [0, -7, 0] }}
+          transition={{ repeat: Infinity, duration: 0.4, ease: 'easeInOut' }}
+          style={{ transformOrigin: '185px 115px' }}
+          fill="url(#gkoo_wing)"
+          d="M188 128 C220 80 206 54 174 78 C170 102 178 120 188 128 Z"
+        />
+      ) : mood === 'wing_stretch' ? (
+        // Wing Stretch Out Wide
+        <motion.path
+          animate={{ rotate: [32, 45, 32], scaleX: [1, 1.22, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+          style={{ transformOrigin: '186px 130px' }}
+          fill="url(#gkoo_wing)"
+          d="M202 118 C248 95 250 142 210 170 C192 160 180 142 174 122 Z"
+        />
+      ) : mood === 'hop' ? (
+        // Flapping Wing during Hop
+        <motion.path
+          animate={{ rotate: [24, -12, 24] }}
+          transition={{ repeat: Infinity, duration: 0.5, ease: 'easeInOut' }}
+          style={{ transformOrigin: '191px 130px' }}
+          fill="url(#gkoo_wing)"
+          d="M202 118 C234 126 236 170 196 182 C182 164 174 146 174 122 Z"
         />
       ) : mood === 'sad' ? (
         // Drooping Sad Wing
@@ -332,6 +392,104 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           />
           <path d="M80 72 Q102 60 118 70" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
           <path d="M138 70 Q154 60 176 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+        </g>
+      ) : mood === 'looking_around' ? (
+        // Eyes Darting Inquisitively Left, Right, Up, Center
+        <g>
+          <circle cx="102" cy="104" r="24" fill="#FFF" />
+          <circle cx="154" cy="104" r="24" fill="#FFF" />
+          {/* Left Pupil Animation */}
+          <motion.circle
+            cx="102"
+            cy="108"
+            r="13"
+            fill="#111827"
+            animate={{ cx: [102, 94, 94, 110, 110, 102, 102], cy: [108, 108, 108, 108, 108, 98, 108] }}
+            transition={{ repeat: Infinity, duration: 3.6, times: [0, 0.25, 0.45, 0.65, 0.8, 0.9, 1], ease: 'easeInOut' }}
+          />
+          <motion.circle
+            cx="107"
+            cy="103"
+            r="4.5"
+            fill="#FFF"
+            animate={{ cx: [107, 99, 99, 115, 115, 107, 107], cy: [103, 103, 103, 103, 103, 93, 103] }}
+            transition={{ repeat: Infinity, duration: 3.6, times: [0, 0.25, 0.45, 0.65, 0.8, 0.9, 1], ease: 'easeInOut' }}
+          />
+          {/* Right Pupil Animation */}
+          <motion.circle
+            cx="154"
+            cy="108"
+            r="13"
+            fill="#111827"
+            animate={{ cx: [154, 146, 146, 162, 162, 154, 154], cy: [108, 108, 108, 108, 108, 98, 108] }}
+            transition={{ repeat: Infinity, duration: 3.6, times: [0, 0.25, 0.45, 0.65, 0.8, 0.9, 1], ease: 'easeInOut' }}
+          />
+          <motion.circle
+            cx="159"
+            cy="103"
+            r="4.5"
+            fill="#FFF"
+            animate={{ cx: [159, 151, 151, 167, 167, 159, 159], cy: [103, 103, 103, 103, 103, 93, 103] }}
+            transition={{ repeat: Infinity, duration: 3.6, times: [0, 0.25, 0.45, 0.65, 0.8, 0.9, 1], ease: 'easeInOut' }}
+          />
+          <motion.path
+            d="M82 78 Q102 66 118 76"
+            stroke="#2D3748"
+            strokeWidth="6"
+            strokeLinecap="round"
+            fill="none"
+            animate={{ y: [0, -3, 0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 3.6 }}
+          />
+          <motion.path
+            d="M138 76 Q154 66 174 78"
+            stroke="#2D3748"
+            strokeWidth="6"
+            strokeLinecap="round"
+            fill="none"
+            animate={{ y: [0, -3, 0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 3.6 }}
+          />
+        </g>
+      ) : mood === 'scratching' ? (
+        // Scratching Itch: Squinting blissfully with relieved expression
+        <g>
+          <path d="M84 110 Q102 92 120 110" stroke="#111827" strokeWidth="6.5" strokeLinecap="round" fill="none" />
+          <path d="M142 98 L160 108 L142 118" stroke="#111827" strokeWidth="6.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <path d="M82 74 Q102 62 118 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M138 68 Q154 58 174 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+        </g>
+      ) : mood === 'preening' ? (
+        // Cozy Preening Closed Eyes (˘⌣˘)
+        <g>
+          <path d="M86 106 Q102 118 118 106" stroke="#111827" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M138 106 Q154 118 170 106" stroke="#111827" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M84 78 Q102 66 118 78" stroke="#2D3748" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+          <path d="M138 78 Q154 66 172 78" stroke="#2D3748" strokeWidth="5.5" strokeLinecap="round" fill="none" />
+        </g>
+      ) : mood === 'head_tilt' ? (
+        // Inquisitive Cute Head Tilt (One Wide Eye, One Arched Brow)
+        <g>
+          <circle cx="102" cy="104" r="23" fill="#FFF" />
+          <circle cx="154" cy="104" r="26" fill="#FFF" />
+          <circle cx="102" cy="104" r="12" fill="#111827" />
+          <circle cx="154" cy="104" r="15" fill="#111827" />
+          <circle cx="107" cy="99" r="4.5" fill="#FFF" />
+          <circle cx="160" cy="99" r="5.5" fill="#FFF" />
+          <path d="M82 78 Q102 70 118 78" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M136 64 Q154 48 176 64" stroke="#2D3748" strokeWidth="7" strokeLinecap="round" fill="none" />
+        </g>
+      ) : mood === 'waving' ? (
+        // Friendly Happy Smiling Waving Eyes (^ ^)
+        <g>
+          <circle cx="102" cy="104" r="24" fill="#FFF" />
+          <circle cx="154" cy="104" r="24" fill="#FFF" />
+          <circle cx="102" cy="108" r="13" fill="#111827" />
+          <circle cx="154" cy="108" r="13" fill="#111827" />
+          <circle cx="107" cy="103" r="4.5" fill="#FFF" />
+          <circle cx="159" cy="103" r="4.5" fill="#FFF" />
+          <path d="M82 72 Q102 58 118 70" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M138 70 Q154 58 174 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
         </g>
       ) : mood === 'petting' ? (
         // Blissful Petting / Purring Closed Eyes (^_^ with sweet blushing smile)
@@ -566,16 +724,32 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
       )}
 
       {/* Rosy Cheeks (Blushing) */}
-      <ellipse cx="72" cy="138" rx={mood.startsWith('petting') ? 18 : 14} ry={mood.startsWith('petting') ? 12 : 10} fill={mood === 'love' || mood.startsWith('petting') ? '#FDA4AF' : '#FFD89A'} opacity="0.95" />
-      <ellipse cx="184" cy="138" rx={mood.startsWith('petting') ? 18 : 14} ry={mood.startsWith('petting') ? 12 : 10} fill={mood === 'love' || mood.startsWith('petting') ? '#FDA4AF' : '#FFD89A'} opacity="0.95" />
+      <ellipse cx="72" cy="138" rx={mood.startsWith('petting') || mood === 'scratching' ? 18 : 14} ry={mood.startsWith('petting') || mood === 'scratching' ? 12 : 10} fill={mood === 'love' || mood.startsWith('petting') || mood === 'scratching' ? '#FDA4AF' : '#FFD89A'} opacity="0.95" />
+      <ellipse cx="184" cy="138" rx={mood.startsWith('petting') || mood === 'scratching' ? 18 : 14} ry={mood.startsWith('petting') || mood === 'scratching' ? 12 : 10} fill={mood === 'love' || mood.startsWith('petting') || mood === 'scratching' ? '#FDA4AF' : '#FFD89A'} opacity="0.95" />
 
       {/* ======================= BEAK / MOUTH ======================= */}
-      {mood === 'celebrate' || mood === 'excited' || mood === 'happy' || mood === 'dance' || mood === 'love' || mood.startsWith('petting') ? (
+      {mood === 'celebrate' || mood === 'excited' || mood === 'happy' || mood === 'dance' || mood === 'love' || mood === 'waving' || mood === 'hop' || mood.startsWith('petting') ? (
         // Smiling Open Beak with Pink Tongue
         <g>
           <path fill="url(#gkoo_beak)" d="M128 116 L153 130 L128 148 L103 130 Z" />
           <path fill="#991B1B" d="M116 132 Q128 147 140 132 Z" />
           <path fill="#FB7185" d="M122 137 Q128 145 134 137 Z" />
+        </g>
+      ) : mood === 'preening' ? (
+        // Preening Beak Turned Towards Left Wing Grooming Feathers
+        <motion.g
+          animate={{ rotate: [-6, 6, -6], x: [-2, 2, -2] }}
+          transition={{ repeat: Infinity, duration: 0.6 }}
+          style={{ transformOrigin: '128px 128px' }}
+        >
+          <path fill="url(#gkoo_beak)" d="M128 120 L146 134 L122 148 L104 134 Z" />
+          <path fill="#A53B00" d="M114 134 Q124 144 134 134 Z" />
+        </motion.g>
+      ) : mood === 'scratching' ? (
+        // Relieved Sweet Smile Beak
+        <g>
+          <path fill="url(#gkoo_beak)" d="M128 118 L151 132 L128 146 L105 132 Z" />
+          <path fill="#FB7185" d="M122 136 Q128 142 134 136 Z" />
         </g>
       ) : mood === 'sad' ? (
         // Down-turned Sad Beak
@@ -631,6 +805,65 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
             🎉
           </motion.text>
         </g>
+      )}
+
+      {mood === 'waving' && (
+        <motion.g
+          animate={{ y: [0, -10, 0], scale: [1, 1.2, 1], rotate: [-8, 12, -8] }}
+          transition={{ repeat: Infinity, duration: 0.9 }}
+        >
+          <text x="214" y="44" fontSize="26">👋</text>
+          <text x="34" y="52" fontSize="20">✨</text>
+        </motion.g>
+      )}
+
+      {mood === 'scratching' && (
+        <motion.g
+          animate={{ y: [0, -6, 0], scale: [0.95, 1.15, 0.95], opacity: [0.8, 1, 0.8] }}
+          transition={{ repeat: Infinity, duration: 0.45 }}
+        >
+          <text x="198" y="65" fontSize="22">🪶</text>
+          <text x="178" y="42" fontSize="16">✨</text>
+        </motion.g>
+      )}
+
+      {mood === 'preening' && (
+        <motion.g
+          animate={{ y: [0, -8, 0], opacity: [0.7, 1, 0.7] }}
+          transition={{ repeat: Infinity, duration: 1.2 }}
+        >
+          <text x="32" y="60" fontSize="22">🪶</text>
+          <text x="195" y="55" fontSize="18">🫧</text>
+        </motion.g>
+      )}
+
+      {mood === 'head_tilt' && (
+        <motion.g
+          animate={{ y: [0, -6, 0], scale: [1, 1.2, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4 }}
+        >
+          <text x="190" y="48" fontSize="24">❓</text>
+        </motion.g>
+      )}
+
+      {mood === 'wing_stretch' && (
+        <motion.g
+          animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+          transition={{ repeat: Infinity, duration: 1.2 }}
+        >
+          <text x="192" y="46" fontSize="20">💨</text>
+          <text x="34" y="46" fontSize="20">✨</text>
+        </motion.g>
+      )}
+
+      {mood === 'hop' && (
+        <motion.g
+          animate={{ y: [0, -14, 0], opacity: [0.75, 1, 0.75] }}
+          transition={{ repeat: Infinity, duration: 0.5 }}
+        >
+          <text x="185" y="48" fontSize="22">⚡</text>
+          <text x="38" y="48" fontSize="22">🌟</text>
+        </motion.g>
       )}
 
       {mood === 'dance' && (
@@ -750,6 +983,36 @@ export const Mascot: React.FC<MascotProps> = ({
     setCurrentMood(mood);
   }, [mood]);
 
+  // Spontaneous natural bird idle micro-animation loop (looking around, scratching, waving, stretching)
+  React.useEffect(() => {
+    if (!interactive) return;
+
+    const idleTimer = setInterval(() => {
+      // Only trigger spontaneous bird action when currently resting in happy or idle
+      setCurrentMood((prev) => {
+        if (prev === 'happy' || prev === 'idle') {
+          const spontaneousMoods: MascotMood[] = [
+            'looking_around',
+            'waving',
+            'scratching',
+            'preening',
+            'head_tilt',
+            'wing_stretch',
+            'hop',
+          ];
+          const chosen = spontaneousMoods[Math.floor(Math.random() * spontaneousMoods.length)];
+          setTimeout(() => {
+            setCurrentMood((curr) => (curr === chosen ? mood : curr));
+          }, 2400);
+          return chosen;
+        }
+        return prev;
+      });
+    }, 7500);
+
+    return () => clearInterval(idleTimer);
+  }, [interactive, mood]);
+
   const sizeClasses = {
     xs: 'w-12 h-12',
     sm: 'w-16 h-16',
@@ -793,6 +1056,43 @@ export const Mascot: React.FC<MascotProps> = ({
           rotate: [0, 7, 0, -4, 0],
           y: [0, -4, 0],
           transition: { repeat: Infinity, duration: 2.4, ease: 'easeInOut' as const },
+        };
+      case 'looking_around':
+        return {
+          rotate: [0, -6, 0, 6, 0],
+          y: [0, -2, 0, -2, 0],
+          transition: { repeat: Infinity, duration: 3.6, ease: 'easeInOut' as const },
+        };
+      case 'scratching':
+        return {
+          rotate: [-8, -14, -6, -14, -8],
+          y: [0, 2, 0, 2, 0],
+          transition: { repeat: Infinity, duration: 0.45, ease: 'easeInOut' as const },
+        };
+      case 'preening':
+        return {
+          rotate: [0, 8, 0, 6, 0],
+          y: [0, 3, 0, 2, 0],
+          transition: { repeat: Infinity, duration: 1.6, ease: 'easeInOut' as const },
+        };
+      case 'head_tilt':
+        return {
+          rotate: [0, 18, 18, 0, 0],
+          y: [0, -4, -4, 0, 0],
+          transition: { repeat: Infinity, duration: 2.4, ease: 'easeInOut' as const },
+        };
+      case 'wing_stretch':
+        return {
+          scaleY: [1, 1.12, 1],
+          scaleX: [1, 1.08, 1],
+          y: [0, -8, 0],
+          transition: { repeat: Infinity, duration: 1.4, ease: 'easeInOut' as const },
+        };
+      case 'hop':
+        return {
+          y: [0, -20, 0, -12, 0],
+          scaleY: [1, 1.1, 0.9, 1.05, 1],
+          transition: { repeat: Infinity, duration: 0.65, ease: 'easeInOut' as const },
         };
       case 'sad':
         return {
@@ -838,9 +1138,9 @@ export const Mascot: React.FC<MascotProps> = ({
         };
       case 'waving':
         return {
-          y: [0, -6, 0],
-          rotate: [0, -3, 3, 0],
-          transition: { repeat: Infinity, duration: 1.6 },
+          y: [0, -8, 0],
+          rotate: [0, -4, 4, 0],
+          transition: { repeat: Infinity, duration: 1.0, ease: 'easeInOut' as const },
         };
       case 'happy':
       case 'idle':
@@ -856,14 +1156,20 @@ export const Mascot: React.FC<MascotProps> = ({
     if (!interactive) return;
     triggerHaptic('click');
 
-    // Cycle through exciting random moods without layout shift
+    // Cycle through exciting random bird gestures & moods
     const randomMoods: MascotMood[] = [
+      'waving',
+      'looking_around',
+      'scratching',
+      'preening',
+      'head_tilt',
+      'wing_stretch',
+      'hop',
       'dance',
       'fire',
       'love',
       'celebrate',
       'excited',
-      'waving',
       'ninja',
       'eating',
     ];
@@ -887,7 +1193,7 @@ export const Mascot: React.FC<MascotProps> = ({
         whileTap={interactive ? { scale: 0.82, rotate: -8 } : {}}
         onClick={handleTapMascot}
         className={`relative ${sizeClasses[size]} shrink-0 select-none cursor-pointer`}
-        title="Tap me to play with G-koo! 🦉"
+        title="Tap me to play with Gkoo! 🦉"
       >
         <GkooBirdSvg mood={currentMood} />
       </motion.div>

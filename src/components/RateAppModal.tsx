@@ -88,7 +88,7 @@ export const RateAppModal: React.FC<RateAppModalProps> = ({ isOpen, onClose }) =
           </div>
 
           <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight mb-2">
-            {lang === 'hi' ? 'क्या आपको G-koo पसंद आया? 💖' : 'Enjoying G-koo? 💖'}
+            {lang === 'hi' ? 'क्या आपको Gkoo पसंद आया? 💖' : 'Enjoying Gkoo? 💖'}
           </h3>
 
           <p className="text-xs text-gray-600 dark:text-gray-300 font-medium mb-6 leading-relaxed px-2">

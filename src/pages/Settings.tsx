@@ -646,8 +646,8 @@ export default function Settings() {
 
             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-2.5 leading-relaxed">
               {lang === 'hi'
-                ? 'एक या एक से अधिक API Keys कॉमा (,) लगाकर जोड़ें। अगर एक Key की लिमिट खत्म होगी, तो G-koo अपने-आप अगली Key पर स्विच हो जाएगा:'
-                : 'Add one or more comma-separated API keys. G-koo will auto-switch if a key limit is reached:'}
+                ? 'एक या एक से अधिक API Keys कॉमा (,) लगाकर जोड़ें। अगर एक Key की लिमिट खत्म होगी, तो Gkoo अपने-आप अगली Key पर स्विच हो जाएगा:'
+                : 'Add one or more comma-separated API keys. Gkoo will auto-switch if a key limit is reached:'}
             </p>
 
             <div className="space-y-2">
@@ -760,7 +760,7 @@ export default function Settings() {
             <div className="flex items-center space-x-2.5">
               <Info className="w-4 h-4 text-[#FF5F6D]" />
               <span className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                {lang === 'hi' ? 'G-koo के बारे में (About Us)' : 'About G-koo'}
+                {lang === 'hi' ? 'Gkoo के बारे में (About Us)' : 'About Gkoo'}
               </span>
             </div>
             <ChevronRight className="w-4 h-4 text-gray-400" />

@@ -25,17 +25,17 @@ export function AchievementCertificateModal({
 
   const userName = (!isGuest && currentUser?.name)
     ? currentUser.name
-    : (profile.name && profile.name !== 'Guest Scholar' ? profile.name : (lang === 'hi' ? 'प्रतिभाशाली शिक्षार्थी' : 'G-koo Scholar'));
+    : (profile.name && profile.name !== 'Guest Scholar' ? profile.name : (lang === 'hi' ? 'प्रतिभाशाली शिक्षार्थी' : 'Gkoo Scholar'));
 
   const handleShareWhatsApp = () => {
     triggerHaptic('click');
     const shareText = lang === 'hi'
-      ? `🎓 मैंने G-koo App पर "${title}" (${categoryName}) में शानदार प्रदर्शन किया!\n⭐ अर्जित सितारे: ${'⭐'.repeat(stars || 3)}\n🎯 सटीकता: ${accuracy}%\n🏆 कुल स्कोर: ${score} अंक\n\nआप भी भारत का सबसे लोकप्रिय क्विज ऐप खेलें 👉 https://gkoo.app`
-      : `🎓 I achieved an outstanding score in "${title}" (${categoryName}) on G-koo!\n⭐ Stars Earned: ${'⭐'.repeat(stars || 3)}\n🎯 Accuracy: ${accuracy}%\n🏆 Total Score: ${score} pts\n\nJoin the smartest learning quiz app 👉 https://gkoo.app`;
+      ? `🎓 मैंने Gkoo App पर "${title}" (${categoryName}) में शानदार प्रदर्शन किया!\n⭐ अर्जित सितारे: ${'⭐'.repeat(stars || 3)}\n🎯 सटीकता: ${accuracy}%\n🏆 कुल स्कोर: ${score} अंक\n\nआप भी भारत का सबसे लोकप्रिय क्विज ऐप खेलें 👉 https://gkoo.app`
+      : `🎓 I achieved an outstanding score in "${title}" (${categoryName}) on Gkoo!\n⭐ Stars Earned: ${'⭐'.repeat(stars || 3)}\n🎯 Accuracy: ${accuracy}%\n🏆 Total Score: ${score} pts\n\nJoin the smartest learning quiz app 👉 https://gkoo.app`;
     
     if (typeof navigator !== 'undefined' && navigator.share) {
       navigator.share({
-        title: 'G-koo Achievement Certificate',
+        title: 'Gkoo Achievement Certificate',
         text: shareText,
         url: 'https://gkoo.app'
       }).catch(() => {
@@ -77,7 +77,7 @@ export function AchievementCertificateModal({
 
               {/* Certificate Header */}
               <div className="text-[10px] font-black uppercase tracking-widest text-amber-700 dark:text-amber-400 mb-1">
-                G-KOO SCHOLAR ACADEMY
+                GKOO SCHOLAR ACADEMY
               </div>
               <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight mb-2">
                 {lang === 'hi' ? 'प्रशस्ति प्रमाण-पत्र' : 'Certificate of Excellence'}
@@ -128,15 +128,14 @@ export function AchievementCertificateModal({
               {/* Verified Stamp */}
               <div className="flex items-center justify-center space-x-1 text-[10px] font-black text-amber-700 dark:text-amber-400 mt-2">
                 <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                <span>OFFICIALLY VERIFIED BY G-KOO</span>
+                <span>OFFICIALLY VERIFIED BY GKOO</span>
               </div>
             </div>
 
             {/* Share CTA Button */}
             <div className="mt-4 space-y-2">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.96 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleShareWhatsApp}
                 className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black text-sm rounded-2xl shadow-[0_4px_0_0_#065F46] border-b-2 border-emerald-900 flex items-center justify-center space-x-2"
               >

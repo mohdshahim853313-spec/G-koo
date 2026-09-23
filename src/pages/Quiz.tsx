@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
 import { GkooQuizLoadingArena } from '../components/GkooQuizLoadingArena';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Share2, Play, Award } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Share2, Play, Award, Bookmark, Zap, BookOpen, ChevronRight } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
 import { recordQuestionAnswer, getAllIncorrectQuestions } from '../lib/questionTracker';
@@ -15,13 +15,14 @@ import { RateAppModal } from '../components/RateAppModal';
 import { AdMobRewardModal } from '../components/AdMobRewardModal';
 import { AchievementCertificateModal } from '../components/AchievementCertificateModal';
 import { isAndroidApp, PLAY_STORE_APP_URL } from '../utils/platform';
+import { getDailyCaCount, addDailyCaCompleted, getDailyCaMilestone } from '../lib/dailyCurrentAffairs';
 
 const QUIT_MESSAGES = [
   {
     titleHi: 'क्या आप सचमुच छोड़कर जा रहे हैं? 🥺',
     titleEn: 'Wait, don’t leave yet! 🥺',
-    msgHi: 'You are leaving? G-koo is so sad! 🥺 बस कुछ ही सवाल बचे हैं, पूरा करके ही जाओ ना!',
-    msgEn: 'You are leaving? G-koo is so sad! 🥺 Just a few questions left, let’s finish together!',
+    msgHi: 'You are leaving? Gkoo is so sad! 🥺 बस कुछ ही सवाल बचे हैं, पूरा करके ही जाओ ना!',
+    msgEn: 'You are leaving? Gkoo is so sad! 🥺 Just a few questions left, let’s finish together!',
   },
   {
     titleHi: 'अरे रुकिए! मत जाइए ना! 💔',
@@ -30,10 +31,10 @@ const QUIT_MESSAGES = [
     msgEn: 'Your hard work and streak are so precious! If you leave now, your progress won’t be saved... 😢',
   },
   {
-    titleHi: 'G-koo बहुत उदास हो जाएगा... 😭',
-    titleEn: 'G-koo is feeling so heartbroken... 😭',
-    msgHi: 'इतनी अच्छी तैयारी चल रही है! थोड़े से सवाल और बाकी हैं, G-koo पर भरोसा रखो! ✨',
-    msgEn: 'You were doing so well! Just a few more questions, G-koo believes in you! ✨',
+    titleHi: 'Gkoo बहुत उदास हो जाएगा... 😭',
+    titleEn: 'Gkoo is feeling so heartbroken... 😭',
+    msgHi: 'इतनी अच्छी तैयारी चल रही है! थोड़े से सवाल और बाकी हैं, Gkoo पर भरोसा रखो! ✨',
+    msgEn: 'You were doing so well! Just a few more questions, Gkoo believes in you! ✨',
   },
   {
     titleHi: 'हार मत मानो चैंपियन! 🦁',
@@ -117,6 +118,9 @@ export default function Quiz() {
     }
   }
 
+  const isDailyCaQuiz = categoryId === 'ca_india' || categoryId === 'ca_world' || categoryId === 'current' || (isLevelQuiz && (levelCategory === 'ca_india' || levelCategory === 'ca_world'));
+  const [dailyCaProgressCount, setDailyCaProgressCount] = useState<number>(() => getDailyCaCount());
+
   const levelConfig = (levelNumber && levelCategory) ? getCategoryLevelConfig(levelCategory, levelNumber) : null;
   const categoryInfo = getCategoryInfo(levelCategory);
 
@@ -191,14 +195,69 @@ export default function Quiz() {
     let effectiveDifficulty = difficulty;
     let effectiveCount = questionCount;
 
-    if (levelConfig) {
+    if (isDailyCaQuiz) {
+      effectiveCount = 10;
+      effectiveDifficulty = 'medium';
+      const batchIdx = Math.floor(getDailyCaCount() / 10) + 1;
+      const targetCat = isLevelQuiz ? levelCategory : (categoryId || 'ca_india');
+      if (targetCat === 'ca_world') {
+        topicName = lang === 'hi'
+          ? `विश्व करेंट अफेयर्स सेट ${batchIdx}: वैश्विक शिखर सम्मेलन, अंतरराष्ट्रीय पुरस्कार, भू-राजनीति, अर्थव्यवस्था, विज्ञान व खेल`
+          : `World Current Affairs Set ${batchIdx}: Global Summits, International Awards, Geopolitics, Economy, Science & Sports`;
+      } else {
+        topicName = lang === 'hi'
+          ? `भारत राष्ट्रीय करेंट अफेयर्स सेट ${batchIdx}: नवीनतम राष्ट्रीय समाचार, सरकारी नीतियां, योजनाएं, अर्थव्यवस्था, रक्षा व खेल`
+          : `India National Current Affairs Set ${batchIdx}: Latest National News, Government Policies, Schemes, Economy, Defence & Sports`;
+      }
+    } else if (levelConfig) {
       topicName = lang === 'hi' ? levelConfig.topicPromptHi : levelConfig.topicPromptEn;
       effectiveDifficulty = levelConfig.difficulty;
       effectiveCount = levelConfig.questionCount;
     } else if (isDailyChallenge) {
-      topicName = lang === 'hi'
-        ? 'दैनिक करेंट अफेयर्स, भारत सामान्य ज्ञान, विज्ञान, भूगोल व प्रमुख तथ्य'
-        : 'Daily Current Affairs, India GK, General Science, World Geography & Key Facts';
+      // Rotate through 8 diverse curiosity-packed fact domains based on day of the year
+      const now = new Date();
+      const start = new Date(now.getFullYear(), 0, 0);
+      const diff = (now.getTime() - start.getTime()) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
+      const oneDay = 1000 * 60 * 60 * 24;
+      const dayOfYear = Math.floor(diff / oneDay);
+
+      const DAILY_THEMES = [
+        {
+          hi: 'अंतरिक्ष के अनसुलझे रहस्य, ब्लैक होल, नासा व इसरो खोजें और ब्रह्मांड के हैरतअंगेज तथ्य (Did You Know Space Facts)',
+          en: 'Mysteries of Space, Black Holes, NASA & ISRO Discoveries, Cosmic Wonders and Mind-Blowing Astronomy Facts'
+        },
+        {
+          hi: 'जीव-जंतु जगत के अविश्वसनीय तथ्य, दुर्लभ समुद्री जीव, विचित्र पशु क्षमताएं और प्रकृति के रहस्य (Amazing Animal Facts)',
+          en: 'Unbelievable Animal Kingdom Secrets, Deep Sea Creatures, Strange Wildlife Abilities & Bizarre Nature Facts'
+        },
+        {
+          hi: 'मानव शरीर और मस्तिष्क के हैरतअंगेज विज्ञान तथ्य, डीएनए और जैविक चमत्कार (Fascinating Human Body Facts)',
+          en: 'Astonishing Human Body & Brain Science, DNA Wonders, Neurological Curiosities & Medical Marvels'
+        },
+        {
+          hi: 'प्राचीन सभ्यताएं, ऐतिहासिक रहस्यमयी स्मारक, अनोखे आविष्कार और भारत व विश्व धरोहर (Ancient Mysteries & Inventions)',
+          en: 'Ancient Lost Civilizations, Archaeological Marvels, Historical Inventions & Hidden Heritage Facts'
+        },
+        {
+          hi: 'पृथ्वी के सबसे अनोखे स्थान, विचित्र भौगोलिक घटनाएं, रहस्यमयी मौसम और प्राकृतिक रिकॉर्ड (Extreme Geography Facts)',
+          en: 'Bizarre Earth Geography, Extreme Natural Phenomena, Mysterious Places & World Wonders'
+        },
+        {
+          hi: 'क्वांटम भौतिकी, भविष्य की तकनीक, रोबोटिक्स, एआई और आधुनिक विज्ञान के चमत्कारी तथ्य (Future Science & Tech Facts)',
+          en: 'Quantum Physics Wonders, AI & Robotics Breakthroughs, Futuristic Tech & Science Curiosities'
+        },
+        {
+          hi: 'अविश्वसनीय गिनीज वर्ल्ड रिकॉर्ड्स, इंसानी कारनामे, खेल इतिहास के रोचक क्षण और अनोखे तथ्य (Unbelievable World Records)',
+          en: 'Fascinating Guinness World Records, Incredible Human Feats, Sports History Curiosities & Unique Trivia'
+        },
+        {
+          hi: 'रोचक ऐतिहासिक घटनाएं, अनसुलझे रहस्य, गुप्त शहर और ऐतिहासिक रोचक तथ्य (Fascinating History Trivia)',
+          en: 'Intriguing World & Indian History Oddities, Hidden Forts, Historical Paradoxes & Strange True Facts'
+        }
+      ];
+
+      const chosenTheme = DAILY_THEMES[dayOfYear % DAILY_THEMES.length];
+      topicName = lang === 'hi' ? chosenTheme.hi : chosenTheme.en;
       effectiveDifficulty = 'medium';
       effectiveCount = 10;
     } else if (!customTopic) {
@@ -209,7 +268,7 @@ export default function Quiz() {
       topicName = defaultTopic;
     }
 
-    const levelQuestionsKey = isLevelQuiz && levelNumber
+    const levelQuestionsKey = (isLevelQuiz && levelNumber && !isDailyCaQuiz)
       ? `gkoo_level_q_${levelCategory}_${levelNumber}_${lang}`
       : null;
 
@@ -310,8 +369,7 @@ export default function Quiz() {
       }
     }
 
-    const wasOfflineGenerated = generated.length > 0 && generated[0]?.source === 'offline';
-    setIsOfflineQuiz(isCurrentlyOffline || wasOfflineGenerated);
+    setIsOfflineQuiz(isCurrentlyOffline);
     setMistakesList([]);
 
     setQuestions(shuffleQuestionsAndOptions(generated));
@@ -334,6 +392,51 @@ export default function Quiz() {
     setIsSpeaking(false);
     setRemovedOptions([]);
     refillHearts();
+  };
+
+  const handleContinueDailyCaMore = async () => {
+    triggerHaptic('success', hapticsEnabled);
+    stopSpeech();
+    setIsSpeaking(false);
+    setIsLoading(true);
+    setCurrentIndex(0);
+    setQuizHearts(5);
+    setCorrectCount(0);
+    setCurrentCombo(0);
+    setMaxCombo(0);
+    setBonusXp(0);
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsCorrect(null);
+    setMistakesList([]);
+    setRemovedOptions([]);
+    refillHearts();
+
+    const currentCount = getDailyCaCount();
+    const nextBatchIndex = Math.floor(currentCount / 10) + 1;
+    const targetCategory = isLevelQuiz ? levelCategory : (categoryId || 'ca_india');
+
+    let dynamicTopic = lang === 'hi'
+      ? `भारत राष्ट्रीय करेंट अफेयर्स सेट ${nextBatchIndex}: नवीनतम राष्ट्रीय समाचार, सरकारी नीतियां, योजनाएं, अर्थव्यवस्था, रक्षा व खेल`
+      : `India National Current Affairs Set ${nextBatchIndex}: Latest National News, Government Policies, Schemes, Economy, Defence & Sports`;
+
+    if (targetCategory === 'ca_world') {
+      dynamicTopic = lang === 'hi'
+        ? `विश्व करेंट अफेयर्स सेट ${nextBatchIndex}: वैश्विक शिखर सम्मेलन, अंतरराष्ट्रीय पुरस्कार, भू-राजनीति, अर्थव्यवस्था, विज्ञान व खेल`
+        : `World Current Affairs Set ${nextBatchIndex}: Global Summits, International Awards, Geopolitics, Economy, Science & Sports`;
+    }
+
+    const freshQuestions = await generateAiQuiz(geminiApiKey, {
+      topic: dynamicTopic,
+      categoryId: targetCategory,
+      levelNumber: nextBatchIndex,
+      count: 10,
+      difficulty: 'medium',
+      lang
+    }, lang);
+
+    setQuestions(shuffleQuestionsAndOptions(freshQuestions));
+    setIsLoading(false);
   };
 
   const handleRetestMistakes = () => {
@@ -573,7 +676,10 @@ export default function Quiz() {
       recordQuizResult(questions.length, finalCorrect, Math.max(maxCombo, currentCombo), gemsReward);
       playSound('complete', soundEnabled);
 
-      if (isLevelQuiz && levelNumber) {
+      if (isDailyCaQuiz) {
+        const updatedCa = addDailyCaCompleted(10);
+        setDailyCaProgressCount(updatedCa);
+      } else if (isLevelQuiz && levelNumber) {
         const result = completeCategoryLevel(levelCategory, levelNumber, finalAccuracy, totalXpEarned);
         setEarnedStars(result.starsEarned);
         setNextUnlockedLevel(result.nextUnlocked);
@@ -712,15 +818,15 @@ export default function Quiz() {
   // Out of Hearts Game Over Screen (When all 5 hearts are lost in this quiz)
   if (!isDailyChallenge && quizHearts <= 0 && isAnswerChecked && !isCorrect) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md mx-auto bg-[#FCF9F7] dark:bg-[#121217]">
+      <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md md:max-w-xl mx-auto bg-[#FCF9F7] dark:bg-[#121217]">
         <Mascot size="lg" mood="sad" message={lang === 'hi' ? 'ओह नहीं! सारे हार्ट्स खत्म हो गए 💔' : 'Out of Hearts! 💔'} />
         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
           {lang === 'hi' ? 'सभी 5 हार्ट्स समाप्त हो गए! 💔' : 'Out of Hearts (5/5 Lost)! 💔'}
         </h2>
         <p className="text-xs text-gray-500 dark:text-gray-300 font-medium max-w-xs mb-6 leading-relaxed">
           {lang === 'hi' 
-            ? 'आप 5 गलत उत्तर देने के कारण बाहर हो गए हैं। आप इन्हीं समान 15 प्रश्नों के साथ दोबारा टेस्ट शुरू कर सकते हैं!' 
-            : 'You used up all 5 hearts in this quiz. You can restart the test with the exact same 15 questions!'}
+            ? 'आप 5 गलत उत्तर देने के कारण बाहर हो गए हैं। आप इन्हीं समान 10 प्रश्नों के साथ दोबारा टेस्ट शुरू कर सकते हैं!' 
+            : 'You used up all 5 hearts in this quiz. You can restart the test with the exact same 10 questions!'}
         </p>
         <div className="space-y-3 w-full">
           {/* Option A: Watch Ad to Refill (ONLY on Android App) */}
@@ -791,22 +897,43 @@ export default function Quiz() {
     const totalGained = baseReward + bonusXp;
     const incorrectCount = questions.length - correctCount;
 
+    const caMilestone = isDailyCaQuiz ? getDailyCaMilestone(dailyCaProgressCount || getDailyCaCount()) : null;
+
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-10 pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md md:max-w-lg mx-auto bg-[#FCF9F7] dark:bg-[#121217]"
+        className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-10 pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md md:max-w-xl lg:max-w-2xl mx-auto bg-[#FCF9F7] dark:bg-[#121217]"
       >
 
-        <Mascot message={isLevelQuiz ? "Stage Conquered! Realm Master! 🌟" : (isDailyChallenge ? "Daily Challenge Conquered! ⚡" : "Great job! Your streak continues! 🔥")} size="lg" mood="celebrate" />
+        <Mascot message={isDailyCaQuiz ? (lang === 'hi' ? 'दैनिक करेंट अफेयर्स में शानदार प्रदर्शन! 🔥' : 'Daily Current Affairs streak on fire! 🔥') : (isLevelQuiz ? "Stage Conquered! Realm Master! 🌟" : (isDailyChallenge ? "Daily Challenge Conquered! ⚡" : "Great job! Your streak continues! 🔥"))} size="lg" mood="celebrate" />
         
-        <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-3">
-          {isLevelQuiz ? `${categoryInfo.icon} Level ${levelNumber} Cleared! 🎉` : (isDailyChallenge ? (lang === 'hi' ? 'दैनिक चुनौती पूर्ण! ⚡' : "Today's Daily Challenge Cleared! ⚡") : t('quizCompleted'))}
+        <h2 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mt-3 leading-tight">
+          {isDailyCaQuiz 
+            ? (lang === 'hi' ? caMilestone!.congratsHi : caMilestone!.congratsEn)
+            : (isLevelQuiz ? `${categoryInfo.icon} Level ${levelNumber} Cleared! 🎉` : (isDailyChallenge ? (lang === 'hi' ? 'दैनिक चुनौती पूर्ण! ⚡' : "Today's Daily Challenge Cleared! ⚡") : t('quizCompleted')))}
         </h2>
-        {isLevelQuiz && (
+        {isLevelQuiz && !isDailyCaQuiz && (
           <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-0.5">
             {lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn}
           </p>
+        )}
+
+        {/* Daily Current Affairs Milestone Showcase Badge */}
+        {isDailyCaQuiz && caMilestone && (
+          <motion.div 
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-rose-500/20 dark:from-amber-950/50 dark:to-rose-950/50 border-2 border-amber-300/80 dark:border-amber-700/80 p-4 rounded-3xl my-3 shadow-md text-center"
+          >
+            <div className="text-4xl mb-1.5 animate-bounce">{caMilestone.badge}</div>
+            <div className="inline-block bg-amber-400 text-amber-950 font-black text-xs px-3.5 py-1 rounded-full shadow-xs mb-1.5">
+              🏆 {lang === 'hi' ? caMilestone.currentTitleHi : caMilestone.currentTitleEn}
+            </div>
+            <p className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 mt-1 leading-snug">
+              {lang === 'hi' ? caMilestone.nextPromptHi : caMilestone.nextPromptEn}
+            </p>
+          </motion.div>
         )}
 
         {/* Offline Badge on Completion */}
@@ -818,20 +945,24 @@ export default function Quiz() {
         )}
 
         {/* 3-Star Rating Showcase on Level Finish */}
-        {isLevelQuiz && (
-          <div className="flex items-center space-x-2 my-3 bg-amber-50 dark:bg-amber-950/40 px-5 py-2.5 rounded-2xl border-2 border-amber-200 dark:border-amber-800">
-            {[1, 2, 3].map((s) => (
+        {isLevelQuiz && !isDailyCaQuiz && (
+          <div className="flex items-center justify-center space-x-3 my-4">
+            {[1, 2, 3].map((star) => (
               <motion.div
-                key={s}
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: s * 0.15, type: 'spring' }}
+                key={star}
+                initial={{ scale: 0, rotate: -20 }}
+                animate={{ 
+                  scale: star <= earnedStars ? [0, 1.35, 1] : 1,
+                  rotate: star <= earnedStars ? [0, 15, 0] : 0 
+                }}
+                transition={{ delay: 0.3 + (star * 0.25), duration: 0.5, type: 'spring' }}
+                className="relative"
               >
                 <Star
-                  className={`w-7 h-7 ${
-                    s <= (earnedStars || (accuracy >= 90 ? 3 : accuracy >= 65 ? 2 : 1))
-                      ? 'fill-amber-400 text-amber-500 drop-shadow-md'
-                      : 'text-gray-300 dark:text-gray-700'
+                  className={`w-12 h-12 ${
+                    star <= earnedStars
+                      ? 'fill-amber-400 text-amber-400 drop-shadow-[0_4px_12px_rgba(251,191,36,0.6)]'
+                      : 'text-gray-300 dark:text-gray-700 fill-gray-100 dark:fill-gray-800/40'
                   }`}
                 />
               </motion.div>
@@ -858,29 +989,37 @@ export default function Quiz() {
           </div>
         )}
         
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 w-full my-4">
-          <div className="bg-amber-50 dark:bg-amber-950/40 border-2 border-amber-200 dark:border-amber-800/60 p-2.5 rounded-2xl">
-            <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">{t('xpEarned')}</p>
-            <p className="text-lg font-black text-amber-600 dark:text-amber-400">+{totalGained}</p>
+        {/* 4 Stats Result Tiles Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 w-full my-6">
+          <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">{t('accuracy')}</span>
+            <span className={`text-xl font-black ${accuracy >= 80 ? 'text-emerald-500' : accuracy >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
+              {accuracy}%
+            </span>
           </div>
-          <div className="bg-sky-50 dark:bg-sky-950/40 border-2 border-sky-200 dark:border-sky-800/60 p-2.5 rounded-2xl">
-            <p className="text-[10px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-wider">{t('gems')}</p>
-            <p className="text-lg font-black text-sky-600 dark:text-sky-400">+{earnedGems || 15} 💎</p>
+          <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">{t('xpEarned')}</span>
+            <span className="text-xl font-black text-amber-500 flex items-center justify-center space-x-1">
+              <Zap className="w-4 h-4 fill-amber-500 inline" />
+              <span>+{totalGained}</span>
+            </span>
           </div>
-          <div className="bg-emerald-50 dark:bg-emerald-950/40 border-2 border-emerald-200 dark:border-emerald-800/60 p-2.5 rounded-2xl">
-            <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{t('accuracy')}</p>
-            <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">{accuracy}%</p>
+          <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">{t('bestComboLabel')}</span>
+            <span className="text-xl font-black text-orange-500 flex items-center justify-center space-x-1">
+              <span>🔥 {maxCombo}x</span>
+            </span>
           </div>
-          <div className="bg-rose-50 dark:bg-rose-950/40 border-2 border-rose-200 dark:border-rose-800/60 p-2.5 rounded-2xl">
-            <p className="text-[10px] font-black text-[#FF5F6D] uppercase tracking-wider">Hearts</p>
-            <p className="text-lg font-black text-[#FF5F6D]">
-              {isDailyChallenge ? (lang === 'hi' ? 'सुरक्षित ❤️' : 'Safe ❤️') : `${quizHearts} ❤️`}
-            </p>
+          <div className="bg-white dark:bg-gray-800 p-3.5 rounded-2xl border border-gray-100 dark:border-gray-700/80 shadow-xs">
+            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">{t('gems')}</span>
+            <span className="text-xl font-black text-cyan-500 flex items-center justify-center space-x-1">
+              <span>+{earnedGems} 💎</span>
+            </span>
           </div>
         </div>
 
         {/* Level Unlocked Banner */}
-        {isLevelQuiz && nextUnlockedLevel && (
+        {isLevelQuiz && !isDailyCaQuiz && nextUnlockedLevel && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -892,44 +1031,54 @@ export default function Quiz() {
         )}
 
         <div className="space-y-2.5 w-full">
-          {/* Review Mistakes Button */}
-          {mistakesList.length > 0 && (
-            <motion.button 
+          {/* Review Mistakes Button (if user got any question wrong) */}
+          {incorrectCount > 0 && mistakesList.length > 0 && (
+            <motion.button
               whileTap={{ scale: 0.98 }}
               onClick={() => setShowMistakesModal(true)}
-              className="w-full bg-gradient-to-r from-rose-500/15 via-orange-500/15 to-amber-500/15 dark:from-rose-950/50 dark:to-amber-950/50 border-2 border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-black py-3.5 rounded-2xl text-xs flex items-center justify-center space-x-2 shadow-xs cursor-pointer"
+              className="w-full bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-600 dark:text-rose-300 border-2 border-rose-300 dark:border-rose-800/80 font-black py-3.5 rounded-2xl transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer"
             >
-              <span>📝 {t('reviewMistakes')} ({mistakesList.length})</span>
+              <BookOpen className="w-4 h-4" />
+              <span>
+                {lang === 'hi' 
+                  ? `📖 गलत उत्तरों की समीक्षा करें (${mistakesList.length} गलतियां)` 
+                  : `📖 Review Mistakes (${mistakesList.length} Missed)`}
+              </span>
             </motion.button>
           )}
 
-          {isLevelQuiz && nextUnlockedLevel ? (
+          {/* Primary Action Button: Continue 10 More for Daily CA, Play Next Level for Level Quiz, or Return */}
+          {isDailyCaQuiz ? (
+            <button 
+              onClick={handleContinueDailyCaMore}
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#065F46] active:translate-y-0.5 active:shadow-none transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>{lang === 'hi' ? '+10 और हल करें 🚀' : 'Continue 10 More 🚀'}</span>
+              <ChevronRight className="w-4 h-4 stroke-[3]" />
+            </button>
+          ) : nextUnlockedLevel ? (
             <button 
               onClick={() => {
-                const isCurrentlyOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
-                const isNextPassed = !!categoryLevelProgress[levelCategory]?.[nextUnlockedLevel]?.completed;
-                if (isCurrentlyOffline && !isNextPassed) {
-                  setIsOfflineBlocked(true);
-                  return;
-                }
+                triggerHaptic('click');
                 navigate(`/quiz/level-${levelCategory}-${nextUnlockedLevel}`);
               }}
-              className="w-full bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#991B1B] active:translate-y-1 active:shadow-none transition-all text-sm flex items-center justify-center space-x-2"
+              className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#065F46] active:translate-y-0.5 active:shadow-none transition-all text-sm flex items-center justify-center space-x-2 cursor-pointer"
             >
-              <span>{t('playNextLevel')} (LVL {nextUnlockedLevel})</span>
-              <ArrowRight className="w-4 h-4 stroke-[3]" />
+              <span>{t('playNextLevel')}</span>
+              <ChevronRight className="w-4 h-4 stroke-[3]" />
             </button>
           ) : null}
 
           <button 
             onClick={() => navigate('/')}
-            className={`w-full font-black py-3.5 rounded-2xl transition-all text-xs ${
-              isLevelQuiz
-                ? 'bg-white dark:bg-[#1A1A24] text-gray-800 dark:text-gray-200 border-2 border-gray-200 dark:border-gray-700 shadow-sm active:scale-98'
-                : 'bg-[#FF5F6D] text-white shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none text-sm'
+            className={`w-full font-black py-3.5 rounded-2xl active:translate-y-0.5 active:shadow-none transition-all text-xs cursor-pointer ${
+              (isDailyCaQuiz || nextUnlockedLevel)
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200' 
+                : 'bg-[#FF5F6D] hover:bg-[#E64553] text-white shadow-[0_4px_0_0_#D93848]'
             }`}
           >
-            {isLevelQuiz ? (lang === 'hi' ? 'लेवल्स मैप पर लौटें' : 'Back to Level Map') : t('returnHome')}
+            {isLevelQuiz && !isDailyCaQuiz ? (lang === 'hi' ? 'लेवल्स मैप पर लौटें' : 'Back to Level Map') : t('returnHome')}
           </button>
 
           {/* WhatsApp / Social Share Score Button */}
@@ -937,15 +1086,15 @@ export default function Quiz() {
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               triggerHaptic('success', hapticsEnabled);
-              const title = categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'G-koo GK';
+              const title = categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'Gkoo GK';
               const lvlText = levelNumber ? `Level ${levelNumber}` : 'Quiz';
               const shareText = lang === 'hi'
-                ? `🏆 मैंने G-koo ऐप में ${title} (${lvlText}) में ${accuracy}% स्कोर किया और ${totalGained} XP हासिल किया! 🧠✨\nक्या आप मेरे स्कोर को हरा सकते हैं? 🚀\n👉 अभी मुफ़्त में डाउनलोड करें और खेलें: ${PLAY_STORE_APP_URL}`
-                : `🏆 I scored ${accuracy}% and won ${totalGained} XP in G-koo Quiz (${title} - ${lvlText})! 🧠✨\nCan you beat my score? 🚀\n👉 Download & Play now: ${PLAY_STORE_APP_URL}`;
+                ? `🏆 मैंने Gkoo ऐप में ${title} (${lvlText}) में ${accuracy}% स्कोर किया और ${totalGained} XP हासिल किया! 🧠✨\nक्या आप मेरे स्कोर को हरा सकते हैं? 🚀\n👉 अभी मुफ़्त में डाउनलोड करें और खेलें: ${PLAY_STORE_APP_URL}`
+                : `🏆 I scored ${accuracy}% and won ${totalGained} XP in Gkoo Quiz (${title} - ${lvlText})! 🧠✨\nCan you beat my score? 🚀\n👉 Download & Play now: ${PLAY_STORE_APP_URL}`;
 
               if (typeof navigator !== 'undefined' && navigator.share) {
                 navigator.share({
-                  title: 'G-koo - AI Quiz & GK Arena',
+                  title: 'Gkoo - AI Quiz & GK Arena',
                   text: shareText,
                   url: PLAY_STORE_APP_URL,
                 }).catch(() => {
@@ -989,7 +1138,7 @@ export default function Quiz() {
           isOpen={showCertificateModal}
           onClose={() => setShowCertificateModal(false)}
           title={isLevelQuiz ? `Level ${levelNumber}` : (customTopic || 'GK Master')}
-          categoryName={categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'G-koo'}
+          categoryName={categoryInfo ? (lang === 'hi' ? categoryInfo.titleHi : categoryInfo.titleEn) : 'Gkoo'}
           stars={earnedStars || (accuracy >= 90 ? 3 : accuracy >= 65 ? 2 : 1)}
           accuracy={accuracy}
           score={totalGained}
@@ -1005,376 +1154,385 @@ export default function Quiz() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] flex flex-col justify-between pt-[max(env(safe-area-inset-top,0px),8px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none">
-      {/* Top Navigation HUD */}
-      <div className="max-w-md mx-auto w-full px-4 mb-2">
-        <div className="flex items-center justify-between gap-2.5 mb-2">
-          {/* Top Left Actions: Close/Quit Cross + Quick Sound Toggle */}
-          <div className="flex items-center space-x-1 shrink-0">
-            <button 
-              onClick={() => {
-                const randIdx = Math.floor(Math.random() * QUIT_MESSAGES.length);
-                setQuitMessageIdx(randIdx);
-                setShowQuitModal(true);
-              }} 
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-              title={lang === 'hi' ? 'क्विज छोड़ें' : 'Quit quiz'}
-            >
-              <X className="w-5 h-5 stroke-[2.5]" />
-            </button>
-
-            <button
-              onClick={() => {
-                setSoundEnabled(!soundEnabled);
-                triggerHaptic('click', hapticsEnabled);
-              }}
-              className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
-                soundEnabled
-                  ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
-                  : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
-              title={soundEnabled ? (lang === 'hi' ? 'आवाज़ बंद करें' : 'Mute Sound') : (lang === 'hi' ? 'आवाज़ चालू करें' : 'Unmute Sound')}
-            >
-              {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
-            </button>
-          </div>
-
-          {/* G-koo Progress Bar + Hearts */}
-          <div className="flex items-center space-x-2.5 flex-1 min-w-0">
-            <div className="flex-1 bg-gray-200 dark:bg-gray-800 h-3.5 rounded-full overflow-hidden">
-              <motion.div 
-                className="bg-gradient-to-r from-[#FF7B7B] to-[#FF5F6D] h-full rounded-full transition-all duration-300" 
-                animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-              />
-            </div>
-
-            {/* Offline Status Badge in Top Bar */}
-            {isOfflineQuiz && (
-              <div 
-                className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2.5 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 shrink-0 shadow-xs"
-                title={lang === 'hi' ? 'ऑफलाइन सुरक्षित डेटा' : 'Offline Saved Data'}
+    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#121217] flex flex-col justify-between pt-[max(env(safe-area-inset-top,0px),12px)] pb-[max(env(safe-area-inset-bottom,0px),16px)] select-none">
+      <div className="w-full max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto px-4 sm:px-6 md:px-8 flex-1 flex flex-col justify-between">
+        
+        {/* Top Section: HUD + Questions */}
+        <div className="w-full">
+          {/* Top Navigation HUD */}
+          <div className="flex items-center justify-between gap-3 mb-3 md:mb-6">
+            {/* Top Left Actions: Close/Quit Cross + Quick Sound Toggle */}
+            <div className="flex items-center space-x-1.5 shrink-0">
+              <button 
+                onClick={() => {
+                  const randIdx = Math.floor(Math.random() * QUIT_MESSAGES.length);
+                  setQuitMessageIdx(randIdx);
+                  setShowQuitModal(true);
+                }} 
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                title={lang === 'hi' ? 'क्विज छोड़ें' : 'Quit quiz'}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>{lang === 'hi' ? '💾 ऑफलाइन सेव्ड' : '💾 Offline Saved'}</span>
-              </div>
-            )}
+                <X className="w-5 h-5 stroke-[2.5]" />
+              </button>
 
-            {/* 5-Heart HUD Indicator or Unlimited Hearts for Daily Challenge */}
-            {isDailyChallenge ? (
-              <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-rose-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
-                <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center space-x-1">
-                  <span>⚡ ∞</span>
-                  <Heart className="w-3.5 h-3.5 fill-[#FF5F6D] text-[#FF5F6D] inline" />
-                </span>
-                <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight">
-                  {lang === 'hi' ? 'नो हार्ट लॉस' : 'Free Hearts'}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center space-x-1 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-900/50 shrink-0">
-                <div className="flex space-x-0.5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Heart
-                      key={i}
-                      className={`w-3.5 h-3.5 transition-transform ${
-                        i <= quizHearts
-                          ? 'fill-[#FF5F6D] text-[#FF5F6D]'
-                          : 'text-gray-300 dark:text-gray-600 scale-90'
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="text-xs font-black text-[#FF5F6D] ml-0.5">{quizHearts}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Offline Notification Banner */}
-        {isOfflineQuiz && showOfflineBanner && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs"
-          >
-            <div className="flex items-center space-x-2 truncate">
-              <span className="text-sm">💾</span>
-              <span className="truncate">
-                {lang === 'hi'
-                  ? 'ऑफलाइन मोड: पास किए गए स्तर का सुरक्षित डेटा लोड हुआ है'
-                  : 'Offline Mode: Playing completed level from saved data'}
-              </span>
-            </div>
-            <button
-              onClick={() => setShowOfflineBanner(false)}
-              className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 p-0.5 ml-2 cursor-pointer shrink-0"
-              title={lang === 'hi' ? 'बंद करें' : 'Dismiss'}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-
-        {/* Question Prompt & Options Grid */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentIndex}
-            initial={{ x: 25, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: -25, opacity: 0 }}
-            className="w-full"
-          >
-            <div className="flex items-start justify-between gap-2.5 mb-5 md:mb-6 w-full">
-              <div className="flex-1">
-                {/* Active Exam Timer countdown pill */}
-                {examTimerEnabled && !isAnswerChecked && (
-                  <div className="mb-2">
-                    <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border text-xs font-black shadow-xs ${
-                      timeLeft <= 5 
-                        ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 text-rose-600 animate-pulse' 
-                        : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-700 dark:text-amber-300'
-                    }`}>
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{timeLeft}s</span>
-                    </span>
-                  </div>
-                )}
-                <h2 className="text-xl sm:text-2xl font-black text-gray-900 dark:text-white leading-snug">
-                  {currentQ.text}
-                </h2>
-              </div>
-
-              {/* Action Buttons: Bookmark & Audio Speaker */}
-              <div className="flex items-center space-x-2 shrink-0">
-                {/* Bookmark Toggle Button */}
-                <motion.button
-                  whileTap={{ scale: 0.88, y: 1 }}
-                  onClick={handleBookmarkCurrent}
-                  className={`p-3 rounded-2xl border-2 transition-all shadow-md flex items-center justify-center cursor-pointer ${
-                    isBookmarked(currentQ.text)
-                      ? 'bg-amber-100 dark:bg-amber-950/60 border-amber-400 text-amber-500 shadow-[0_3px_0_0_#D97706]'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-400 hover:text-amber-500 hover:bg-amber-50 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
-                  }`}
-                  title={isBookmarked(currentQ.text) ? t('removeBookmark') : t('bookmarkQuestion')}
-                >
-                  <Star className={`w-5 h-5 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
-                </motion.button>
-
-                {/* Question Audio Speaker Button */}
-                <motion.button
-                  whileTap={{ scale: 0.88, y: 1 }}
-                  onClick={toggleSpeakQuestion}
-                  className={`p-3 rounded-2xl border-2 transition-all shadow-md flex items-center justify-center cursor-pointer ${
-                    isSpeaking
-                      ? 'bg-[#FF5F6D] border-[#D93848] text-white shadow-[0_3px_0_0_#991B1B] animate-pulse'
-                      : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-[#FF5F6D] hover:bg-rose-50 dark:hover:bg-rose-950/30 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B]'
-                  }`}
-                  title={lang === 'hi' ? 'सवाल सुनें (Audio)' : 'Listen Question (Audio)'}
-                >
-                  {isSpeaking ? (
-                    <VolumeX className="w-5 h-5 stroke-[2.5]" />
-                  ) : (
-                    <Volume2 className="w-5 h-5 stroke-[2.5]" />
-                  )}
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Lifeline Toast Banner */}
-            {lifelineToast && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-center space-x-1.5 shadow-xs"
-              >
-                <span>{lifelineToast}</span>
-              </motion.div>
-            )}
-
-            {/* Lifelines Toolbar (50:50 & Skip Question) */}
-            <div className="flex items-center justify-end space-x-2 mb-3">
-              {/* 50:50 Lifeline */}
               <button
-                type="button"
-                onClick={handleFiftyFifty}
-                disabled={isAnswerChecked || removedOptions.length > 0}
-                className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs ${
-                  removedOptions.length > 0
-                    ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-[0_2px_0_0_#4338CA] active:translate-y-0.5 active:shadow-none cursor-pointer'
+                onClick={() => {
+                  setSoundEnabled(!soundEnabled);
+                  triggerHaptic('click', hapticsEnabled);
+                }}
+                className={`p-2 rounded-xl transition-colors cursor-pointer ${
+                  soundEnabled
+                    ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                    : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
-                title={lang === 'hi' ? '50:50 लाइफलाइन (10 जेम्स)' : '50:50 Lifeline (10 Gems)'}
+                title={soundEnabled ? (lang === 'hi' ? 'आवाज़ बंद करें' : 'Mute Sound') : (lang === 'hi' ? 'आवाज़ चालू करें' : 'Unmute Sound')}
               >
-                <span>✂️ 50:50</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">10 💎</span>
-              </button>
-
-              {/* Skip Question Lifeline */}
-              <button
-                type="button"
-                onClick={handleSkipQuestion}
-                disabled={isAnswerChecked}
-                className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-[0_2px_0_0_#0284C7] active:translate-y-0.5 active:shadow-none cursor-pointer"
-                title={lang === 'hi' ? 'सवाल छोड़ें (15 जेम्स)' : 'Skip Question (15 Gems)'}
-              >
-                <span>⏭️ {lang === 'hi' ? 'स्किप' : 'Skip'}</span>
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">15 💎</span>
+                {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
               </button>
             </div>
 
-            {/* 3D Tactile Option Buttons */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
-              {currentQ.options.map((option) => {
-                const isSelected = selectedOption === option;
-                const isRemoved = removedOptions.includes(option);
-
-                let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
-
-                if (isRemoved) {
-                  btnStyles += "border-dashed border-gray-300 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-gray-400 line-through opacity-30 cursor-not-allowed";
-                } else if (!isAnswerChecked) {
-                  if (isSelected) {
-                    btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
-                  } else {
-                    btnStyles += "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1A24] text-gray-800 dark:text-white hover:border-gray-300 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B] active:translate-y-0.5 active:shadow-none";
-                  }
-                } else {
-                  if (option === currentQ.answer) {
-                    btnStyles += "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-[0_3px_0_0_#10B981]";
-                  } else if (isSelected && !isCorrect) {
-                    btnStyles += "border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-[0_3px_0_0_#F43F5E]";
-                  } else {
-                    btnStyles += "border-gray-200 dark:border-gray-800 opacity-40 bg-white dark:bg-[#1A1A24] text-gray-400";
-                  }
-                }
-
-                return (
-                  <motion.button 
-                    key={option} 
-                    whileTap={!isAnswerChecked && !isRemoved ? { scale: 0.96, y: 3 } : {}}
-                    whileHover={!isAnswerChecked && !isRemoved ? { scale: 1.01 } : {}}
-                    onClick={() => {
-                      if (isRemoved) return;
-                      triggerHaptic('click');
-                      handleSelect(option);
-                    }} 
-                    disabled={isAnswerChecked || isRemoved}
-                    className={btnStyles}
-                  >
-                    <div className="flex items-center space-x-2.5 flex-1 pr-2">
-                      {/* Optional micro audio button on option */}
-                      {!isRemoved && (
-                        <button
-                          type="button"
-                          onClick={(e) => speakSingleOption(e, option)}
-                          className="p-1 rounded-lg text-gray-400 hover:text-[#FF5F6D] dark:hover:text-rose-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
-                          title={lang === 'hi' ? 'विकल्प सुनें' : 'Listen option'}
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <span>{option}</span>
-                    </div>
-
-                    {isAnswerChecked && option === currentQ.answer && (
-                      <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                    )}
-                    {isAnswerChecked && isSelected && !isCorrect && (
-                      <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* Bottom Section: Unified Action Button & Feedback (Positioned at bottom with 15px padding) */}
-      <div className="w-full pt-4">
-        <AnimatePresence>
-          {isAnswerChecked && (
-            <motion.div
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.25 }}
-              className={`p-3.5 sm:p-4 rounded-2xl mb-3 border-2 ${
-                isCorrect
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60'
-                  : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-2">
-                  {isCorrect ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <span className="font-black text-sm text-emerald-700 dark:text-emerald-300">
-                        {lang === 'hi' ? 'शाबाश! सही उत्तर 🎉' : 'Nicely done! 🎉'}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
-                      <span className="font-black text-sm text-rose-700 dark:text-rose-300">
-                        {t('lostAHeart')}
-                      </span>
-                    </>
-                  )}
-                </div>
-                <GkooBirdAvatar size="sm" mood={isCorrect ? 'celebrate' : 'sad'} />
+            {/* Gkoo Progress Bar + Hearts */}
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <div className="flex-1 bg-gray-200 dark:bg-gray-800 h-3.5 md:h-4 rounded-full overflow-hidden">
+                <motion.div 
+                  className="bg-gradient-to-r from-[#FF7B7B] to-[#FF5F6D] h-full rounded-full transition-all duration-300" 
+                  animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                />
               </div>
 
-              {/* Fact Explanation & Audio */}
-              {currentQ.explanation && (
-                <div className="flex items-start justify-between gap-2 bg-white/70 dark:bg-black/25 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
-                  <p className="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed flex-1">
-                    {currentQ.explanation}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerHaptic('click');
-                      speakText(currentQ.explanation || '', lang);
-                    }}
-                    className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white shrink-0"
-                    title={lang === 'hi' ? 'तथ्य सुनें' : 'Listen fact'}
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
+              {/* Offline Status Badge in Top Bar (Only when actually offline) */}
+              {isOfflineQuiz && (
+                <div 
+                  className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2.5 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 shrink-0 shadow-xs"
+                  title={lang === 'hi' ? 'ऑफलाइन सुरक्षित डेटा' : 'Offline Saved Data'}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{lang === 'hi' ? '💾 ऑफलाइन सेव्ड' : '💾 Offline Saved'}</span>
                 </div>
               )}
+
+              {/* 5-Heart HUD Indicator or Unlimited Hearts for Daily Challenge */}
+              {isDailyChallenge ? (
+                <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-rose-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
+                  <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center space-x-1">
+                    <span>⚡ ∞</span>
+                    <Heart className="w-3.5 h-3.5 fill-[#FF5F6D] text-[#FF5F6D] inline" />
+                  </span>
+                  <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-tight">
+                    {lang === 'hi' ? 'नो हार्ट लॉस' : 'Free Hearts'}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-full border border-rose-200 dark:border-rose-900/50 shrink-0">
+                  <div className="flex space-x-0.5">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Heart
+                        key={i}
+                        className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${
+                          i <= quizHearts
+                            ? 'fill-[#FF5F6D] text-[#FF5F6D]'
+                            : 'text-gray-300 dark:text-gray-600 scale-90'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className="text-xs md:text-sm font-black text-[#FF5F6D] ml-0.5">{quizHearts}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Daily Current Affairs Flow Banner */}
+          {isDailyCaQuiz && showOfflineBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between bg-gradient-to-r from-rose-500/15 via-orange-500/10 to-amber-500/15 dark:from-rose-950/40 dark:to-amber-950/40 border border-rose-300 dark:border-rose-800/80 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-rose-950 dark:text-rose-200 shadow-xs"
+            >
+              <div className="flex items-center space-x-2 truncate">
+                <span className="text-sm shrink-0">📰</span>
+                <span className="truncate">
+                  {dailyCaProgressCount === 0
+                    ? (lang === 'hi' ? 'आज का पहला सेट: 10 ताजा सवाल हल करें 🚀' : "Today's Set 1: Solve 10 fresh questions 🚀")
+                    : (lang === 'hi' ? `आज ${dailyCaProgressCount} सवाल पूरे! +10 और जारी हैं 🔥` : `${dailyCaProgressCount} completed today! Solving +10 more 🔥`)}
+                </span>
+              </div>
+              <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shrink-0 ml-1">
+                {getDailyCaMilestone(dailyCaProgressCount).badge}
+              </span>
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* Unified Action Button: CHECK -> in-place replaces with -> CONTINUE */}
-        <motion.button
-          whileTap={(!isAnswerChecked && !selectedOption) ? {} : { scale: 0.96, y: 2 }}
-          whileHover={(!isAnswerChecked && !selectedOption) ? {} : { scale: 1.01 }}
-          onClick={() => {
-            triggerHaptic('click');
-            if (!isAnswerChecked) {
-              handleCheck();
-            } else {
-              handleNext();
-            }
-          }}
-          disabled={!isAnswerChecked && !selectedOption}
-          className={`w-full py-4 rounded-2xl font-black text-white text-sm sm:text-base tracking-wide transition-all shadow-md ${
-            !isAnswerChecked
-              ? selectedOption
-                ? 'bg-[#FF5F6D] hover:bg-[#E64553] shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none'
-                : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
-              : isCorrect
-              ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_0_#059669] active:translate-y-1 active:shadow-none'
-              : 'bg-rose-500 hover:bg-rose-600 shadow-[0_4px_0_0_#E11D48] active:translate-y-1 active:shadow-none'
-          }`}
-        >
-          {!isAnswerChecked ? t('checkBtn') : t('continueBtn')}
-        </motion.button>
+          {/* Offline Notification Banner */}
+          {isOfflineQuiz && showOfflineBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs"
+            >
+              <div className="flex items-center space-x-2 truncate">
+                <span className="text-sm">💾</span>
+                <span className="truncate">
+                  {lang === 'hi'
+                    ? 'ऑफलाइन मोड: पास किए गए स्तर का सुरक्षित डेटा लोड हुआ है'
+                    : 'Offline Mode: Playing completed level from saved data'}
+                </span>
+              </div>
+              <button
+                onClick={() => setShowOfflineBanner(false)}
+                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 p-0.5 ml-2 cursor-pointer shrink-0"
+                title={lang === 'hi' ? 'बंद करें' : 'Dismiss'}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* Question Prompt & Options Grid */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ x: 25, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -25, opacity: 0 }}
+              className="w-full"
+            >
+              {/* Question Text Box with TTS & Bookmark */}
+              <div className="flex items-start justify-between gap-3 mb-4 sm:mb-6 w-full bg-white dark:bg-[#1A1A24] p-4.5 sm:p-6 rounded-3xl border border-gray-100 dark:border-gray-800 shadow-sm">
+                <div className="flex-1">
+                  {/* Active Exam Timer countdown pill */}
+                  {examTimerEnabled && !isAnswerChecked && (
+                    <div className="mb-2.5">
+                      <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border text-xs font-black shadow-xs ${
+                        timeLeft <= 5 
+                          ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 text-rose-600 animate-pulse' 
+                          : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-700 dark:text-amber-300'
+                      }`}>
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{timeLeft}s</span>
+                      </span>
+                    </div>
+                  )}
+
+                  <h2 className="text-base sm:text-lg md:text-xl font-black text-gray-800 dark:text-white leading-relaxed">
+                    {currentQ.text}
+                  </h2>
+                </div>
+
+                <div className="flex items-center space-x-1 shrink-0">
+                  {/* Bookmark Button */}
+                  <button
+                    type="button"
+                    onClick={handleBookmarkCurrent}
+                    className={`p-2 rounded-2xl border transition-all ${
+                      isBookmarked(currentQ.text)
+                        ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-500 shadow-xs'
+                        : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20'
+                    }`}
+                    title={isBookmarked(currentQ.text) ? (lang === 'hi' ? 'बुकमार्क हटाया' : 'Remove Bookmark') : (lang === 'hi' ? 'बुकमार्क करें' : 'Bookmark Question')}
+                  >
+                    <Bookmark className={`w-5 h-5 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                  </button>
+
+                  {/* Question TTS Audio Button */}
+                  <button
+                    type="button"
+                    onClick={toggleSpeakQuestion}
+                    disabled={isSpeaking}
+                    className={`p-2 rounded-2xl border border-gray-100 dark:border-gray-800 text-gray-400 hover:text-[#FF5F6D] hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-all ${
+                      isSpeaking ? 'animate-pulse text-[#FF5F6D]' : ''
+                    }`}
+                    title={lang === 'hi' ? 'सवाल और विकल्प सुनें' : 'Read Question & Options Aloud'}
+                  >
+                    <Volume2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Lifeline Toolbar (50:50 and Skip Question) */}
+              <div className="flex items-center justify-center space-x-3 mb-4">
+                {/* 50:50 Lifeline Button */}
+                <button
+                  type="button"
+                  onClick={handleFiftyFifty}
+                  disabled={isAnswerChecked || removedOptions.length > 0}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs ${
+                    removedOptions.length > 0
+                      ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 opacity-40 cursor-not-allowed border border-transparent'
+                      : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-[0_2px_0_0_#4338CA] active:translate-y-0.5 active:shadow-none cursor-pointer'
+                  }`}
+                  title={lang === 'hi' ? '50:50 लाइफलाइन (10 जेम्स)' : '50:50 Lifeline (10 Gems)'}
+                >
+                  <span>🎭 50:50</span>
+                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">10 💎</span>
+                </button>
+
+                {/* Skip Question Lifeline Button */}
+                <button
+                  type="button"
+                  onClick={handleSkipQuestion}
+                  disabled={isAnswerChecked}
+                  className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center space-x-1.5 transition-all shadow-xs bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white shadow-[0_2px_0_0_#0284C7] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                  title={lang === 'hi' ? 'सवाल छोड़ें (15 जेम्स)' : 'Skip Question (15 Gems)'}
+                >
+                  <span>⏭️ {lang === 'hi' ? 'स्किप' : 'Skip'}</span>
+                  <span className="bg-white/20 px-1.5 py-0.5 rounded text-[10px] ml-0.5">15 💎</span>
+                </button>
+              </div>
+
+              {/* 3D Tactile Option Buttons Grid (1 col on mobile, 2 col on tablet/PC) */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
+                {currentQ.options.map((option) => {
+                  const isSelected = selectedOption === option;
+                  const isRemoved = removedOptions.includes(option);
+
+                  let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
+
+                  if (isRemoved) {
+                    btnStyles += "border-dashed border-gray-300 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-gray-400 line-through opacity-30 cursor-not-allowed";
+                  } else if (!isAnswerChecked) {
+                    if (isSelected) {
+                      btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
+                    } else {
+                      btnStyles += "border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1A1A24] text-gray-800 dark:text-white hover:border-gray-300 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#1E293B] active:translate-y-0.5 active:shadow-none";
+                    }
+                  } else {
+                    if (option === currentQ.answer) {
+                      btnStyles += "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-[0_3px_0_0_#10B981]";
+                    } else if (isSelected && !isCorrect) {
+                      btnStyles += "border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-[0_3px_0_0_#F43F5E]";
+                    } else {
+                      btnStyles += "border-gray-200 dark:border-gray-800 opacity-40 bg-white dark:bg-[#1A1A24] text-gray-400";
+                    }
+                  }
+
+                  return (
+                    <motion.button 
+                      key={option} 
+                      whileTap={!isAnswerChecked && !isRemoved ? { scale: 0.96, y: 3 } : {}}
+                      whileHover={!isAnswerChecked && !isRemoved ? { scale: 1.01 } : {}}
+                      onClick={() => {
+                        if (isRemoved) return;
+                        triggerHaptic('click');
+                        handleSelect(option);
+                      }} 
+                      disabled={isAnswerChecked || isRemoved}
+                      className={btnStyles}
+                    >
+                      <div className="flex items-center space-x-2.5 flex-1 pr-2">
+                        {/* Optional micro audio button on option */}
+                        {!isRemoved && (
+                          <button
+                            type="button"
+                            onClick={(e) => speakSingleOption(e, option)}
+                            className="p-1 rounded-lg text-gray-400 hover:text-[#FF5F6D] dark:hover:text-rose-400 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                            title={lang === 'hi' ? 'विकल्प सुनें' : 'Listen option'}
+                          >
+                            <Volume2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <span>{option}</span>
+                      </div>
+
+                      {isAnswerChecked && option === currentQ.answer && (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                      )}
+                      {isAnswerChecked && isSelected && !isCorrect && (
+                        <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Bottom Section: Feedback & Unified Action Button */}
+        <div className="w-full pt-4">
+          <AnimatePresence>
+            {isAnswerChecked && (
+              <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -12 }}
+                transition={{ duration: 0.25 }}
+                className={`p-3.5 sm:p-4 rounded-2xl mb-3 border-2 ${
+                  isCorrect
+                    ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/60'
+                    : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/60'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    {isCorrect ? (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span className="font-black text-sm text-emerald-700 dark:text-emerald-300">
+                          {lang === 'hi' ? 'शाबाश! सही उत्तर 🎉' : 'Nicely done! 🎉'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0" />
+                        <span className="font-black text-sm text-rose-700 dark:text-rose-300">
+                          {t('lostAHeart')}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  <GkooBirdAvatar size="sm" mood={isCorrect ? 'celebrate' : 'sad'} />
+                </div>
+
+                {/* Fact Explanation & Audio */}
+                {currentQ.explanation && (
+                  <div className="flex items-start justify-between gap-2 bg-white/70 dark:bg-black/25 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
+                    <p className="text-xs text-gray-700 dark:text-gray-300 font-medium leading-relaxed flex-1">
+                      {currentQ.explanation}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerHaptic('click');
+                        speakText(currentQ.explanation || '', lang);
+                      }}
+                      className="p-1 text-gray-400 hover:text-gray-700 dark:hover:text-white shrink-0"
+                      title={lang === 'hi' ? 'तथ्य सुनें' : 'Listen fact'}
+                    >
+                      <Volume2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Unified Action Button: CHECK -> in-place replaces with -> CONTINUE */}
+          <motion.button
+            whileTap={(!isAnswerChecked && !selectedOption) ? {} : { scale: 0.96, y: 2 }}
+            whileHover={(!isAnswerChecked && !selectedOption) ? {} : { scale: 1.01 }}
+            onClick={() => {
+              triggerHaptic('click');
+              if (!isAnswerChecked) {
+                handleCheck();
+              } else {
+                handleNext();
+              }
+            }}
+            disabled={!isAnswerChecked && !selectedOption}
+            className={`w-full py-4 rounded-2xl font-black text-white text-sm sm:text-base tracking-wide transition-all shadow-md ${
+              !isAnswerChecked
+                ? selectedOption
+                  ? 'bg-[#FF5F6D] hover:bg-[#E64553] shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none'
+                  : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
+                : isCorrect
+                ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_0_#059669] active:translate-y-1 active:shadow-none'
+                : 'bg-rose-500 hover:bg-rose-600 shadow-[0_4px_0_0_#E11D48] active:translate-y-1 active:shadow-none'
+            }`}
+          >
+            {!isAnswerChecked ? t('checkBtn') : t('continueBtn')}
+          </motion.button>
+        </div>
       </div>
 
       {/* CUTE SAD G-KOO QUIT CONFIRMATION MODAL */}
@@ -1460,6 +1618,21 @@ export default function Quiz() {
           >
             <Star className="w-4 h-4 fill-white shrink-0" />
             <span>{bookmarkToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Lifeline Toast */}
+      <AnimatePresence>
+        {lifelineToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-purple-600 text-white font-black text-xs px-4 py-2.5 rounded-2xl shadow-xl flex items-center space-x-2 pointer-events-none"
+          >
+            <Sparkles className="w-4 h-4 fill-white shrink-0" />
+            <span>{lifelineToast}</span>
           </motion.div>
         )}
       </AnimatePresence>

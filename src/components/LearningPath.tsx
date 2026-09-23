@@ -20,9 +20,10 @@ import {
   getCategoryLevelConfig, 
   getCategoryWorldConfig, 
   getCategoryInfo, 
-  CATEGORIES_LIST,
+  CATEGORIES_LIST, 
   type LevelConfig 
 } from '../lib/levelData';
+import { getDailyCaCount, getDailyCaMilestone } from '../lib/dailyCurrentAffairs';
 
 interface LearningPathProps {
   onBackToCategories?: () => void;
@@ -59,6 +60,18 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
   const [rewardToast, setRewardToast] = useState<string | null>(null);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineModalLevel, setOfflineModalLevel] = useState<number | null>(null);
+
+  const [dailyCaCount, setDailyCaCount] = useState<number>(() => getDailyCaCount());
+
+  useEffect(() => {
+    const handleCaUpdate = () => {
+      setDailyCaCount(getDailyCaCount());
+    };
+    window.addEventListener('gkoo_daily_ca_updated', handleCaUpdate);
+    return () => {
+      window.removeEventListener('gkoo_daily_ca_updated', handleCaUpdate);
+    };
+  }, []);
 
   const isDeviceOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
 
@@ -221,6 +234,74 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
         })}
       </div>
 
+      {/* If Current Affairs: Show Dedicated Endless Daily Flow Card with Realtime Status */}
+      {(currentCatId === 'ca_india' || currentCatId === 'ca_world') && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full mb-4"
+        >
+          {dailyCaCount === 0 ? (
+            <div className="bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 p-4.5 rounded-3xl text-white shadow-lg border-b-[4px] border-orange-700">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                  📰
+                </div>
+                <div>
+                  <h3 className="font-black text-sm sm:text-base leading-tight">
+                    {lang === 'hi' ? 'आज आपने एक भी करेंट अफेयर्स पूरा नहीं किया है!' : 'You have not completed any Current Affairs today!'}
+                  </h3>
+                  <p className="text-xs text-white/95 font-medium mt-0.5">
+                    {lang === 'hi' ? 'दैनिक स्ट्रीक व नए टाइटल्स अनलॉक करने के लिए आज के 10 ताज़ा सवाल हल करें 🚀' : 'Try 10 fresh questions to keep your knowledge sharp and build your streak 🚀'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  triggerHaptic('click', hapticsEnabled);
+                  navigate(`/quiz/${currentCatId}?count=10`);
+                }}
+                className="w-full bg-white text-orange-600 font-black py-3 rounded-2xl text-xs shadow-md active:translate-y-0.5 transition-all flex items-center justify-center space-x-2 cursor-pointer hover:bg-orange-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{lang === 'hi' ? '10 सवाल शुरू करें 🚀' : 'Start 10 Questions 🚀'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 p-4.5 rounded-3xl text-white shadow-lg border-b-[4px] border-emerald-700">
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                  {getDailyCaMilestone(dailyCaCount).badge}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-2 flex-wrap gap-1">
+                    <h3 className="font-black text-sm sm:text-base leading-tight">
+                      {lang === 'hi' ? `आज ${dailyCaCount} सवाल पूरे! 🎉` : `${dailyCaCount} Questions Solved Today! 🎉`}
+                    </h3>
+                    <span className="bg-amber-300 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
+                      {lang === 'hi' ? getDailyCaMilestone(dailyCaCount).currentTitleHi : getDailyCaMilestone(dailyCaCount).currentTitleEn}
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/95 font-medium mt-0.5">
+                    {lang === 'hi' ? getDailyCaMilestone(dailyCaCount).nextPromptHi : getDailyCaMilestone(dailyCaCount).nextPromptEn}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  triggerHaptic('click', hapticsEnabled);
+                  navigate(`/quiz/${currentCatId}?count=10`);
+                }}
+                className="w-full bg-white text-emerald-700 font-black py-3 rounded-2xl text-xs shadow-md active:translate-y-0.5 transition-all flex items-center justify-center space-x-2 cursor-pointer hover:bg-emerald-50"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>{lang === 'hi' ? '+10 और हल करें 🚀' : 'Continue +10 More 🚀'}</span>
+              </button>
+            </div>
+          )}
+        </motion.div>
+      )}
+
       {/* Top Map Header HUD for Category */}
       <div className="w-full bg-white dark:bg-[#1A1A24] rounded-3xl p-3.5 mb-3 border-2 border-gray-200 dark:border-gray-800 border-b-[4px] border-b-gray-300 dark:border-b-gray-950 shadow-sm flex items-center justify-between">
         <div className="flex items-center space-x-2">
@@ -347,8 +428,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
             return (
               <div key={level.level} className="w-full my-2 perf-card">
                 <motion.div
-                  whileHover={{ scale: isLocked ? 1 : 1.02 }}
-                  whileTap={{ scale: isLocked ? 1 : 0.96 }}
+                  whileTap={{ scale: isLocked ? 1 : 0.99 }}
                   onClick={() => handleLevelClick(level)}
                   className={`w-full rounded-3xl p-5 relative overflow-hidden transition-transform select-none cursor-pointer border-b-[6px] shadow-lg ${
                     isCompleted
@@ -424,8 +504,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           return (
             <div key={level.level} className="w-full perf-card">
               <motion.div
-                whileHover={{ scale: isLocked ? 1 : 1.015 }}
-                whileTap={{ scale: isLocked ? 1 : 0.97 }}
+                whileTap={{ scale: isLocked ? 1 : 0.99 }}
                 onClick={() => handleLevelClick(level)}
                 className={`w-full rounded-3xl p-4 border-b-[5px] transition-transform relative overflow-hidden select-none cursor-pointer flex items-center justify-between ${
                   isCompleted

@@ -567,7 +567,7 @@ export function getCategoryLevelConfig(categoryId: string, levelNumber: number):
     difficulty: levelNumber > 20 ? 'hard' : levelNumber > 8 ? 'medium' : 'easy',
     xpReward: isBoss ? 150 + (worldId * 20) : 75 + ((levelNumber % 10) * 5),
     isBoss,
-    questionCount: isBoss ? 20 : 15,
+    questionCount: 10,
     chestReward: (levelNumber % 5 === 0) ? { gems: 20 + worldId * 5, xp: 30 + worldId * 10 } : undefined
   };
 }

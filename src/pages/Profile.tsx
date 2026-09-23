@@ -212,7 +212,7 @@ export default function Profile() {
         <div className="grid grid-cols-2 gap-3.5">
           {/* Lessons Finished */}
           <motion.div 
-            whileTap={{ scale: 0.94, y: 2 }}
+            whileTap={{ scale: 0.99 }}
             className="bg-gradient-to-br from-amber-500 via-orange-500 to-amber-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-orange-800 flex items-center space-x-3 select-none"
           >
             <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
@@ -226,7 +226,7 @@ export default function Profile() {
 
           {/* Accuracy Rate */}
           <motion.div 
-            whileTap={{ scale: 0.94, y: 2 }}
+            whileTap={{ scale: 0.99 }}
             className="bg-gradient-to-br from-emerald-500 via-teal-500 to-emerald-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-teal-900 flex items-center space-x-3 select-none"
           >
             <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
@@ -240,7 +240,7 @@ export default function Profile() {
 
           {/* Total XP */}
           <motion.div 
-            whileTap={{ scale: 0.94, y: 2 }}
+            whileTap={{ scale: 0.99 }}
             className="bg-gradient-to-br from-blue-500 via-indigo-500 to-blue-600 text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-indigo-900 flex items-center space-x-3 select-none"
           >
             <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
@@ -254,7 +254,7 @@ export default function Profile() {
 
           {/* Daily Streak */}
           <motion.div 
-            whileTap={{ scale: 0.94, y: 2 }}
+            whileTap={{ scale: 0.99 }}
             className="bg-gradient-to-br from-[#FF5F6D] via-[#E64553] to-[#D93848] text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-[#991B1B] flex items-center space-x-3 select-none"
           >
             <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">

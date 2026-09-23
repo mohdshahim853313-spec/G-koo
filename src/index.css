@@ -14,7 +14,8 @@
   }
 
   body {
-    @apply antialiased text-gray-900 bg-[#FCF9F7] dark:bg-[#121217] dark:text-gray-100;
+    color: #111827;
+    background-color: #FCF9F7;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -23,6 +24,11 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
+  }
+
+  .dark body {
+    color: #f3f4f6;
+    background-color: #121217;
   }
 
   #root {
@@ -37,6 +43,7 @@
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
     -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   *::-webkit-scrollbar,
@@ -64,9 +71,9 @@
 
 /* Card hardware-acceleration without layout thrashing or dynamic height jitter */
 .perf-card {
-  will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
+  contain: paint;
 }
 
 /* Helper class */

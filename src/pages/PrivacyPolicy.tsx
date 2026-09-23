@@ -41,8 +41,8 @@ export default function PrivacyPolicy() {
           </h3>
           <p className="text-xs text-gray-600 dark:text-gray-300 font-medium mt-0.5">
             {lang === 'hi'
-              ? 'G-koo में आपका डेटा सुरक्षित है। हम कोई भी संवेदनशील डेटा तीसरे पक्ष को नहीं बेचते।'
-              : 'G-koo is safe, transparent, and educational. We never sell your personal data.'}
+              ? 'Gkoo में आपका डेटा सुरक्षित है। हम कोई भी संवेदनशील डेटा तीसरे पक्ष को नहीं बेचते।'
+              : 'Gkoo is safe, transparent, and educational. We never sell your personal data.'}
           </p>
         </div>
       </motion.div>
@@ -57,7 +57,7 @@ export default function PrivacyPolicy() {
             </h2>
           </div>
           <p>
-            • <strong>Guest Mode:</strong> You can use G-koo entirely as a guest without creating an account. In this mode, all quiz streaks, progress, XP, and gems are stored locally on your device storage (LocalStorage/IndexedDB).
+            • <strong>Guest Mode:</strong> You can use Gkoo entirely as a guest without creating an account. In this mode, all quiz streaks, progress, XP, and gems are stored locally on your device storage (LocalStorage/IndexedDB).
           </p>
           <p className="mt-2">
             • <strong>Signed-in Accounts:</strong> If you choose to sign in via Google Sign-In or email, we only access your basic public profile (name, email address, and avatar) to sync your progress, streak, and leaderboard rankings across devices.
@@ -104,7 +104,7 @@ export default function PrivacyPolicy() {
             </h2>
           </div>
           <p>
-            G-koo is an educational trivia and general knowledge platform designed for learners of all ages. We comply with COPPA and Google Play Families guidelines, and do not track or collect personal information from underage users without consent.
+            Gkoo is an educational trivia and general knowledge platform designed for learners of all ages. We comply with COPPA and Google Play Families guidelines, and do not track or collect personal information from underage users without consent.
           </p>
         </section>
 
@@ -124,7 +124,7 @@ export default function PrivacyPolicy() {
         </section>
 
         <div className="pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 text-center">
-          Last Updated: September 2026 • G-koo Learning Platform
+          Last Updated: September 2026 • Gkoo Learning Platform
         </div>
       </div>
     </div>

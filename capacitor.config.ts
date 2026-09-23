@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.gkoo.app',
-  appName: 'G-koo',
+  appName: 'Gkoo',
   webDir: 'dist',
   server: {
     androidScheme: 'https'

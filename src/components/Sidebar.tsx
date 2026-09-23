@@ -34,7 +34,7 @@ export const Sidebar: React.FC = () => {
         </div>
         <div className="flex flex-col">
           <span className="font-black text-xl tracking-tight bg-gradient-to-r from-[#FF5F6D] to-[#FF9F1A] bg-clip-text text-transparent leading-none">
-            G-koo
+            Gkoo
           </span>
           <span className="text-[11px] font-bold text-gray-400 dark:text-gray-400 mt-0.5">
             AI Quiz Adventure

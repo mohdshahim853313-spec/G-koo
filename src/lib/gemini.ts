@@ -352,7 +352,7 @@ export async function generateAiQuiz(
   const categoryId = (options.categoryId || '').toLowerCase();
   const customPrompt = (options.customPrompt || '').trim();
   const difficulty = options.difficulty || 'medium';
-  const count = options.count || 15;
+  const count = options.count || 10;
   const lang = options.lang || langFallback || 'en';
 
   // 1. Check if device is currently offline
@@ -375,12 +375,21 @@ export async function generateAiQuiz(
 
     const modelsToTry = [
       'gemini-2.5-flash',
+      'gemini-2.0-flash',
       'gemini-flash-latest',
       'gemini-3.1-flash-lite',
-      'gemini-3-flash-preview',
       'gemini-1.5-flash',
       'gemini-pro-latest'
     ];
+
+    // Current dynamic time context (Real-time 2026)
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentDateFormatted = now.toLocaleDateString(lang === 'hi' ? 'hi-IN' : 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
 
     // Iterate through keys in the pool (Auto-Failover / Load Balancing)
     for (let kIdx = 0; kIdx < orderedKeys.length; kIdx++) {
@@ -393,22 +402,29 @@ export async function generateAiQuiz(
             ? "CRITICAL LANGUAGE REQUIREMENT: PURE HINDI (हिंदी). Everything including question 'text', all 4 'options', 'answer', and 'explanation' MUST be written in 100% natural, correct Devanagari Hindi. Do NOT use English words."
             : "Language: English.";
 
-          const levelContext = options.levelNumber
-            ? `LEVEL NUMBER: ${options.levelNumber}. CRITICAL: Ensure all questions are uniquely tailored for Level ${options.levelNumber} and completely distinct. Do NOT repeat standard questions.`
-            : '';
+          const isDailyOrFactTopic = (cleanTopic && (cleanTopic.toLowerCase().includes('daily') || cleanTopic.toLowerCase().includes('challenge') || cleanTopic.toLowerCase().includes('fact') || cleanTopic.includes('तथ्य') || cleanTopic.includes('चुनौती')));
 
           const promptInstruction = customPrompt
             ? `User Custom Instructions: "${customPrompt}"`
-            : `Generate a brand-new, educational quiz on: "${cleanTopic || categoryId || 'General Knowledge & Current Affairs'}". ${levelContext}`;
+            : isDailyOrFactTopic
+            ? `Generate exactly ${count} extraordinarily interesting, curiosity-sparking multiple-choice questions on: "${cleanTopic}". Focus on mind-blowing real-world facts, "Did You Know?" mysteries, unbelievable science wonders, historic oddities, space anomalies, animal kingdom secrets, and latest global records. Make questions fun, educational, and completely fresh without repetition.`
+            : options.levelNumber
+            ? `Generate exactly ${count} unique, non-repeating multiple-choice questions specifically for Level ${options.levelNumber} on topic: "${cleanTopic || categoryId}". Distribute questions across relevant subtopics (politics, geography, national/international news, states, policies, discoveries, key facts). NEVER repeat previously generated questions.`
+            : `Generate a brand-new, educational quiz of ${count} questions on: "${cleanTopic || categoryId || 'General Knowledge & Current Affairs'}".`;
 
-          const systemPrompt = `You are an expert quiz master. Create an engaging multiple-choice quiz of exactly ${count} questions.
+          const systemPrompt = `You are an expert quiz master with real-time Google search live knowledge. Create an engaging multiple-choice quiz of exactly ${count} questions.
+Temporal Context:
+- Today's Date: ${currentDateFormatted} (Year ${currentYear}).
+- CRITICAL: Ground all Current Affairs, National/International News, Awards, Sports, Summits, Policies, and Discoveries in real-world facts up to ${currentYear}. Do NOT treat 2024 or earlier years as the current year.
+
 Instructions:
 - Topic: ${promptInstruction}
 - Difficulty: ${difficulty.toUpperCase()}
 - ${languagePrompt}
 - Each question must have exactly 4 distinct plausible options.
 - The 'answer' field MUST match one of the 4 options verbatim.
-- Provide a short educational explanation for each question.
+- Provide a captivating, educational explanation for each question starting with a fun "Did you know?" insight.
+- NEVER repeat trivial or duplicate questions. Keep questions exciting, accurate, and surprising!
 
 Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no codeblocks:
 [
@@ -431,18 +447,38 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-          const response = await fetch(url, {
+          // Request payload with Google Search Live Grounding enabled
+          const requestBodyWithGrounding = {
+            contents: [{ parts: [{ text: systemPrompt }] }],
+            tools: [{ googleSearch: {} }],
+            generationConfig: {
+              temperature: 0.7,
+              maxOutputTokens: 4096,
+            }
+          };
+
+          let response = await fetch(url, {
             method: 'POST',
             headers,
             signal: controller.signal,
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: systemPrompt }] }],
-              generationConfig: {
-                temperature: 0.8,
-                maxOutputTokens: 4096,
-              }
-            })
+            body: JSON.stringify(requestBodyWithGrounding)
           });
+
+          // Fallback without tools if a specific preview model doesn't support tools schema
+          if (!response.ok && response.status === 400) {
+            response = await fetch(url, {
+              method: 'POST',
+              headers,
+              signal: controller.signal,
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: systemPrompt }] }],
+                generationConfig: {
+                  temperature: 0.8,
+                  maxOutputTokens: 4096,
+                }
+              })
+            });
+          }
 
           clearTimeout(timeoutId);
 

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">G-koo</string>
-    <string name="title_activity_main">G-koo</string>
+    <string name="app_name">Gkoo</string>
+    <string name="title_activity_main">Gkoo</string>
     <string name="package_name">com.gkoo.app</string>
     <string name="custom_url_scheme">com.gkoo.app</string>
 </resources>

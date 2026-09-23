@@ -41,7 +41,7 @@ export const scheduleDailyReminders = async (
         : `🔥 Don't lose your ${streak}-day streak!`;
 
       const body = lang === 'hi'
-        ? `आज आपने कोई टेस्ट नहीं दिया! G-koo आपका इंतज़ार कर रहा है, 2 मिनट अभ्यास करें 🦜`
+        ? `आज आपने कोई टेस्ट नहीं दिया! Gkoo आपका इंतज़ार कर रहा है, 2 मिनट अभ्यास करें 🦜`
         : `You haven't completed a lesson today! Take a quick 2-minute quiz now 🦜`;
 
       // Schedule for 7:30 PM daily
@@ -108,8 +108,8 @@ export const sendImmediateTestNotification = async (
     if (!granted) return false;
 
     const title = lang === 'hi' 
-      ? `🦜 G-koo: अपनी ${streak} दिन की स्ट्रीक जारी रखें!`
-      : `🦜 G-koo: Keep your ${streak}-day streak alive!`;
+      ? `🦜 Gkoo: अपनी ${streak} दिन की स्ट्रीक जारी रखें!`
+      : `🦜 Gkoo: Keep your ${streak}-day streak alive!`;
 
     const body = lang === 'hi'
       ? `आज आपने कोई टेस्ट नहीं दिया! चलिए अभी 5 सवाल हल करें 🔥`

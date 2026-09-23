@@ -21,7 +21,7 @@ export default function AboutUs() {
         <div className="flex items-center space-x-2">
           <Sparkles className="w-6 h-6 text-[#FF5F6D]" />
           <h1 className="text-xl sm:text-2xl font-black">
-            {lang === 'hi' ? 'G-koo के बारे में (About Us)' : 'About G-koo'}
+            {lang === 'hi' ? 'Gkoo के बारे में (About Us)' : 'About Gkoo'}
           </h1>
         </div>
       </div>
@@ -41,7 +41,7 @@ export default function AboutUs() {
             <GkooBirdAvatar size="lg" mood="celebrate" />
           </motion.div>
         </div>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white">G-koo</h2>
+        <h2 className="text-2xl font-black text-gray-900 dark:text-white">Gkoo</h2>
         <p className="text-xs font-bold text-rose-500 dark:text-rose-400 mt-1 uppercase tracking-wider">
           ज्ञान का नया अंदाज़ • Gamified AI Learning Adventure
         </p>
@@ -114,8 +114,8 @@ export default function AboutUs() {
         </h3>
         <p className="text-gray-700 dark:text-gray-300 font-medium">
           {lang === 'hi'
-            ? 'G-koo एक स्वतंत्र शैक्षणिक क्विज़ और लर्निंग ऐप है। G-koo किसी भी सरकारी संस्था, मंत्रालय या परीक्षा बोर्ड (जैसे UPSC, SSC, IBPS, Railways) से संबद्ध या अधिकृत नहीं है।'
-            : 'G-koo is an independent educational quiz platform and is NOT affiliated with, endorsed by, or representing any government entity or exam conducting board.'}
+            ? 'Gkoo एक स्वतंत्र शैक्षणिक क्विज़ और लर्निंग ऐप है। Gkoo किसी भी सरकारी संस्था, मंत्रालय या परीक्षा बोर्ड (जैसे UPSC, SSC, IBPS, Railways) से संबद्ध या अधिकृत नहीं है।'
+            : 'Gkoo is an independent educational quiz platform and is NOT affiliated with, endorsed by, or representing any government entity or exam conducting board.'}
         </p>
         <p className="font-bold text-gray-800 dark:text-gray-200 pt-1">
           {lang === 'hi' ? 'आधिकारिक सरकारी परीक्षा पोर्टल:' : 'Official Exam Portals & Sources:'}

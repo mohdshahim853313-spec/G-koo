@@ -48,7 +48,7 @@ export async function firebaseSignUp(
 
     const userData: CloudUserData = {
       id: user.uid,
-      name: name.trim() || user.displayName || 'G-koo User',
+      name: name.trim() || user.displayName || 'Gkoo User',
       email: user.email || email.trim(),
       avatar,
       xp: currentStats?.xp || 140,
@@ -113,7 +113,7 @@ export async function firebaseSignIn(
 
     const userData: CloudUserData = {
       id: user.uid,
-      name: cloudData.name || user.displayName || 'G-koo Scholar',
+      name: cloudData.name || user.displayName || 'Gkoo Scholar',
       email: user.email || email.trim(),
       avatar: cloudData.avatar || '🦉',
       xp: cloudData.xp ?? 140,

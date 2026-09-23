@@ -41,8 +41,8 @@ export default function TermsOfService() {
           </h3>
           <p className="text-xs text-gray-600 dark:text-gray-300 font-medium mt-0.5">
             {lang === 'hi'
-              ? 'G-koo का उपयोग करके आप हमारी नियमों और शर्तों से सहमत होते हैं।'
-              : 'By using G-koo, you agree to these standard educational terms and guidelines.'}
+              ? 'Gkoo का उपयोग करके आप हमारी नियमों और शर्तों से सहमत होते हैं।'
+              : 'By using Gkoo, you agree to these standard educational terms and guidelines.'}
           </p>
         </div>
       </motion.div>
@@ -57,7 +57,7 @@ export default function TermsOfService() {
             </h2>
           </div>
           <p>
-            By downloading, accessing, or using the G-koo application across Web, Android, or Windows platforms, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the service.
+            By downloading, accessing, or using the Gkoo application across Web, Android, or Windows platforms, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the service.
           </p>
         </section>
 
@@ -69,7 +69,7 @@ export default function TermsOfService() {
             </h2>
           </div>
           <p>
-            G-koo is created solely for educational trivia, learning enhancement, and general knowledge practice. While our AI engine and question curations strive for high accuracy, educational facts should always be cross-referenced for official government examinations.
+            Gkoo is created solely for educational trivia, learning enhancement, and general knowledge practice. While our AI engine and question curations strive for high accuracy, educational facts should always be cross-referenced for official government examinations.
           </p>
         </section>
 
@@ -93,7 +93,7 @@ export default function TermsOfService() {
             </h2>
           </div>
           <p>
-            All original illustrations, G-koo mascot designs, animations, sound presets, and UI layouts are the intellectual property of Global Score Analytics / G-koo Team.
+            All original illustrations, Gkoo mascot designs, animations, sound presets, and UI layouts are the intellectual property of Global Score Analytics / Gkoo Team.
           </p>
         </section>
 
@@ -105,7 +105,7 @@ export default function TermsOfService() {
             </h2>
           </div>
           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
-            <strong>DISCLAIMER:</strong> G-koo is an independent private educational and gamified quiz platform. G-koo does <strong>NOT</strong> represent, and is <strong>NOT</strong> affiliated with, endorsed by, authorized by, or in any way officially connected with any government entity, agency, or official examination authority (such as UPSC, SSC, IBPS, Indian Railways/RRB, or State Public Service Commissions).
+            <strong>DISCLAIMER:</strong> Gkoo is an independent private educational and gamified quiz platform. Gkoo does <strong>NOT</strong> represent, and is <strong>NOT</strong> affiliated with, endorsed by, authorized by, or in any way officially connected with any government entity, agency, or official examination authority (such as UPSC, SSC, IBPS, Indian Railways/RRB, or State Public Service Commissions).
           </p>
           <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-2 font-semibold">
             Official Sources of Government Examination Information:
@@ -120,7 +120,7 @@ export default function TermsOfService() {
         </section>
 
         <div className="pt-4 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-400 text-center">
-          © 2026 G-koo Platform • All Rights Reserved
+          © 2026 Gkoo Platform • All Rights Reserved
         </div>
       </div>
     </div>

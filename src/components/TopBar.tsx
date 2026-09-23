@@ -28,9 +28,9 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
     <>
       <header className="sticky top-0 z-40 bg-white dark:bg-[#121217] border-b border-gray-100 dark:border-gray-800 px-4 pt-[max(env(safe-area-inset-top,0px),26px)] md:pt-4 md:px-8 pb-3.5 text-xs font-black shadow-xs select-none [transform:translateZ(0)]">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-2">
-          {/* Left: App Brand with Real G-koo Bird Vector Logo */}
+          {/* Left: App Brand with Real Gkoo Bird Vector Logo */}
           <motion.div
-            whileTap={{ scale: 0.94 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => {
               triggerHaptic('click');
               if (isGuest) {
@@ -44,7 +44,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
             </div>
             <div className="flex flex-col">
               <span className="font-black text-sm tracking-tight text-gray-900 dark:text-white leading-none whitespace-nowrap">
-                G-koo
+                Gkoo
               </span>
               {isGuest && (
                 <span className="text-[9px] text-[#FF5F6D] font-bold tracking-tight whitespace-nowrap">
