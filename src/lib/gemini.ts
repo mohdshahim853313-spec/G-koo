@@ -36,6 +36,65 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
+/**
+ * Sanitizes and balances MCQ options to prevent AI length/specificity bias (giveaway of correct answer).
+ * Strips bracketed explanations and trailing giveaway clauses from the correct answer when distractors don't have them.
+ */
+export function balanceAndSanitizeOptions(
+  rawOptions: string[],
+  rawAnswer: string,
+  rawExplanation?: string
+): { options: string[]; answer: string; explanation?: string } {
+  let options = (rawOptions || []).map(o => (o || '').trim()).filter(Boolean);
+  let answer = (rawAnswer || '').trim();
+
+  if (options.length < 2) {
+    return { options, answer, explanation: rawExplanation };
+  }
+
+  // Ensure answer matches an option verbatim
+  if (!options.includes(answer)) {
+    const matched = options.find(o => o.toLowerCase() === answer.toLowerCase());
+    if (matched) {
+      answer = matched;
+    } else {
+      options.push(answer);
+    }
+  }
+
+  // 1. Anti-giveaway: strip bracketed/parenthetical explanations ONLY in the answer if other options don't have brackets
+  const answerHasParen = /\s*\([^)]*\)\s*/.test(answer);
+  const otherParenCount = options.filter(o => o !== answer && /\([^)]*\)/.test(o)).length;
+
+  if (answerHasParen && otherParenCount === 0) {
+    const stripped = answer.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (stripped.length >= 2) {
+      options = options.map(o => (o === answer ? stripped : o));
+      answer = stripped;
+    }
+  }
+
+  // 2. Anti-giveaway: check if answer has a trailing explanatory clause (e.g. ", which was..." or ", भारत के राष्ट्रपति")
+  const commaClause = /,\s*(which|who|whom|located|established|founded|capital|known|भारत|जो|जिसका|सन्)/i;
+  if (commaClause.test(answer)) {
+    const otherCommaCount = options.filter(o => o !== answer && commaClause.test(o)).length;
+    if (otherCommaCount === 0) {
+      const parts = answer.split(',');
+      const stripped = parts[0].trim();
+      if (stripped.length >= 2) {
+        options = options.map(o => (o === answer ? stripped : o));
+        answer = stripped;
+      }
+    }
+  }
+
+  return {
+    options: shuffleArray(options),
+    answer,
+    explanation: rawExplanation
+  };
+}
+
 // -------------------------------------------------------------
 // DYNAMIC EXPANDED QUESTION REPOSITORY - ENGLISH
 // -------------------------------------------------------------
@@ -88,7 +147,7 @@ const QUESTION_BANK_EN: Record<string, QuizQuestion[]> = {
     { id: "cai-6", text: "Which national mission aims to produce 5 Million Metric Tonnes of green hydrogen annually in India by 2030?", options: ["National Green Hydrogen Mission", "Solar India Mission", "PM-KUSUM", "Atmanirbhar Energy"], answer: "National Green Hydrogen Mission", explanation: "The National Green Hydrogen Mission was launched with an outlay of ₹19,744 crore to lead global clean fuel exports." }
   ],
   ca_world: [
-    { id: "caw-1", text: "Which historic global connectivity corridor was announced at the New Delhi G20 Leaders Summit?", options: ["India-Middle East-Europe Economic Corridor (IMEC)", "Belt and Road Initiative (BRI)", "Nord Stream 2", "Trans-Siberian Link"], answer: "India-Middle East-Europe Economic Corridor (IMEC)", explanation: "IMEC aims to stimulate economic development through enhanced connectivity between Asia, Arabian Gulf and Europe." },
+    { id: "caw-1", text: "Which commercial spacecraft made history as the first private robotic lander to touch down near the Moon's South Pole?", options: ["Odysseus (Intuitive Machines)", "Peregrine One", "SLIM Lander", "Hakuto-R Mission"], answer: "Odysseus (Intuitive Machines)", explanation: "NASA & Intuitive Machines' Odysseus became the first commercial robotic spacecraft to land on the lunar surface." },
     { id: "caw-2", text: "Which five countries officially joined the BRICS grouping in its landmark expansion?", options: ["Egypt, Ethiopia, Iran, Saudi Arabia & UAE", "Argentina, Mexico, Turkey, Nigeria & Qatar", "Indonesia, Vietnam, Thailand, Malaysia & Peru", "Kenya, Chile, Poland, Norway & Singapore"], answer: "Egypt, Ethiopia, Iran, Saudi Arabia & UAE", explanation: "BRICS doubled its membership with new energy powerhouses joining the multilateral bloc." },
     { id: "caw-3", text: "Which city hosted the 33rd Summer Olympic Games in 2024?", options: ["Paris (France)", "Los Angeles (USA)", "Brisbane (Australia)", "Rome (Italy)"], answer: "Paris (France)", explanation: "Paris hosted the 2024 Summer Olympics with an iconic open-air opening ceremony on the River Seine." },
     { id: "caw-4", text: "Which UN climate agreement target commits the world to limiting global temperature rise to 1.5°C?", options: ["Paris Climate Agreement (COP21)", "Kyoto Protocol", "Montreal Protocol", "Stockholm Declaration"], answer: "Paris Climate Agreement (COP21)", explanation: "The landmark 2015 Paris Agreement sets global commitments to limit warming well below 2°C, pursuing 1.5°C." },
@@ -181,7 +240,7 @@ const QUESTION_BANK_HI: Record<string, QuizQuestion[]> = {
     { id: "hi-cai-5", text: "2030 तक प्रतिवर्ष 50 लाख टन हरित हाइड्रोजन उत्पादन हेतु भारत सरकार ने कौन सा राष्ट्रीय मिशन शुरू किया?", options: ["राष्ट्रीय हरित हाइड्रोजन मिशन", "सोलर मिशन", "पीएम-कुसुम", "ऊर्जा आत्मनिर्भर योजना"], answer: "राष्ट्रीय हरित हाइड्रोजन मिशन", explanation: "राष्ट्रीय हरित हाइड्रोजन मिशन को ₹19,744 करोड़ के परिव्यय के साथ मंजूरी दी गई है।" }
   ],
   ca_world: [
-    { id: "hi-caw-1", text: "नई दिल्ली में आयोजित जी20 शिखर सम्मेलन में किस ऐतिहासिक वैश्विक कनेक्टिविटी कॉरिडोर की घोषणा की गई थी?", options: ["भारत-मध्य पूर्व-यूरोप आर्थिक गलियारा (IMEC)", "बेल्ट एंड रोड (BRI)", "नॉर्ड स्ट्रीम 2", "ट्रांस साइबेरियन लिंक"], answer: "भारत-मध्य पूर्व-यूरोप आर्थिक गलियारा (IMEC)", explanation: "IMEC गलियारा भारत, अरब खाड़ी और यूरोप के बीच व्यापार व बुनियादी ढांचे को जोड़ेगा।" },
+    { id: "hi-caw-1", text: "चंद्रमा के दक्षिणी ध्रुव पर ऐतिहासिक लैंडिंग करने वाला दुनिया का पहला निजी वाणिज्यिक अंतरिक्ष यान कौन सा है?", options: ["ओडिसियस (Intuitive Machines)", "पेरेग्रीन मिशन", "स्लिम (SLIM)", "हाकुतो-आर"], answer: "ओडिसियस (Intuitive Machines)", explanation: "नासा और इंट्यूटिव मशीन्स का ओडिसियस यान चंद्रमा की सतह पर उतरने वाला इतिहास का पहला निजी रोबोटिक लैंडर बना।" },
     { id: "hi-caw-2", text: "वर्ष 2024 में कौन से प्रमुख देश आधिकारिक तौर पर ब्रिक्स (BRICS) समूह के नए सदस्य बने?", options: ["मिस्र, इथियोपिया, ईरान, सऊदी अरब व यूएई", "अर्जेंटीना, मैक्सिको व तुर्की", "इंडोनेशिया, वियतनाम व थाईलैंड", "केन्या, चिली व पोलैंड"], answer: "मिस्र, इथियोपिया, ईरान, सऊदी अरब व यूएई", explanation: "ब्रिक्स के ऐतिहासिक विस्तार में ऊर्जा महाशक्तियों और अफ्रीकी देशों को शामिल किया गया।" },
     { id: "hi-caw-3", text: "वर्ष 2024 में 33वें ग्रीष्मकालीन ओलंपिक खेलों का भव्य आयोजन किस शहर में हुआ?", options: ["पेरिस (फ्रांस)", "लॉस एंजिल्स (अमेरिका)", "ब्रिस्बेन (ऑस्ट्रेलिया)", "रोम (इटली)"], answer: "पेरिस (फ्रांस)", explanation: "पेरिस 2024 ओलंपिक का उद्घाटन सीन नदी पर ऐतिहासिक ओपन-एयर परेड के साथ हुआ।" },
     { id: "hi-caw-4", text: "वर्ष 2024 में कौन सा यूरोपीय देश नाटो (NATO) का 32वां आधिकारिक सदस्य देश बना?", options: ["स्वीडन", "फिनलैंड", "यूक्रेन", "स्विट्जरलैंड"], answer: "स्वीडन", explanation: "स्वीडन 7 मार्च 2024 को औपचारिक रूप से नाटो सैन्य गठबंधन का 32वां सदस्य बन गया।" }
@@ -374,12 +433,11 @@ export async function generateAiQuiz(
     }
 
     const modelsToTry = [
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
       'gemini-flash-latest',
-      'gemini-3.1-flash-lite',
-      'gemini-1.5-flash',
-      'gemini-pro-latest'
+      'gemini-3.8-flash',
+      'gemini-3.5-flash',
+      'gemini-pro-latest',
+      'gemini-2.5-pro'
     ];
 
     // Current dynamic time context (Real-time 2026)
@@ -403,28 +461,56 @@ export async function generateAiQuiz(
             : "Language: English.";
 
           const isDailyOrFactTopic = (cleanTopic && (cleanTopic.toLowerCase().includes('daily') || cleanTopic.toLowerCase().includes('challenge') || cleanTopic.toLowerCase().includes('fact') || cleanTopic.includes('तथ्य') || cleanTopic.includes('चुनौती')));
+          const isCaWorld = categoryId === 'ca_world' || (cleanTopic && (cleanTopic.toLowerCase().includes('world current') || cleanTopic.includes('विश्व करेंट') || cleanTopic.toLowerCase().includes('global current')));
 
           const promptInstruction = customPrompt
             ? `User Custom Instructions: "${customPrompt}"`
             : isDailyOrFactTopic
             ? `Generate exactly ${count} extraordinarily interesting, curiosity-sparking multiple-choice questions on: "${cleanTopic}". Focus on mind-blowing real-world facts, "Did You Know?" mysteries, unbelievable science wonders, historic oddities, space anomalies, animal kingdom secrets, and latest global records. Make questions fun, educational, and completely fresh without repetition.`
+            : isCaWorld
+            ? `Generate exactly ${count} pure GLOBAL / INTERNATIONAL CURRENT AFFAIRS multiple-choice questions. CRITICAL: Focus 100% EXCLUSIVELY on foreign world events (USA, Europe, East Asia, Middle East, Africa, Latin America, UN, G7, NATO, World Bank, NASA/ESA space missions, international sports like FIFA/Olympics, global AI & tech, geopolitical developments). DO NOT ask any Indian domestic or state politics questions here! Every question must be about the international/global world.`
             : options.levelNumber
             ? `Generate exactly ${count} unique, non-repeating multiple-choice questions specifically for Level ${options.levelNumber} on topic: "${cleanTopic || categoryId}". Distribute questions across relevant subtopics (politics, geography, national/international news, states, policies, discoveries, key facts). NEVER repeat previously generated questions.`
             : `Generate a brand-new, educational quiz of ${count} questions on: "${cleanTopic || categoryId || 'General Knowledge & Current Affairs'}".`;
+
+          const EXPLORATION_ANGLES = [
+            'breakthrough innovations and records',
+            'unusual historical turning points and lesser-known trivia',
+            'geographical landmarks, biodiversity and environmental wonders',
+            'deep space missions, physics anomalies and scientific discoveries',
+            'governance milestones, economic trends and major summits',
+            'sports records, tournaments and unsung champions',
+            'fascinating "Did You Know?" mysteries and curious origin facts',
+            'state and national cultural heritage, iconic architecture and awards'
+          ];
+          const randomAngle = EXPLORATION_ANGLES[Math.floor(Math.random() * EXPLORATION_ANGLES.length)];
+          const randomEntropy = `${Date.now()}-${Math.floor(Math.random() * 900000) + 100000}`;
 
           const systemPrompt = `You are an expert quiz master with real-time Google search live knowledge. Create an engaging multiple-choice quiz of exactly ${count} questions.
 Temporal Context:
 - Today's Date: ${currentDateFormatted} (Year ${currentYear}).
 - CRITICAL: Ground all Current Affairs, National/International News, Awards, Sports, Summits, Policies, and Discoveries in real-world facts up to ${currentYear}. Do NOT treat 2024 or earlier years as the current year.
 
-Instructions:
+Quiz Parameters:
 - Topic: ${promptInstruction}
+- Sub-dimension angle: "${randomAngle}"
+- Unique Salt: ${randomEntropy}
 - Difficulty: ${difficulty.toUpperCase()}
 - ${languagePrompt}
-- Each question must have exactly 4 distinct plausible options.
-- The 'answer' field MUST match one of the 4 options verbatim.
-- Provide a captivating, educational explanation for each question starting with a fun "Did you know?" insight.
-- NEVER repeat trivial or duplicate questions. Keep questions exciting, accurate, and surprising!
+
+CRITICAL RULES FOR OPTIONS (STRICT ANTI-GIVEAWAY REQUIREMENT):
+1. EQUAL OPTION LENGTH & DETAIL:
+   - ALL 4 options in "options" MUST be of strictly similar length and equal level of detail.
+   - ABSOLUTELY NEVER make the correct answer longer, more descriptive, or more detailed than the distractors.
+   - If the correct answer is a short 1-3 word phrase, all 3 distractors MUST ALSO be short 1-3 word phrases.
+   - NEVER put explanations, dates, qualifications, or parentheses inside the option text itself (e.g. write "Dr. A.P.J. Abdul Kalam", NOT "Dr. A.P.J. Abdul Kalam (11th President of India)").
+   - Put all interesting explanations, facts, and reasons strictly inside the "explanation" field!
+2. OPTION PLAUSIBILITY & HOMOGENEITY:
+   - All 4 options must belong to the exact same grammatical category (e.g., all 4 names, all 4 cities, all 4 years).
+   - Distractors must be smart, highly realistic, and believable.
+3. ANTI-REPETITION:
+   - NEVER output cliché or standard frequently-repeated questions.
+   - Explore fresh, intriguing, and authentic dimensions. Ensure every question feels unique, exciting, and surprising.
 
 Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no codeblocks:
 [
@@ -452,7 +538,7 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
             contents: [{ parts: [{ text: systemPrompt }] }],
             tools: [{ googleSearch: {} }],
             generationConfig: {
-              temperature: 0.7,
+              temperature: 0.85,
               maxOutputTokens: 4096,
             }
           };
@@ -464,8 +550,8 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
             body: JSON.stringify(requestBodyWithGrounding)
           });
 
-          // Fallback without tools if a specific preview model doesn't support tools schema
-          if (!response.ok && response.status === 400) {
+          // Fallback without tools if tools grounding encounters 429 rate limit or schema error
+          if (!response.ok) {
             response = await fetch(url, {
               method: 'POST',
               headers,
@@ -473,7 +559,7 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
               body: JSON.stringify({
                 contents: [{ parts: [{ text: systemPrompt }] }],
                 generationConfig: {
-                  temperature: 0.8,
+                  temperature: 0.85,
                   maxOutputTokens: 4096,
                 }
               })
@@ -492,33 +578,24 @@ Return ONLY a valid raw JSON array with NO markdown formatting, no backticks, no
                 .trim();
               const parsed = JSON.parse(cleanedJson);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                const formattedAiQuestions: QuizQuestion[] = parsed.map((q, idx) => ({
-                  id: `ai-${Date.now()}-${idx + 1}`,
-                  text: q.text,
-                  options: shuffleArray(q.options || []),
-                  answer: q.answer,
-                  explanation: q.explanation || (lang === 'hi' ? "शानदार उत्तर! हर सवाल से आपका ज्ञान और मजबूत होता है।" : "Great job learning this key concept!"),
-                  category: cleanTopic || categoryId || "Gemini AI",
-                  source: 'ai'
-                }));
+                const formattedAiQuestions: QuizQuestion[] = parsed.map((q, idx) => {
+                  const balanced = balanceAndSanitizeOptions(q.options || [], q.answer, q.explanation);
+                  return {
+                    id: `ai-${Date.now()}-${idx + 1}`,
+                    text: q.text,
+                    options: balanced.options,
+                    answer: balanced.answer,
+                    explanation: balanced.explanation || (lang === 'hi' ? "शानदार उत्तर! हर सवाल से आपका ज्ञान और मजबूत होता है।" : "Great job learning this key concept!"),
+                    category: cleanTopic || categoryId || "Gemini AI",
+                    source: 'ai'
+                  };
+                });
 
                 // 1. Exclude already mastered questions so they never repeat
                 const unmasteredAi = formattedAiQuestions.filter(q => !isQuestionMastered(q.text));
 
-                // 2. Prioritize past incorrect questions for spaced repetition
-                const retryQuestions = getRetryQuestions(categoryId || cleanTopic, 2);
-
                 const finalAiList: QuizQuestion[] = [];
                 const seenKeys = new Set<string>();
-
-                // Blend retry questions first
-                for (const rq of retryQuestions) {
-                  const k = normalizeQuestionKey(rq.text);
-                  if (!seenKeys.has(k)) {
-                    seenKeys.add(k);
-                    finalAiList.push(rq);
-                  }
-                }
 
                 // Add fresh unmastered AI questions
                 for (const uq of unmasteredAi) {

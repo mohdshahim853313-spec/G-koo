@@ -166,6 +166,8 @@ export default function Quiz() {
     subjects: "Science Inventions, Biology, Physics & Modern Tech",
     mix: "Mix Potpourri GK & General Knowledge",
     ai: "Current Affairs & Space Discoveries 2026",
+    ca_india: "India National Current Affairs, Government Schemes, Economy, Defence, Sports & National News",
+    ca_world: "Global & International Current Affairs, World Leaders, Geopolitics, UN Summits, Global Economy & International Sports (Excluding Indian Domestic News)",
   };
 
   const CATEGORY_TOPICS_HI: Record<string, string> = {
@@ -174,6 +176,8 @@ export default function Quiz() {
     subjects: "सामान्य विज्ञान, भौतिकी, जीवविज्ञान और खोजें",
     mix: "मिश्रित सामान्य ज्ञान और तथ्य",
     ai: "दैनिक करेंट अफेयर्स और अंतरिक्ष खोजें 2026",
+    ca_india: "भारत राष्ट्रीय करेंट अफेयर्स, सरकारी योजनाएं, अर्थव्यवस्था, रक्षा व खेल",
+    ca_world: "अंतरराष्ट्रीय व वैश्विक करेंट अफेयर्स, वैश्विक शिखर सम्मेलन, भू-राजनीति, विदेशी समाचार व विश्व खेल (भारत के घरेलू मामलों को छोड़कर केवल अंतरराष्ट्रीय विषय)",
   };
 
   const loadQuizData = async () => {
@@ -331,6 +335,10 @@ export default function Quiz() {
               if (isLevelQuiz && levelNumber && isLevelCacheCorruptedWithDuplicates(levelCategory, levelNumber, parsed)) {
                 console.warn(`[Quiz] Level ${levelNumber} cache has duplicate questions from prior levels, regenerating clean unique questions...`);
                 generated = [];
+              } else if (isPassedLevel) {
+                // If user has already completed/cleared this level and is re-playing it to practice,
+                // generate fresh unique questions instead of repeating the same questions forever!
+                generated = [];
               } else {
                 generated = parsed;
                 if (isLevelQuiz && levelNumber) {
@@ -416,14 +424,46 @@ export default function Quiz() {
     const nextBatchIndex = Math.floor(currentCount / 10) + 1;
     const targetCategory = isLevelQuiz ? levelCategory : (categoryId || 'ca_india');
 
+    const caSubtopicsHi = [
+      'राष्ट्रीय नीतियां, सरकारी योजनाएं व नए कानून',
+      'अर्थव्यवस्था, बैंकिंग, बजट व बुनियादी ढांचा',
+      'विज्ञान, अंतरिक्ष मिशन, इसरो व रक्षा नवाचार',
+      'राष्ट्रीय व अंतरराष्ट्रीय खेल, पुरस्कार व पदक विजेता',
+      'पर्यावरण, राज्य स्तर के ऐतिहासिक निर्णय व नियुक्तियां'
+    ];
+    const caSubtopicsEn = [
+      'National policies, government schemes, and legal reforms',
+      'Economy, banking, Union budget, and infrastructure',
+      'Science, space missions, ISRO, and defence innovations',
+      'Sports tournaments, record breakers, and national awards',
+      'Environment, state initiatives, summits, and key appointments'
+    ];
+    const subIdx = (nextBatchIndex - 1) % caSubtopicsHi.length;
+
     let dynamicTopic = lang === 'hi'
-      ? `भारत राष्ट्रीय करेंट अफेयर्स सेट ${nextBatchIndex}: नवीनतम राष्ट्रीय समाचार, सरकारी नीतियां, योजनाएं, अर्थव्यवस्था, रक्षा व खेल`
-      : `India National Current Affairs Set ${nextBatchIndex}: Latest National News, Government Policies, Schemes, Economy, Defence & Sports`;
+      ? `भारत राष्ट्रीय करेंट अफेयर्स सेट ${nextBatchIndex} (${caSubtopicsHi[subIdx]}): नवीनतम प्रामाणिक समाचार व तथ्य`
+      : `India National Current Affairs Set ${nextBatchIndex} (${caSubtopicsEn[subIdx]}): Latest authentic news and facts`;
 
     if (targetCategory === 'ca_world') {
+      const worldSubtopicsHi = [
+        'वैश्विक शिखर सम्मेलन, भू-राजनीति व अंतरराष्ट्रीय संधियां',
+        'वैश्विक अर्थव्यवस्था, व्यापार व अंतरराष्ट्रीय मुद्रा कोष/विश्व बैंक',
+        'अंतरराष्ट्रीय विज्ञान, जलवायु परिवर्तन व अंतरिक्ष अनुसंधान',
+        'वैश्विक खेल, ओलंपिक, विश्व कप व प्रमुख खिताब',
+        'नोबेल पुरस्कार, वैश्विक सूचकांक व अंतरराष्ट्रीय संगठन'
+      ];
+      const worldSubtopicsEn = [
+        'Global summits, geopolitics, and international treaties',
+        'World economy, global trade, and IMF/World Bank updates',
+        'Global science, climate action, and astronomy discoveries',
+        'International sports, Olympics, World Cups, and champions',
+        'Nobel prizes, global rankings, and UN organizations'
+      ];
+      const wSubIdx = (nextBatchIndex - 1) % worldSubtopicsHi.length;
+
       dynamicTopic = lang === 'hi'
-        ? `विश्व करेंट अफेयर्स सेट ${nextBatchIndex}: वैश्विक शिखर सम्मेलन, अंतरराष्ट्रीय पुरस्कार, भू-राजनीति, अर्थव्यवस्था, विज्ञान व खेल`
-        : `World Current Affairs Set ${nextBatchIndex}: Global Summits, International Awards, Geopolitics, Economy, Science & Sports`;
+        ? `विश्व करेंट अफेयर्स सेट ${nextBatchIndex} (${worldSubtopicsHi[wSubIdx]}): वैश्विक समसामयिकी`
+        : `World Current Affairs Set ${nextBatchIndex} (${worldSubtopicsEn[wSubIdx]}): Global events and milestones`;
     }
 
     const freshQuestions = await generateAiQuiz(geminiApiKey, {

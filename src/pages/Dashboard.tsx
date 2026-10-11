@@ -71,11 +71,13 @@ export default function Dashboard() {
     }
   });
 
-  // Auto-open Daily Login Reward modal on first daily visit
+  // Auto-open Daily Login Reward modal at most once per calendar day (whether claimed or dismissed)
   useEffect(() => {
     try {
       const today = new Date().toDateString();
-      if (localStorage.getItem('gkoo_daily_reward_last_claim') !== today) {
+      const lastShown = localStorage.getItem('gkoo_daily_reward_last_shown');
+      if (lastShown !== today) {
+        localStorage.setItem('gkoo_daily_reward_last_shown', today);
         const timer = setTimeout(() => {
           setShowDailyRewardModal(true);
         }, 700);
@@ -919,6 +921,7 @@ export default function Dashboard() {
             setShowDailyRewardModal(false);
             try {
               const today = new Date().toDateString();
+              localStorage.setItem('gkoo_daily_reward_last_shown', today);
               setHasUnclaimedDailyReward(localStorage.getItem('gkoo_daily_reward_last_claim') !== today);
             } catch (e) {
               // ignore

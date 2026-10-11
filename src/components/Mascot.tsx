@@ -163,7 +163,7 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
 
       {/* Main Body Solid Base Fallback (Prevents mobile transparency bug) */}
       <path
-        fill={mood === 'sad' ? '#DC2626' : mood === 'fire' ? '#EA580C' : mood === 'love' ? '#E11D48' : '#FF5F6D'}
+        fill={mood === 'fire' ? '#EA580C' : mood === 'love' ? '#E11D48' : '#FF5F6D'}
         d="M128 34 C176 34 216 72 216 124 C216 178 178 214 128 214 C78 214 40 178 40 124 C40 72 80 34 128 34 Z"
       />
       {/* Main Body 3D Gradient Layer */}
@@ -665,23 +665,34 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           <path d="M136 78 Q154 78 174 82" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
         </g>
       ) : mood === 'sad' ? (
-        // Sad / Crying Eyes with Drooping Brows & Teardrop
+        // Truly Sad / Pleading Puppy-Dog Eyes with Drooping Brows & Flowing Tears (🥺)
         <g>
           <circle cx="102" cy="106" r="24" fill="#FFF" />
           <circle cx="154" cy="106" r="24" fill="#FFF" />
-          <circle cx="102" cy="112" r="14" fill="#1E293B" />
-          <circle cx="154" cy="112" r="14" fill="#1E293B" />
-          <circle cx="102" cy="112" r="8" fill="#60A5FA" opacity="0.8" />
-          <circle cx="154" cy="112" r="8" fill="#60A5FA" opacity="0.8" />
-          <circle cx="98" cy="108" r="4" fill="#FFF" />
-          <circle cx="150" cy="108" r="4" fill="#FFF" />
-          <path d="M82 82 Q102 72 120 84" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
-          <path d="M136 84 Q154 72 174 82" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <circle cx="102" cy="108" r="15" fill="#1E293B" />
+          <circle cx="154" cy="108" r="15" fill="#1E293B" />
+          <circle cx="102" cy="109" r="9" fill="#60A5FA" opacity="0.65" />
+          <circle cx="154" cy="109" r="9" fill="#60A5FA" opacity="0.65" />
+          {/* Big glossy puppy reflections */}
+          <circle cx="98" cy="102" r="5.5" fill="#FFF" />
+          <circle cx="150" cy="102" r="5.5" fill="#FFF" />
+          <circle cx="107" cy="112" r="2.8" fill="#FFF" />
+          <circle cx="159" cy="112" r="2.8" fill="#FFF" />
+          {/* Sad eyebrows: outer ends droop down, inner ends rise high towards center (/ \) */}
+          <path d="M80 84 Q98 74 118 64" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          <path d="M138 64 Q158 74 176 84" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
+          {/* Flowing Animated Tears */}
           <motion.path
-            animate={{ y: [0, 16, 32], opacity: [0, 1, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
+            animate={{ y: [0, 18, 36], opacity: [0, 1, 0] }}
+            transition={{ repeat: Infinity, duration: 1.6, ease: 'easeIn' }}
             fill="#38BDF8"
-            d="M78 120 C74 126 74 134 80 134 C86 134 86 126 80 120 Z"
+            d="M78 118 C74 124 74 132 80 132 C86 132 86 124 80 118 Z"
+          />
+          <motion.path
+            animate={{ y: [0, 18, 36], opacity: [0, 1, 0] }}
+            transition={{ repeat: Infinity, duration: 1.6, delay: 0.5, ease: 'easeIn' }}
+            fill="#38BDF8"
+            d="M176 118 C172 124 172 132 178 132 C184 132 184 124 178 118 Z"
           />
         </g>
       ) : mood === 'shocked' ? (
@@ -752,10 +763,10 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           <path fill="#FB7185" d="M122 136 Q128 142 134 136 Z" />
         </g>
       ) : mood === 'sad' ? (
-        // Down-turned Sad Beak
+        // Pouty / Trembling Sad Downturned Beak
         <g>
-          <path fill="url(#gkoo_beak)" d="M128 120 L150 134 L128 144 L106 134 Z" />
-          <path d="M116 138 Q128 132 140 138" stroke="#B45309" strokeWidth="4" strokeLinecap="round" fill="none" />
+          <path fill="url(#gkoo_beak)" d="M128 122 L149 135 L128 143 L107 135 Z" />
+          <path d="M116 139 Q128 133 140 139" stroke="#9A3412" strokeWidth="3.5" strokeLinecap="round" fill="none" />
         </g>
       ) : mood === 'shocked' ? (
         // Surprised 'O' Beak
