@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Volume2, Globe, Sun, Moon, Monitor, Key, AlertTriangle, Check, Vibrate, LogIn, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight } from 'lucide-react';
+import { Volume2, Globe, Sun, Moon, Monitor, AlertTriangle, Vibrate, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight, ChevronLeft, FileSpreadsheet, Check, Edit2, Settings as SettingsIcon } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic, previewCustomSound, type SuccessSoundPreset, type ErrorSoundPreset } from '../lib/audio';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
-import { getGeminiKeyPoolInfo } from '../lib/gemini';
+import { getSheetSyncStats } from '../lib/sheetSync';
+import { SheetSyncModal } from '../components/SheetSyncModal';
 import { motion } from 'framer-motion';
 
 export default function Settings() {
@@ -22,13 +23,9 @@ export default function Settings() {
     notificationsEnabled,
     setNotificationsEnabled,
     triggerTestNotification,
-    geminiApiKey,
-    setGeminiApiKey,
     resetAllProgress,
-    isGuest,
     currentUser,
-    setIsAuthModalOpen,
-    signOut,
+    profile,
     examTimerEnabled,
     setExamTimerEnabled,
     examTimerSeconds,
@@ -106,13 +103,13 @@ export default function Settings() {
     reader.readAsDataURL(file);
   };
 
-  const [apiKeyInput, setApiKeyInput] = useState(geminiApiKey);
-  const [showKeySuccess, setShowKeySuccess] = useState(false);
+  const [showSheetSyncModal, setShowSheetSyncModal] = useState(false);
+  const [sheetStats, setSheetStats] = useState(() => getSheetSyncStats());
 
-  const handleSaveApiKey = () => {
-    setGeminiApiKey(apiKeyInput.trim());
-    setShowKeySuccess(true);
-    setTimeout(() => setShowKeySuccess(false), 2500);
+  const handleOpenSheetSync = () => {
+    triggerHaptic('click');
+    setSheetStats(getSheetSyncStats());
+    setShowSheetSyncModal(true);
   };
 
   const handleReset = () => {
@@ -125,56 +122,57 @@ export default function Settings() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120] px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-8 text-gray-900 dark:text-white pb-28 font-sans transition-colors duration-300 select-none">
+    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#0F121E] px-4 pt-[calc(max(env(safe-area-inset-top,0px),28px)+24px)] md:pt-10 text-gray-900 dark:text-white pb-28 font-sans transition-colors duration-300 select-none">
       <div className="max-w-md md:max-w-4xl mx-auto">
-        <h1 className="text-2xl font-black mb-4 mt-1">{t('settings')}</h1>
+        <div className="flex items-center space-x-3 mb-4 mt-1">
+          <motion.button
+            whileTap={{ scale: 0.92 }}
+            onClick={() => {
+              triggerHaptic('click');
+              navigate(-1);
+            }}
+            className="p-2 rounded-2xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 shadow-xs hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 transition-all flex items-center justify-center"
+            aria-label="Back"
+          >
+            <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+          </motion.button>
+          <h1 className="text-2xl font-black">{t('settings')}</h1>
+        </div>
 
         {/* G-koo Audio Lab Companion Card */}
         <GkooCompanionCard panel="settings" defaultMood="dance" className="mb-4" />
 
-      {/* Account Card */}
+      {/* Student Profile Card */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm">
         <h2 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2.5">
-          {t('profile')} & Sync
+          {lang === 'hi' ? 'छात्र प्रोफ़ाइल (Student Profile)' : 'Student Profile'}
         </h2>
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center space-x-3 min-w-0 flex-1">
             <div className="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center text-xl border border-rose-100 dark:border-rose-900 shrink-0">
-              {currentUser?.avatar || '🦜'}
+              {profile?.avatar || currentUser?.avatar || '🦉'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-black text-gray-900 dark:text-white truncate">
-                {currentUser?.name || t('guestAccount')}
+                {profile?.name || currentUser?.name || 'G-koo Learner'}
               </p>
-              <p className="text-[10px] text-gray-400 line-clamp-2 leading-tight">
-                {isGuest ? t('guestNote') : currentUser?.email}
+              <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold leading-tight flex items-center space-x-1">
+                <Check className="w-3 h-3 inline text-emerald-600 dark:text-emerald-400 stroke-[3]" />
+                <span>{lang === 'hi' ? 'सारा स्कोर व प्रोग्रेस सुरक्षित है' : 'All progress saved locally'}</span>
               </p>
             </div>
           </div>
-          {isGuest ? (
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                triggerHaptic('click');
-                setIsAuthModalOpen(true);
-              }}
-              className="px-3.5 py-2 rounded-xl bg-[#FF5F6D] text-white font-black text-xs shadow-md flex items-center space-x-1.5 shrink-0 whitespace-nowrap"
-            >
-              <LogIn className="w-3.5 h-3.5 shrink-0" />
-              <span className="whitespace-nowrap">{t('signIn')}</span>
-            </motion.button>
-          ) : (
-            <motion.button
-              whileTap={{ scale: 0.94 }}
-              onClick={() => {
-                triggerHaptic('click');
-                signOut();
-              }}
-              className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-500 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40 shrink-0 whitespace-nowrap"
-            >
-              <span className="whitespace-nowrap">{t('signOut')}</span>
-            </motion.button>
-          )}
+          <motion.button
+            whileTap={{ scale: 0.94 }}
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/profile');
+            }}
+            className="px-3.5 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 font-black text-xs shrink-0 whitespace-nowrap transition-colors flex items-center space-x-1.5"
+          >
+            <span>{lang === 'hi' ? 'बदलें' : 'Edit'}</span>
+            <Edit2 className="w-3 h-3 inline" />
+          </motion.button>
         </div>
       </div>
 
@@ -614,100 +612,51 @@ export default function Settings() {
       </div>
 
 
-      {/* Gemini AI API Key Manager (Multi-Key Pool & Load Balancing) */}
-      {(() => {
-        const poolInfo = getGeminiKeyPoolInfo(geminiApiKey);
-        const inputPoolInfo = getGeminiKeyPoolInfo(apiKeyInput);
-        const isMultiKeyInput = inputPoolInfo.count > 1;
-
-        return (
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
-              <div className="flex items-center space-x-2 text-purple-600 dark:text-purple-400">
-                <Key className="w-4 h-4" />
-                <h2 className="text-xs font-black uppercase tracking-wider">{t('geminiKeyTitle')}</h2>
-              </div>
-              {poolInfo.source === 'custom' ? (
-                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 flex items-center space-x-1">
-                  <span>🟢</span>
-                  <span>{poolInfo.count > 1 ? `${poolInfo.count} Keys Pool Active` : 'Custom Key Active'}</span>
-                </span>
-              ) : poolInfo.source === 'env' ? (
-                <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-0.5 rounded-full border border-purple-200 dark:border-purple-800 flex items-center space-x-1">
-                  <span>⚡</span>
-                  <span>{poolInfo.count > 1 ? `${poolInfo.count} System (.env) Keys Active` : 'System Key (.env) Active'}</span>
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-gray-400 bg-gray-100 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
-                  Put Your Own AI
-                </span>
-              )}
-            </div>
-
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-2.5 leading-relaxed">
-              {lang === 'hi'
-                ? 'एक या एक से अधिक API Keys कॉमा (,) लगाकर जोड़ें। अगर एक Key की लिमिट खत्म होगी, तो Gkoo अपने-आप अगली Key पर स्विच हो जाएगा:'
-                : 'Add one or more comma-separated API keys. Gkoo will auto-switch if a key limit is reached:'}
-            </p>
-
-            <div className="space-y-2">
-              <div className="relative">
-                <textarea
-                  rows={2}
-                  value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
-                  placeholder="AIzaSyKey1..., AIzaSyKey2..., AIzaSyKey3..."
-                  className="w-full p-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-xs font-mono text-gray-800 dark:text-white focus:outline-none focus:border-purple-500 resize-none transition-colors"
-                />
-                {apiKeyInput.trim().length > 0 && (
-                  <div className="absolute right-2.5 bottom-2.5">
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      isMultiKeyInput 
-                        ? 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                    }`}>
-                      {inputPoolInfo.count} {inputPoolInfo.count === 1 ? 'Key' : 'Keys detected'}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleSaveApiKey}
-                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-black py-2.5 rounded-xl text-xs shadow-sm active:scale-98 transition-all flex items-center justify-center space-x-1.5"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>{t('saveKey')} {inputPoolInfo.count > 1 ? `(${inputPoolInfo.count} Keys Pool)` : ''}</span>
-                </button>
-                {geminiApiKey && (
-                  <button
-                    onClick={() => {
-                      setApiKeyInput('');
-                      setGeminiApiKey('');
-                    }}
-                    className="px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-bold text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    Reset
-                  </button>
-                )}
-              </div>
-
-              {showKeySuccess && (
-                <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold text-center mt-1 animate-pulse">
-                  ✅ {t('apiKeySaved')} ({poolInfo.count} Keys Pool Ready with Auto-Rotation & Failover)
-                </p>
-              )}
-
-              {poolInfo.count > 1 && (
-                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200/70 dark:border-purple-800/50 rounded-xl p-2 text-[10px] text-purple-700 dark:text-purple-300 font-medium flex items-center justify-between">
-                  <span>🔄 <strong>Round-Robin & Auto-Failover:</strong> Requests evenly balanced across {poolInfo.count} keys</span>
-                </div>
-              )}
-            </div>
+      {/* Google Sheets Question Bank Live Sync */}
+      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-emerald-100 dark:border-emerald-950/60 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400">
+            <FileSpreadsheet className="w-4 h-4" />
+            <h2 className="text-xs font-black uppercase tracking-wider">
+              {lang === 'hi' ? 'Google Sheets लाइव प्रश्न बैंक' : 'Google Sheets Live Questions'}
+            </h2>
           </div>
-        );
-      })()}
+          <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+            {sheetStats.totalCount > 0 
+              ? `${sheetStats.totalCount} ${lang === 'hi' ? 'सवाल सिंक' : 'Synced'}` 
+              : (lang === 'hi' ? 'कोई सवाल नहीं' : 'Not Configured')}
+          </span>
+        </div>
+
+        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-3 leading-relaxed">
+          {lang === 'hi'
+            ? 'बिना ऐप अपडेट किए अपनी Google Sheet से लाइव नए प्रश्न जोड़ें और अपडेट करें। सभी प्रश्न ऑफ़लाइन भी तुरंत काम करेंगे!'
+            : 'Add & update exam questions instantly via Google Sheets without Play Store app updates. Works 100% offline too!'}
+        </p>
+
+        {sheetStats.totalCount > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {Object.entries(sheetStats.categories).map(([cat, count]) => (
+              <span key={cat} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300">
+                {cat}: <strong>{count}</strong>
+              </span>
+            ))}
+          </div>
+        )}
+
+        <motion.button
+          whileTap={{ scale: 0.96 }}
+          onClick={handleOpenSheetSync}
+          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+        >
+          <FileSpreadsheet className="w-4 h-4" />
+          <span className="flex items-center space-x-1.5">
+            <span>{lang === 'hi' ? 'शीट लिंक बदलें / सवाल सिंक करें' : 'Manage Sheet & Sync Questions'}</span>
+            <SettingsIcon className="w-3.5 h-3.5 inline" />
+          </span>
+        </motion.button>
+      </div>
+
 
       {/* PWA App Install Action */}
       
@@ -801,6 +750,16 @@ export default function Settings() {
         </button>
       </div>
       </div>
+
+      {/* Google Sheets Question Bank Live Sync Modal */}
+      <SheetSyncModal 
+        isOpen={showSheetSyncModal} 
+        onClose={() => {
+          setShowSheetSyncModal(false);
+          setSheetStats(getSheetSyncStats());
+        }} 
+        lang={lang} 
+      />
     </div>
   );
 }

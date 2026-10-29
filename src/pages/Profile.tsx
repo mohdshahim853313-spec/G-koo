@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../useAppContext';
-import { Award, LogOut, Edit2, Check, Lock, Sparkles, Target, Zap, Bookmark, BarChart2, TrendingUp, ChevronRight } from 'lucide-react';
+import { Award, Edit2, Check, Lock, Target, Zap, Bookmark, BarChart2, TrendingUp, ChevronRight, Sparkles, Flame, AlertTriangle, ArrowRight, Settings } from 'lucide-react';
+import { AppIcon } from '../components/AppIcon';
 import { triggerHaptic } from '../lib/audio';
 import { GkooBirdAvatar } from '../components/Mascot';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
 import { SavedQuestionsModal } from '../components/SavedQuestionsModal';
-import { getQuestionTrackerStats } from '../lib/questionTracker';
+import { getQuestionTrackerStats, getWeakCategorySummary } from '../lib/questionTracker';
 import { motion } from 'framer-motion';
 import type { UserBadge } from '../appContextStore';
 
@@ -23,10 +24,6 @@ export default function Profile() {
     updateProfile,
     stats,
     badges,
-    isGuest,
-    currentUser,
-    setIsAuthModalOpen,
-    signOut,
     bookmarks,
     categoryStats,
   } = useAppContext();
@@ -40,6 +37,7 @@ export default function Profile() {
   const currentLevelXp = xp % 100;
   const accuracyRate = stats.totalAnswered > 0 ? Math.round((stats.correctAnswers / stats.totalAnswered) * 100) : 0;
   const { incorrectCount: mistakesCount } = getQuestionTrackerStats();
+  const weakCategoriesSummary = getWeakCategorySummary();
 
   const handleSaveName = () => {
     if (nameInput.trim()) {
@@ -49,10 +47,26 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B1120] pb-28 px-4 pt-[max(env(safe-area-inset-top,0px),30px)] md:pt-8 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-300">
-      <div className="max-w-md md:max-w-4xl mx-auto">
+    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#0F121E] pb-28 px-4 pt-[calc(max(env(safe-area-inset-top,0px),28px)+24px)] md:pt-10 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-300">
+      <div className="max-w-md md:max-w-4xl mx-auto relative">
+        {/* Top Right Settings Button */}
+        <div className="absolute right-0 top-0 z-20">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => {
+              triggerHaptic('click');
+              navigate('/settings');
+            }}
+            className="w-10 h-10 rounded-2xl bg-white dark:bg-[#141828] border-2 border-gray-200/90 dark:border-white/10 shadow-sm text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white flex items-center justify-center active:scale-92 transition-all"
+            aria-label={t('settings')}
+            title={t('settings')}
+          >
+            <Settings className="w-5 h-5 stroke-[2.2]" />
+          </motion.button>
+        </div>
+
         {/* Profile Header & Avatar */}
-      <div className="flex flex-col items-center text-center mt-2 mb-5">
+        <div className="flex flex-col items-center text-center mt-2 mb-5">
         <div className="relative">
           <motion.button 
             whileTap={{ scale: 0.9, rotate: -4 }}
@@ -112,67 +126,22 @@ export default function Profile() {
         <p className="text-gray-400 text-xs font-bold mt-0.5">{t('memberSince')} {profile.joinedDate}</p>
       </div>
 
-      {/* Account Status & Sign In / Sign Up 3D Card */}
-      <div className="bg-white dark:bg-gray-800/90 border-2 border-gray-100 dark:border-gray-800 border-b-4 rounded-3xl p-4 shadow-sm mb-5 select-none">
-        {isGuest ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-            <div>
-              <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-[10px] font-black mb-1">
-                <span>⚡</span>
-                <span>{t('guestAccount')}</span>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-gray-300 font-bold">
-                {t('syncProgressNote')}
-              </p>
-            </div>
-            <motion.button
-              whileTap={{ scale: 0.94, y: 2 }}
-              onClick={() => {
-                triggerHaptic('click');
-                setIsAuthModalOpen(true);
-              }}
-              className="w-full sm:w-auto bg-[#FF5F6D] hover:bg-[#E64553] text-white font-black px-4 py-2.5 rounded-2xl shadow-[0_3px_0_0_#D93848] text-xs uppercase tracking-wider flex items-center justify-center space-x-1.5"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{t('signIn')} / {t('signUp')}</span>
-            </motion.button>
+      {/* Student Account Status 3D Card */}
+      <div className="bg-white dark:bg-gray-800/90 border-2 border-emerald-100 dark:border-emerald-950/60 border-b-4 rounded-3xl p-4 shadow-sm mb-5 select-none flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
+            <Target className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-black mb-1">
-                <span>✓</span>
-                <span>{t('signedInBadge')}</span>
-              </div>
-              <p className="text-xs text-gray-800 dark:text-gray-200 font-bold">
-                {currentUser?.email}
-              </p>
+          <div>
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-black mb-0.5">
+              <Check className="w-3 h-3 text-emerald-800 dark:text-emerald-300 stroke-[3]" />
+              <span>{lang === 'hi' ? 'सक्रिय शिक्षार्थी प्रोफ़ाइल' : 'Active Learner Profile'}</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                onClick={() => {
-                  triggerHaptic('click');
-                  setIsAuthModalOpen(true);
-                }}
-                className="px-3 py-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-bold"
-              >
-                {t('switchAccount')}
-              </motion.button>
-              <motion.button
-                whileTap={{ scale: 0.92 }}
-                onClick={() => {
-                  triggerHaptic('click');
-                  signOut();
-                }}
-                className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800"
-                title={t('signOut')}
-              >
-                <LogOut className="w-4 h-4" />
-              </motion.button>
-            </div>
+            <p className="text-xs text-gray-600 dark:text-gray-300 font-bold">
+              {lang === 'hi' ? 'आपकी सारी प्रोग्रेस, स्ट्रीक और XP सुरक्षित हैं' : 'All your progress, streak & XP are saved'}
+            </p>
           </div>
-        )}
+        </div>
       </div>
 
       {/* G-koo Best Friend Companion Card */}
@@ -257,8 +226,8 @@ export default function Profile() {
             whileTap={{ scale: 0.99 }}
             className="bg-gradient-to-br from-[#FF5F6D] via-[#E64553] to-[#D93848] text-white p-4 rounded-3xl shadow-lg border-b-[5px] border-[#991B1B] flex items-center space-x-3 select-none"
           >
-            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner">
-              <span className="text-xl">🔥</span>
+            <div className="p-3 rounded-2xl bg-white/25 text-white shadow-inner flex items-center justify-center">
+              <Flame className="w-5 h-5 fill-white text-white" />
             </div>
             <div>
               <p className="text-[11px] font-bold text-rose-100">{t('streak')}</p>
@@ -334,6 +303,39 @@ export default function Profile() {
         </motion.button>
       </motion.div>
 
+      {/* Weak Areas Summary Banner */}
+      {weakCategoriesSummary.length > 0 && (
+        <div className="bg-gradient-to-r from-purple-500/10 via-rose-500/10 to-amber-500/10 dark:from-purple-950/30 dark:via-rose-950/30 dark:to-amber-950/30 border border-purple-200 dark:border-purple-800/50 p-4 rounded-3xl mb-6 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black text-purple-700 dark:text-purple-300 uppercase tracking-wider flex items-center space-x-1.5">
+              <AlertTriangle className="w-4 h-4 text-amber-500 inline mr-0.5" />
+              <span>{lang === 'hi' ? 'सर्वाधिक गलतियों वाले विषय' : 'Top Mistake-Prone Topics'}</span>
+            </span>
+            <span className="text-[10px] font-bold text-gray-400">
+              {lang === 'hi' ? 'कमजोर विषय विश्लेषण' : 'Weak Area Analysis'}
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {weakCategoriesSummary.slice(0, 3).map((item) => (
+              <button
+                key={item.category}
+                onClick={() => {
+                  triggerHaptic('click');
+                  navigate(`/quiz/${item.category}?diff=medium&count=15`);
+                }}
+                className="bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-800 px-3 py-1.5 rounded-2xl text-xs font-black text-gray-800 dark:text-gray-200 hover:border-purple-400 flex items-center space-x-1.5 shadow-2xs transition-all cursor-pointer active:scale-95"
+              >
+                <Target className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 inline" />
+                <span className="capitalize">{item.category}</span>
+                <span className="text-[10px] bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-300 px-1.5 py-0.5 rounded-full font-bold">
+                  {item.count} {lang === 'hi' ? 'गलत' : 'mistakes'}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Subject Performance & Weakness Analytics */}
       <div className="bg-white dark:bg-gray-800/90 border-2 border-gray-100 dark:border-gray-800 border-b-4 rounded-3xl p-5 shadow-sm mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -358,9 +360,10 @@ export default function Profile() {
             </p>
             <button
               onClick={() => navigate('/dashboard')}
-              className="text-xs font-black text-[#FF5F6D] hover:underline"
+              className="text-xs font-black text-[#FF5F6D] hover:underline flex items-center justify-center mx-auto space-x-1"
             >
-              {lang === 'hi' ? 'क्विज़ शुरू करें →' : 'Start a Quiz →'}
+              <span>{lang === 'hi' ? 'क्विज़ शुरू करें' : 'Start a Quiz'}</span>
+              <ArrowRight className="w-3.5 h-3.5 inline" />
             </button>
           </div>
         ) : (
@@ -371,14 +374,12 @@ export default function Profile() {
               const isModerate = catAccuracy >= 50 && catAccuracy < 75;
 
               // Friendly label resolver
-              const getCatName = (id: string) => {
+              const getCatData = (id: string) => {
                 const map: Record<string, { hi: string; en: string; icon: string }> = {
                   india: { hi: 'भारत सामान्य ज्ञान', en: 'India GK', icon: '🇮🇳' },
                   world: { hi: 'विश्व सामान्य ज्ञान', en: 'World GK', icon: '🌍' },
                   subjects: { hi: 'शैक्षणिक विषय', en: 'Core Subjects', icon: '📚' },
                   mix: { hi: 'मिश्रित अभ्यास', en: 'Mix Practice', icon: '⚡' },
-                  ca_india: { hi: 'करेंट अफेयर्स (भारत)', en: 'India Current Affairs', icon: '📰' },
-                  ca_world: { hi: 'करेंट अफेयर्स (विश्व)', en: 'World Current Affairs', icon: '🌐' },
                   ssc_cgl: { hi: 'SSC CGL', en: 'SSC CGL', icon: '🏛️' },
                   ssc_chsl: { hi: 'SSC CHSL', en: 'SSC CHSL', icon: '📑' },
                   uppsc: { hi: 'UPPSC / State PSC', en: 'State PSC', icon: '🎯' },
@@ -387,9 +388,11 @@ export default function Profile() {
                   banking: { hi: 'Banking & IBPS', en: 'Banking Exams', icon: '🏦' }
                 };
                 const found = map[id];
-                if (found) return `${found.icon} ${lang === 'hi' ? found.hi : found.en}`;
-                return `📖 ${id.toUpperCase()}`;
+                if (found) return { name: lang === 'hi' ? found.hi : found.en, icon: found.icon };
+                return { name: id.toUpperCase(), icon: '📚' };
               };
+
+              const catData = getCatData(catId);
 
               return (
                 <div 
@@ -397,8 +400,9 @@ export default function Profile() {
                   className="p-3 bg-gray-50 dark:bg-gray-900/60 rounded-2xl border border-gray-100 dark:border-gray-700/60"
                 >
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-black text-gray-800 dark:text-gray-200">
-                      {getCatName(catId)}
+                    <span className="text-xs font-black text-gray-800 dark:text-gray-200 flex items-center space-x-1.5">
+                      <AppIcon icon={catData.icon} className="w-3.5 h-3.5 inline" />
+                      <span>{catData.name}</span>
                     </span>
                     <div className="flex items-center space-x-2">
                       <span className="text-[11px] font-bold text-gray-400">
@@ -427,6 +431,24 @@ export default function Profile() {
                       style={{ width: `${catAccuracy}%` }}
                     />
                   </div>
+                  {catAccuracy < 75 && (
+                    <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400">
+                        {lang === 'hi' ? 'कमजोर विषय सुधारें:' : 'Strengthen weak subject:'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          triggerHaptic('click');
+                          navigate(`/quiz/${catId}?diff=medium&count=15`);
+                        }}
+                        className="text-[10px] font-black bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-900 px-2.5 py-1 rounded-xl hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors flex items-center space-x-1 cursor-pointer"
+                      >
+                        <Target className="w-3 h-3" />
+                        <span>{lang === 'hi' ? '🎯 अभ्यास करें (15 Qs)' : '🎯 Practice (15 Qs)'}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}

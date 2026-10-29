@@ -1,5 +1,9 @@
 import { ALL_SUBJECTS_LIST } from '../data/subjectsData';
 import { SUBJECT_TOPIC_BANK } from '../data/subjectTopicsBank';
+import { INDIA_150_TOPICS } from '../data/indiaTopicsBank';
+
+// Universal sector size: exactly 50 levels per sector across all subjects & categories
+export const LEVELS_PER_SECTOR = 50;
 
 export interface LevelConfig {
   level: number;
@@ -42,7 +46,7 @@ export interface CategoryInfo {
   titleHi: string;
   descEn: string;
   descHi: string;
-  type: 'ca' | 'exam' | 'general';
+  type: 'exam' | 'general';
   gradient: string;
   border3d: string;
   activeBorder: string;
@@ -51,40 +55,6 @@ export interface CategoryInfo {
 }
 
 export const CATEGORIES_LIST: CategoryInfo[] = [
-  // --- CURRENT AFFAIRS (NATIONAL & GLOBAL) ---
-  {
-    id: 'ca_india',
-    icon: '🇮🇳',
-    titleKey: 'catCaIndiaTitle',
-    descKey: 'catCaIndiaDesc',
-    titleEn: 'India Current Affairs',
-    titleHi: 'भारत करेंट अफेयर्स',
-    descEn: 'National News, Schemes, Summits, Awards & Defence',
-    descHi: 'राष्ट्रीय घटनाएं, सरकारी योजनाएं, सम्मेलन, पुरस्कार व रक्षा',
-    type: 'ca',
-    gradient: 'from-orange-500 via-rose-500 to-amber-600',
-    border3d: 'border-b-[5px] border-orange-950',
-    activeBorder: 'active:border-b-[2px]',
-    badgeBg: 'bg-orange-400 text-orange-950 font-black',
-    badgeText: 'National CA',
-  },
-  {
-    id: 'ca_world',
-    icon: '🌐',
-    titleKey: 'catCaWorldTitle',
-    descKey: 'catCaWorldDesc',
-    titleEn: 'World Current Affairs',
-    titleHi: 'विश्व करेंट अफेयर्स',
-    descEn: 'Global Summits, UN, Space, Bilateral Ties & Geopolitics',
-    descHi: 'वैश्विक सम्मेलन, संयुक्त राष्ट्र, अंतरिक्ष, द्विपक्षीय संबंध व वैश्विक घटनाएं',
-    type: 'ca',
-    gradient: 'from-sky-500 via-blue-600 to-indigo-700',
-    border3d: 'border-b-[5px] border-blue-950',
-    activeBorder: 'active:border-b-[2px]',
-    badgeBg: 'bg-sky-400 text-sky-950 font-black',
-    badgeText: 'Global CA',
-  },
-
   // --- INDIAN COMPETITIVE EXAM PREPARATION ---
   {
     id: 'ssc_cgl',
@@ -281,32 +251,6 @@ export function getCategoryInfo(categoryId: string): CategoryInfo {
 // CURATED TOPICS PER CATEGORY FOR REALM GENERATION
 // -------------------------------------------------------------
 const CATEGORY_TOPIC_BANK: Record<string, { titleEn: string; titleHi: string; descEn: string; descHi: string; promptEn: string; promptHi: string; icon: string }[]> = {
-  ca_india: [
-    { titleEn: "National News, Cabinet & Governance", titleHi: "राष्ट्रीय समाचार, कैबिनेट व शासन", descEn: "Top national events, major Bills passed, Parliament sessions & Policies", descHi: "प्रमुख राष्ट्रीय घटनाएं, नए कानून, संसद सत्र और नीतियां", promptEn: "India Current Affairs latest national news, government policies, cabinet decisions, parliament bills and governance", promptHi: "भारत के नवीनतम राष्ट्रीय करेंट अफेयर्स, सरकारी नीतियां, कैबिनेट के फैसले और संसद", icon: "🇮🇳" },
-    { titleEn: "Central Schemes & Infrastructure", titleHi: "केंद्रीय योजनाएं व राष्ट्रीय इन्फ्रास्ट्रक्चर", descEn: "PM GatiShakti, Vande Bharat, Expressway projects & Smart Cities", descHi: "पीएम गतिशक्ति, वंदे भारत नेटवर्क, एक्सप्रेसवे और स्मार्ट सिटीज", promptEn: "India Current Affairs government flagship schemes, PM GatiShakti, infrastructure expressways, railway modernization", promptHi: "भारत की प्रमुख सरकारी योजनाएं, गतिशक्ति, एक्सप्रेसवे और आधुनिकीकरण परियोजनाएं", icon: "🏗️" },
-    { titleEn: "Defence, Missiles & Armed Forces", titleHi: "रक्षा, मिसाइल व भारतीय सशस्त्र बल", descEn: "Agni-5, BrahMos, INS Vikrant, joint military exercises & DRDO", descHi: "अग्नि-5, ब्रह्मोस, आईएनएस विक्रांत, संयुक्त युद्धाभ्यास और डीआरडीओ", promptEn: "India Current Affairs Defence, DRDO missile tests Agni BrahMos, Indian Navy aircraft carriers, joint military exercises with friendly nations", promptHi: "भारतीय रक्षा करेंट अफेयर्स, डीआरडीओ मिसाइल परीक्षण, नौसेना पोत और संयुक्त सैन्य अभ्यास", icon: "🛡️" },
-    { titleEn: "ISRO, Space Missions & Science Tech", titleHi: "इसरो, अंतरिक्ष मिशन व विज्ञान नवाचार", descEn: "Chandrayaan-3, Gaganyaan, Aditya-L1, SSLV & AI initiatives", descHi: "चंद्रयान-3, गगनयान, आदित्य-L1, एसएसएलवी और एआई पहल", promptEn: "India Current Affairs ISRO space missions, Gaganyaan astronaut training, Aditya L1 solar observatory, quantum mission, deep tech", promptHi: "इसरो अंतरिक्ष मिशन, गगनयान, आदित्य L1, क्वांटम मिशन और वैज्ञानिक उपलब्धियां", icon: "🚀" },
-    { titleEn: "Economy, Union Budget & RBI Updates", titleHi: "अर्थव्यवस्था, केंद्रीय बजट व आरबीआई", descEn: "GDP growth, GST collections, Repo rate, Inflation & Export records", descHi: "जीडीपी विकास दर, जीएसटी संग्रह, रेपो दर, मुद्रास्फीति और निर्यात", promptEn: "India Current Affairs Economy, Union Budget highlights, GST collection milestones, RBI monetary policy rate changes, trade balance", promptHi: "भारतीय अर्थव्यवस्था करेंट अफेयर्स, केंद्रीय बजट, जीएसटी संग्रह और आरबीआई मौद्रिक नीति", icon: "📈" },
-    { titleEn: "National Awards, Honours & Culture", titleHi: "राष्ट्रीय पुरस्कार, सम्मान व संस्कृति", descEn: "Bharat Ratna, Padma Awards, Sahitya Akademi & National Film Awards", descHi: "भारत रत्न, पद्म पुरस्कार, साहित्य अकादमी और राष्ट्रीय फिल्म पुरस्कार", promptEn: "India Current Affairs Awards, latest Bharat Ratna recipients, Padma Vibhushan, Dadasaheb Phalke, National Film Awards winners", promptHi: "भारत के प्रमुख पुरस्कार, भारत रत्न विजेता, पद्म सम्मान, दादा साहेब फाल्के और राष्ट्रीय फिल्म पुरस्कार", icon: "🎖️" },
-    { titleEn: "Sports in India - Cricket, Chess & Olympics", titleHi: "भारतीय खेल - क्रिकेट, शतरंज व पदक विजेता", descEn: "T20 World Cup, Asian Games, Chess Grandmasters & National Games", descHi: "टी20 विश्व कप, एशियाई खेल, शतरंज ग्रैंडमास्टर और नेशनल गेम्स", promptEn: "India Current Affairs Sports, Indian cricket victories, Chess Olympiad champions Gukesh Praggnanandhaa, Olympic medalists, Khelo India", promptHi: "भारतीय खेल करेंट अफेयर्स, क्रिकेट, शतरंज ओलंपियाड चैंपियन और ओलंपिक पदक", icon: "🏆" },
-    { titleEn: "Environment, Green Energy & Ramsar Sites", titleHi: "पर्यावरण, हरित ऊर्जा व रामसर स्थल", descEn: "Solar parks, Green Hydrogen, new Ramsar wetlands & Cheetah project", descHi: "सोलर पार्क, ग्रीन हाइड्रोजन मिशन, नए रामसर स्थल और चीता प्रोजेक्ट", promptEn: "India Current Affairs Environment, Green hydrogen mission, renewable solar energy capacity, new Ramsar wetland sites in India, Kuno cheetah project", promptHi: "भारतीय पर्यावरण करेंट अफेयर्स, ग्रीन हाइड्रोजन, सौर ऊर्जा और नए रामसर स्थल", icon: "🌿" },
-    { titleEn: "Key Appointments, Chief Justices & Envoys", titleHi: "प्रमुख नियुक्तियां, मुख्य न्यायाधीश व राजदूत", descEn: "New CJI, Election Commissioners, Army Chief, Governors & Ambassadors", descHi: "नए मुख्य न्यायाधीश (CJI), चुनाव आयुक्त, सेना प्रमुख, राज्यपाल और राजदूत", promptEn: "India Current Affairs Appointments, Chief Justice of India, Chief Election Commissioner, UPSC Chairman, Army Chief, state Governors", promptHi: "भारत की महत्वपूर्ण नियुक्तियां, मुख्य न्यायाधीश, मुख्य चुनाव आयुक्त और राज्यपाल", icon: "👔" },
-    { titleEn: "👑 India Current Affairs Mega Titan Boss", titleHi: "👑 भारत समसामयिकी महा-टाइटैन बॉस", descEn: "The Ultimate Grand Championship covering entire National Current Affairs!", descHi: "संपूर्ण राष्ट्रीय समसामयिकी का महा-मुकाबला! क्या आप पूरे अंक लाएंगे?", promptEn: "Comprehensive India National Current Affairs master mock test combining news, schemes, defence, ISRO, economy and sports", promptHi: "संपूर्ण भारत राष्ट्रीय करेंट अफेयर्स का निर्णायक महा-मॉक टेस्ट", icon: "👑" },
-  ],
-
-  ca_world: [
-    { titleEn: "Global Summits - G20, BRICS, SCO & QUAD", titleHi: "वैश्विक शिखर सम्मेलन - जी20, ब्रिक्स व क्वाड", descEn: "Host nations, themes, declarations & historic multilateral agreements", descHi: "मेजबान देश, थीम, घोषणापत्र और बहुपक्षीय समझौते", promptEn: "World Current Affairs Global Summits, G20 Summit host, BRICS expansion countries, SCO summit, QUAD leaders meet", promptHi: "विश्व शिखर सम्मेलन करेंट अफेयर्स, जी20, ब्रिक्स विस्तार, एससीओ और क्वाड बैठक", icon: "🌐" },
-    { titleEn: "UN, WHO & Climate Conferences (COP)", titleHi: "संयुक्त राष्ट्र, डब्ल्यूएचओ व जलवायु सम्मेलन", descEn: "UN General Assembly, UNFCCC COP climate goals & Global Health pacts", descHi: "संयुक्त राष्ट्र महासभा, यूएनएफसीसीसी कॉप जलवायु लक्ष्य और स्वास्थ्य समझौते", promptEn: "World Current Affairs United Nations, UNFCCC COP climate summit resolutions, WHO global health treaties, UNESCO heritage declarations", promptHi: "संयुक्त राष्ट्र, यूएन कॉप जलवायु सम्मेलन और वैश्विक स्वास्थ्य समझौते", icon: "🌍" },
-    { titleEn: "Bilateral Relations & Geopolitics", titleHi: "द्विपक्षीय संबंध व अंतर्राष्ट्रीय भू-राजनीति", descEn: "Strategic partnerships, Free Trade Agreements (FTA) & Global corridors", descHi: "रणनीतिक साझेदारी, मुक्त व्यापार समझौते (FTA) और वैश्विक कॉरिडोर (IMEC)", promptEn: "World Current Affairs Geopolitics, India bilateral agreements, India-Middle East-Europe Corridor (IMEC), Free Trade Agreements", promptHi: "अंतर्राष्ट्रीय भू-राजनीति, द्विपक्षीय समझौते और मुक्त व्यापार समझौते", icon: "🤝" },
-    { titleEn: "International Awards - Nobel, Oscar & Booker", titleHi: "अंतर्राष्ट्रीय पुरस्कार - नोबेल, ऑस्कर व बुकर", descEn: "Nobel Prizes in Medicine, Physics, Chemistry, Peace, Oscars & Booker", descHi: "चिकित्सा, भौतिकी, रसायन, शांति का नोबेल पुरस्कार, ऑस्कर और बुकर सम्मान", promptEn: "World Current Affairs International Awards, latest Nobel Prize winners in all fields, Academy Awards Oscars best picture, International Booker Prize", promptHi: "विश्व के प्रतिष्ठित पुरस्कार, नोबेल पुरस्कार विजेता, ऑस्कर और अंतरराष्ट्रीय बुकर पुरस्कार", icon: "🎖️" },
-    { titleEn: "Global Science, AI & NASA Artemis", titleHi: "विश्व विज्ञान, कृत्रिम बुद्धिमत्ता व नासा", descEn: "NASA Moon missions, OpenAI, European Space Agency & Quantum tech", descHi: "नासा मून मिशन, ओपनएआई, यूरोपीय स्पेस एजेंसी और क्वांटम तकनीक", promptEn: "World Current Affairs Science and Tech, NASA Artemis program, breakthroughs in Generative AI, CERN particle physics, James Webb space telescope", promptHi: "विश्व विज्ञान और तकनीक, नासा आर्टेमिस प्रोग्राम, एआई क्रांतियां और जेम्स वेब टेलिस्कोप", icon: "🔬" },
-    { titleEn: "Global Economy, IMF & Trade Corridors", titleHi: "वैश्विक अर्थव्यवस्था, आईएमएफ व व्यापार मार्ग", descEn: "World Bank forecasts, currency shifts, OPEC oil decisions & Suez/Red Sea", descHi: "विश्व बैंक अनुमान, मुद्रा विनिमय, ओपेक निर्णय और समुद्री व्यापार मार्ग", promptEn: "World Current Affairs Economy, World Bank GDP outlook, IMF projections, OPEC oil quotas, global supply chain routes", promptHi: "विश्व अर्थव्यवस्था करेंट अफेयर्स, विश्व बैंक, आईएमएफ रिपोर्ट और वैश्विक व्यापार मार्ग", icon: "📊" },
-    { titleEn: "International Sports - Olympics, FIFA & Slams", titleHi: "अंतर्राष्ट्रीय खेल - ओलंपिक, फीफा व ग्रैंड स्लैम", descEn: "Paris Olympics, FIFA World Cup, Tennis Grand Slams & Formula 1", descHi: "पेरिस ओलंपिक, फीफा विश्व कप, टेनिस ग्रैंड स्लैम और फॉर्मूला 1", promptEn: "World Current Affairs Sports, Summer Olympic Games records, FIFA World Cup host nations, Wimbledon Australian Open tennis champions", promptHi: "अंतर्राष्ट्रीय खेल करेंट अफेयर्स, ओलंपिक खेल, फीफा और ग्रैंड स्लैम टेनिस विजेता", icon: "🥇" },
-    { titleEn: "World Leaders, Elections & New PMs/Presidents", titleHi: "विश्व के नेता, चुनाव व नए प्रधानमंत्री/राष्ट्रपति", descEn: "Elections in major democracies, new Heads of State & Global Diplomats", descHi: "प्रमुख देशों के चुनाव, नए राष्ट्राध्यक्ष, प्रधानमंत्री और राष्ट्रपति", promptEn: "World Current Affairs World Leaders, elections in USA, UK, France, Japan, new Prime Ministers and Presidents around the world", promptHi: "विश्व के प्रमुख नेता, अमेरिका-ब्रिटेन चुनाव और नए प्रधानमंत्री व राष्ट्रपति", icon: "🏛️" },
-    { titleEn: "Global Reports, Indices & World Rankings", titleHi: "वैश्विक रिपोर्ट, सूचकांक व रैंकिंग", descEn: "World Happiness Report, Global Innovation Index, Climate Risk Index", descHi: "विश्व प्रसन्नता सूचकांक, वैश्विक नवाचार सूचकांक, जलवायु जोखिम रिपोर्ट", promptEn: "World Current Affairs Global Indices, World Happiness Report rankings, Global Innovation Index India rank, Press Freedom, Human Development Index", promptHi: "वैश्विक सूचकांक और रैंकिंग, विश्व प्रसन्नता रिपोर्ट, ग्लोबल इनोवेशन इंडेक्स और मानव विकास रिपोर्ट", icon: "📑" },
-    { titleEn: "👑 World Current Affairs Global Titan Boss", titleHi: "👑 विश्व समसामयिकी ग्लोबल महा-बॉस", descEn: "The Master International Current Affairs World Championship Challenge!", descHi: "संपूर्ण विश्व समसामयिकी का सर्वोच्च और सबसे रोमांचक महा-मुकाबला!", promptEn: "Comprehensive World Global Current Affairs master mock test covering summits, UN, geopolitics, Nobel awards, science and world leaders", promptHi: "संपूर्ण विश्व करेंट अफेयर्स का निर्णायक ग्लोबल महा-मॉक टेस्ट", icon: "👑" },
-  ],
-
   ssc_cgl: [
     { titleEn: "Indian Constitution & Articles", titleHi: "भारतीय संविधान और अनुच्छेद", descEn: "Fundamental Rights, Directive Principles, Preamble & Articles", descHi: "मौलिक अधिकार, नीति निदेशक तत्व, प्रस्तावना और महत्वपूर्ण अनुच्छेद", promptEn: "SSC CGL Indian Polity, Constitution Articles, Fundamental Rights Article 14 to 32, President powers, Parliament", promptHi: "एसएससी सीजीएल भारतीय संविधान, मौलिक अधिकार अनुच्छेद 14-32, संसद और राष्ट्रपति की शक्तियां", icon: "📜" },
     { titleEn: "Ancient India & Harappan Civilization", titleHi: "प्राचीन भारत व हड़प्पा सभ्यता", descEn: "Indus Valley, Vedic Age, Buddhism, Jainism & Maurya Empire", descHi: "सिंधु घाटी सभ्यता, वैदिक काल, बौद्ध धर्म, जैन धर्म व मौर्य साम्राज्य", promptEn: "SSC CGL Ancient Indian History, Indus Valley Civilization sites, Ashoka edicts, Vedic literature, Gupta Empire", promptHi: "एसएससी प्राचीन भारतीय इतिहास, सिंधु घाटी स्थल, अशोक के शिलालेख और गुप्त काल", icon: "🏺" },
@@ -385,18 +329,8 @@ const CATEGORY_TOPIC_BANK: Record<string, { titleEn: string; titleHi: string; de
     { titleEn: "👑 IBPS PO Banking Titan Boss", titleHi: "👑 आईबीपीएस पीओ बैंकिंग महा-बॉस", descEn: "The Ultimate Banking Awareness & Financial Mastery Challenge!", descHi: "बैंकिंग अवेयरनेस और वित्तीय ज्ञान का संपूर्ण निर्णायक महा-मुकाबला!", promptEn: "Comprehensive IBPS PO Banking Awareness mock test covering RBI monetary policy, digital banking, financial terms and economy", promptHi: "आईबीपीएस पीओ बैंकिंग अवेयरनेस का संपूर्ण महा-मॉक टेस्ट", icon: "👑" },
   ],
 
-  india: [
-    { titleEn: "Incredible India Heritage & Symbols", titleHi: "अतुल्य भारत - राष्ट्रीय प्रतीक व धरोहर", descEn: "National Flag, Emblem, Anthem, Tiger, Lotus & Heritage Sites", descHi: "राष्ट्रीय ध्वज, प्रतीक, गान, बाघ, कमल व यूनेस्को धरोहर स्थल", promptEn: "India GK National symbols, Tiranga design Pingali Venkayya, National song Vande Mataram, UNESCO heritage sites India Taj Mahal Red Fort", promptHi: "भारत के राष्ट्रीय प्रतीक, तिरंगा, राष्ट्रगान, यूनेस्को धरोहर स्थल और ताजमहल", icon: "🇮🇳" },
-    { titleEn: "Indian States, Capitals & High Courts", titleHi: "भारतीय राज्य, राजधानियां व उच्च न्यायालय", descEn: "28 States, 8 UTs, Capitals, Official Languages & High Courts", descHi: "28 राज्य, 8 केंद्र शासित प्रदेश, राजधानियां और भाषाएं", promptEn: "Indian States capitals, North Eastern seven sisters capitals, Union Territories capitals, High Courts with jurisdiction", promptHi: "भारतीय राज्य और राजधानियां, पूर्वोत्तर राज्य, केंद्र शासित प्रदेश और उच्च न्यायालय", icon: "🗺️" },
-    { titleEn: "Sacred Rivers, Dams & Waterfalls", titleHi: "पवित्र नदियां, प्रमुख बांध व जलप्रपात", descEn: "Ganga, Godavari (Dakshin Ganga), Tehri Dam, Jog Falls", descHi: "गंगा, गोदावरी (दक्षिण गंगा), टिहरी बांध और जोग जलप्रपात", promptEn: "Major Indian Rivers, longest river Ganga, Dakshin Ganga Godavari, highest dam Tehri, Hirakud longest dam, Jog Falls", promptHi: "भारत की प्रमुख नदियां, टिहरी बांध, हीराकुंड बांध और जोग जलप्रपात", icon: "🌊" },
-    { titleEn: "Freedom Struggle & National Heroes", titleHi: "स्वतंत्रता संग्राम व राष्ट्रीय महानायक", descEn: "Bhagat Singh, Subhash Chandra Bose, Gandhi, 1857 Revolt", descHi: "भगत सिंह, सुभाष चंद्र बोस, महात्मा गांधी और 1857 की क्रांति", promptEn: "Indian Freedom Struggle, Netaji Azad Hind Fauj, Bhagat Singh, Dandi March 1930, Quit India movement", promptHi: "भारतीय स्वतंत्रता संग्राम, नेताजी सुभाष चंद्र बोस, भगत सिंह, दांडी यात्रा और भारत छोड़ो आंदोलन", icon: "⚔️" },
-    { titleEn: "Indian Constitution & Democratic System", titleHi: "भारतीय संविधान व लोकतांत्रिक व्यवस्था", descEn: "Preamble, Fundamental Rights, Lok Sabha, Rajya Sabha & President", descHi: "प्रस्तावना, मौलिक अधिकार, लोकसभा, राज्यसभा और राष्ट्रपति", promptEn: "Indian Constitution fundamentals, Father of constitution Dr BR Ambedkar, Lok Sabha speaker, Supreme Court Chief Justice", promptHi: "भारतीय संविधान, डॉ. भीमराव अंबेडकर, मौलिक अधिकार, लोकसभा और राज्यसभा", icon: "📜" },
-    { titleEn: "Famous Temples, Monuments & Caves", titleHi: "प्रसिद्ध मंदिर, स्मारक व ऐतिहासिक गुफाएं", descEn: "Ajanta-Ellora, Konark Sun Temple, Meenakshi & Qutub Minar", descHi: "अजंता-एलोरा, कोणार्क सूर्य मंदिर, मीनाक्षी मंदिर और कुतुब मीनार", promptEn: "Indian historical monuments, Ajanta Ellora caves Maharashtra, Konark Sun Temple Odisha, Meenakshi temple Madurai, Brihadeeswara", promptHi: "भारत के प्रसिद्ध मंदिर, अजंता एलोरा गुफाएं, कोणार्क सूर्य मंदिर और मीनाक्षी मंदिर", icon: "🏰" },
-    { titleEn: "Mountain Peaks, Passes & Desert", titleHi: "पर्वत शिखर, दर्रे व थार रेगिस्तान", descEn: "Kanchenjunga, Western Ghats, Nathu La, Thar & Rann of Kutch", descHi: "कंचनजंगा, पश्चिमी घाट, नाथू ला दर्रा और कच्छ का रण", promptEn: "Indian Mountains and geography, highest peak Kanchenjunga in India, Zoji La pass, Thar desert, Western vs Eastern Ghats", promptHi: "भारत के पर्वत शिखर, कंचनजंगा, नाथू ला दर्रा और थार रेगिस्तान", icon: "🏔️" },
-    { titleEn: "Classical Dances & Musical Traditions", titleHi: "शास्त्रीय नृत्य व संगीत परंपराएं", descEn: "Kathak, Bharatanatyam, Kathakali, Sitar, Tabla & Gharanas", descHi: "कथक, भरतनाट्यम, कथकली, सितार, तबला और प्रमुख घराने", promptEn: "Indian Classical Dances Bharatanatyam Tamil Nadu, Kathak UP, Kathakali Kerala, Pandit Ravi Shankar Sitar, Ustad Bismillah Khan Shehnai", promptHi: "भारतीय शास्त्रीय नृत्य, भरतनाट्यम, कथक, कथकली, पंडित रविशंकर और बिस्मिल्लाह खान", icon: "🎭" },
-    { titleEn: "ISRO Space Missions & Nuclear Tech", titleHi: "इसरो अंतरिक्ष अभियान व विज्ञान", descEn: "Chandrayaan-3, Mangalyaan, Gaganyaan, Pokhran & APJ Abdul Kalam", descHi: "चंद्रयान-3, मंगलयान, गगनयान, पोखरण और डॉ. कलाम", promptEn: "ISRO space achievements, Chandrayaan 3 Moon South Pole, Mangalyaan Mars mission, Dr APJ Abdul Kalam Missile Man of India", promptHi: "इसरो की उपलब्धियां, चंद्रयान-3, मंगलयान, डॉ. एपीजे अब्दुल कलाम और भारत का अंतरिक्ष कार्यक्रम", icon: "🚀" },
-    { titleEn: "👑 Bharat Ratna Grand Emperor Boss", titleHi: "👑 भारत रत्न महा-सम्राट बॉस", descEn: "The ultimate India General Knowledge mastery championship!", descHi: "संपूर्ण भारत सामान्य ज्ञान का निर्णायक महा-मुकाबला!", promptEn: "Comprehensive India General Knowledge championship questions on Indian history, geography, constitution, culture and heritage", promptHi: "संपूर्ण भारत सामान्य ज्ञान महा-मॉक टेस्ट - इतिहास, भूगोल, संस्कृति व संविधान", icon: "👑" },
-  ],
+  india: INDIA_150_TOPICS,
+
 
   world: [
     { titleEn: "World Capitals & Major Currencies", titleHi: "विश्व की राजधानियां व मुद्राएं", descEn: "Tokyo (Yen), London (Pound), Paris (Euro), Washington (Dollar)", descHi: "टोक्यो, लंदन, पेरिस, वाशिंगटन और दुनिया की प्रमुख मुद्राएं", promptEn: "World geography capitals and currencies, Japan Tokyo Yen, UK London Pound, Australia Canberra, Canada Ottawa", promptHi: "विश्व की राजधानियां और मुद्राएं, जापान, यूके, ऑस्ट्रेलिया और कनाडा", icon: "🌍" },
@@ -545,10 +479,12 @@ export function getCategoryLevelConfig(categoryId: string, levelNumber: number):
   if (!catTopics) {
     catTopics = CATEGORY_TOPIC_BANK.india || CATEGORY_TOPIC_BANK.ssc_cgl;
   }
-  const worldId = Math.floor((levelNumber - 1) / 10) + 1;
+  const worldId = Math.floor((levelNumber - 1) / LEVELS_PER_SECTOR) + 1;
   const topicIndex = (levelNumber - 1) % catTopics.length;
   const baseTopic = catTopics[topicIndex];
-  const isBoss = levelNumber % 10 === 0;
+  const isGrandSectorBoss = levelNumber % LEVELS_PER_SECTOR === 0;
+  const isMiniBoss = levelNumber % 10 === 0;
+  const isBoss = isGrandSectorBoss || isMiniBoss;
 
   const cycleNum = Math.floor((levelNumber - 1) / catTopics.length) + 1;
   const suffix = cycleNum > 1 ? ` (Phase ${cycleNum})` : '';
@@ -557,15 +493,31 @@ export function getCategoryLevelConfig(categoryId: string, levelNumber: number):
     level: levelNumber,
     worldId,
     categoryId,
-    titleEn: isBoss ? `👑 ${baseTopic.titleEn}${suffix}` : `${baseTopic.titleEn}${suffix}`,
-    titleHi: isBoss ? `👑 ${baseTopic.titleHi}${suffix}` : `${baseTopic.titleHi}${suffix}`,
-    descEn: isBoss ? `Boss Challenge: Master ${baseTopic.descEn}!` : baseTopic.descEn,
-    descHi: isBoss ? `महा-बॉस मुकाबला: ${baseTopic.descHi}!` : baseTopic.descHi,
+    titleEn: isGrandSectorBoss
+      ? `👑 GRAND SECTOR TITAN BOSS: ${baseTopic.titleEn}${suffix}`
+      : isBoss
+      ? `👑 ${baseTopic.titleEn}${suffix}`
+      : `${baseTopic.titleEn}${suffix}`,
+    titleHi: isGrandSectorBoss
+      ? `👑 महा-सेक्टर टाइटैन बॉस: ${baseTopic.titleHi}${suffix}`
+      : isBoss
+      ? `👑 ${baseTopic.titleHi}${suffix}`
+      : `${baseTopic.titleHi}${suffix}`,
+    descEn: isGrandSectorBoss
+      ? `Supreme Sector ${worldId} Grand Boss: Master ${baseTopic.descEn}!`
+      : isBoss
+      ? `Boss Challenge: Master ${baseTopic.descEn}!`
+      : baseTopic.descEn,
+    descHi: isGrandSectorBoss
+      ? `खंड ${worldId} का सर्वोच्च महा-टाइटैन बॉस मुकाबला: ${baseTopic.descHi}!`
+      : isBoss
+      ? `महा-बॉस मुकाबला: ${baseTopic.descHi}!`
+      : baseTopic.descHi,
     topicPromptEn: isBoss ? `Advanced master test on ${baseTopic.promptEn}` : baseTopic.promptEn,
     topicPromptHi: isBoss ? `${baseTopic.promptHi} पर आधारित सबसे कठिन परीक्षा` : baseTopic.promptHi,
-    icon: isBoss ? '👑' : baseTopic.icon,
-    difficulty: levelNumber > 20 ? 'hard' : levelNumber > 8 ? 'medium' : 'easy',
-    xpReward: isBoss ? 150 + (worldId * 20) : 75 + ((levelNumber % 10) * 5),
+    icon: isGrandSectorBoss ? '🏆' : isBoss ? '👑' : baseTopic.icon,
+    difficulty: levelNumber > 40 ? 'hard' : levelNumber > 15 ? 'medium' : 'easy',
+    xpReward: isGrandSectorBoss ? 300 + (worldId * 50) : isBoss ? 150 + (worldId * 20) : 75 + ((levelNumber % 10) * 5),
     isBoss,
     questionCount: 10,
     chestReward: (levelNumber % 5 === 0) ? { gems: 20 + worldId * 5, xp: 30 + worldId * 10 } : undefined
@@ -574,23 +526,25 @@ export function getCategoryLevelConfig(categoryId: string, levelNumber: number):
 
 export function getCategoryWorldConfig(categoryId: string, worldId: number): WorldConfig {
   const catInfo = getCategoryInfo(categoryId);
-  const startLevel = (worldId - 1) * 10 + 1;
-  const endLevel = worldId * 10;
+  const startLevel = (worldId - 1) * LEVELS_PER_SECTOR + 1;
+  const endLevel = worldId * LEVELS_PER_SECTOR;
 
   const worldNamesEn = [
-    "Foundations & Core Syllabus",
-    "Intermediate Mastery & Deep Concepts",
-    "High-Yield Advanced Applications",
-    "Grand Championship & Titan Colosseum",
-    "Infinite Grandmaster Frontier",
+    "Foundations & Heritage Epoch (Levels 1-50)",
+    "Imperial Dynasties & Medieval Glory (Levels 51-100)",
+    "Freedom Struggle, Republic & Modern India (Levels 101-150)",
+    "Scholastic Research & Elite Frontier (Levels 151-200)",
+    "Grand Titan Colosseum & Championship (Levels 201-250)",
+    "Infinite Grandmaster Frontier (Levels 251-300)",
   ];
 
   const worldNamesHi = [
-    "मूलभूत व आवश्यक पाठ्यक्रम",
-    "गहन अवधारणाएं व मध्यम स्तर",
-    "अति-महत्वपूर्ण उच्च स्तरीय विषय",
-    "महा-संग्राम व फाइनल महा-मुकाबला",
-    "अनंत ज्ञान लोक",
+    "आरंभिक धरोहर व प्राचीन भारत (स्तर 1-50)",
+    "साम्राज्य, राजवंश व मध्यकालीन स्वर्णिम युग (स्तर 51-100)",
+    "स्वाधीनता संग्राम, संविधान व आधुनिक भारत (स्तर 101-150)",
+    "प्रज्ञान लोक व उच्च स्तरीय शोध (स्तर 151-200)",
+    "सर्वोच्च महा-टाइटैन अखाड़ा व संग्राम (स्तर 201-250)",
+    "अनंत ज्ञान लोक (स्तर 251-300)",
   ];
 
   const wIdx = Math.min(worldId - 1, worldNamesEn.length - 1);

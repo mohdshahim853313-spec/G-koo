@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Heart, Trophy, Code } from 'lucide-react';
+import { ArrowLeft, Sparkles, Heart, Trophy, Code, Scale } from 'lucide-react';
 import { GkooBirdAvatar } from '../components/Mascot';
 import { useAppContext } from '../useAppContext';
 
@@ -90,8 +90,10 @@ export default function AboutUs() {
             <Code className="w-5 h-5 text-emerald-500" />
           </div>
           <div>
-            <h3 className="text-sm font-black text-gray-900 dark:text-white">
-              Developed with ❤️ by Global Score Analytics
+            <h3 className="text-sm font-black text-gray-900 dark:text-white flex items-center">
+              <span>Developed with</span>
+              <Heart className="w-3.5 h-3.5 inline text-[#FF5F6D] fill-[#FF5F6D] mx-1" />
+              <span>by Global Score Analytics</span>
             </h3>
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Founder & Lead Creator: Mohd Shahim
@@ -109,8 +111,9 @@ export default function AboutUs() {
 
       {/* Official Government Disclaimer & Sources */}
       <div className="bg-amber-500/10 dark:bg-amber-950/30 border border-amber-300/40 dark:border-amber-800/40 rounded-3xl p-5 shadow-sm text-xs leading-relaxed space-y-2.5">
-        <h3 className="font-black text-amber-900 dark:text-amber-200 text-sm">
-          ⚖️ {lang === 'hi' ? 'सरकारी संस्था अस्वीकरण (Disclaimer)' : 'Government Entity Disclaimer'}
+        <h3 className="font-black text-amber-900 dark:text-amber-200 text-sm flex items-center">
+          <Scale className="w-4 h-4 inline mr-1.5 text-amber-600 dark:text-amber-400 shrink-0" />
+          <span>{lang === 'hi' ? 'सरकारी संस्था अस्वीकरण (Disclaimer)' : 'Government Entity Disclaimer'}</span>
         </h3>
         <p className="text-gray-700 dark:text-gray-300 font-medium">
           {lang === 'hi'

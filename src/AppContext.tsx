@@ -9,6 +9,8 @@ import {
   firebaseSignOutUser,
 } from './lib/firebaseAuthService';
 import { isFirebaseConfigured } from './lib/firebase';
+import { autoSyncInitialSheetIfEmpty } from './lib/sheetSync';
+import { safeStorageSet, pruneStorageCaches } from './lib/storage';
 
 const translations: Record<LangKey, Record<string, string>> = {
   en: {
@@ -565,7 +567,7 @@ const DEFAULT_QUESTS: Quest[] = [
 ];
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const [lang, setLang] = useState<LangKey>(() => (localStorage.getItem('lang') as LangKey) || 'en');
+  const [lang, setLang] = useState<LangKey>(() => (localStorage.getItem('lang') as LangKey) || 'hi');
   const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem('theme') as ThemeKey) || 'system');
   
   // Real XP, Streak, Hearts, Gems
@@ -576,7 +578,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [streakFreezes, setStreakFreezes] = useState<number>(() => parseInt(localStorage.getItem('gkoo_streak_freezes') || '1', 10));
 
   useEffect(() => {
-    localStorage.setItem('gkoo_streak_freezes', streakFreezes.toString());
+    safeStorageSet('gkoo_streak_freezes', streakFreezes.toString());
   }, [streakFreezes]);
 
   // Audio, Haptics and Notifications settings
@@ -616,11 +618,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (parsed.name && parsed.name !== 'Rahul Sharma') return parsed;
+        if (parsed.name && parsed.name !== 'Rahul Sharma') {
+          if (parsed.name === 'Guest Scholar') {
+            parsed.name = 'G-koo Learner';
+          }
+          return parsed;
+        }
       } catch (e) { /* ignore */ }
     }
     return {
-      name: 'Guest Scholar',
+      name: 'G-koo Learner',
       avatar: '🦉',
       joinedDate: '2026'
     };
@@ -633,10 +640,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
     return {
-      quizzesCompleted: 4,
-      totalAnswered: 20,
-      correctAnswers: 18,
-      bestCombo: 5
+      quizzesCompleted: 0,
+      totalAnswered: 0,
+      correctAnswers: 0,
+      bestCombo: 0
     };
   });
 
@@ -681,7 +688,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('gkoo_bookmarks', JSON.stringify(bookmarks));
+    safeStorageSet('gkoo_bookmarks', JSON.stringify(bookmarks));
   }, [bookmarks]);
 
   const toggleBookmark = (question: { id: number | string; text: string; options: string[]; answer: string; explanation?: string; category?: string }): boolean => {
@@ -725,11 +732,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('gkoo_exam_timer_enabled', examTimerEnabled ? 'true' : 'false');
+    safeStorageSet('gkoo_exam_timer_enabled', examTimerEnabled ? 'true' : 'false');
   }, [examTimerEnabled]);
 
   useEffect(() => {
-    localStorage.setItem('gkoo_exam_timer_seconds', examTimerSeconds.toString());
+    safeStorageSet('gkoo_exam_timer_seconds', examTimerSeconds.toString());
   }, [examTimerSeconds]);
 
   // 3. Subject-wise Accuracy Stats
@@ -738,16 +745,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
-    return {
-      india: { totalAttempted: 15, totalCorrect: 13 },
-      world: { totalAttempted: 10, totalCorrect: 8 },
-      subjects: { totalAttempted: 12, totalCorrect: 10 },
-      mix: { totalAttempted: 15, totalCorrect: 12 }
-    };
+    return {};
   });
 
   useEffect(() => {
-    localStorage.setItem('gkoo_category_stats', JSON.stringify(categoryStats));
+    safeStorageSet('gkoo_category_stats', JSON.stringify(categoryStats));
   }, [categoryStats]);
 
   const recordCategoryAnswers = (categoryId: string, attempted: number, correct: number) => {
@@ -790,11 +792,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Sync Level Progress & Chests
   useEffect(() => {
-    localStorage.setItem('gkoo_level_progress', JSON.stringify(levelProgress));
+    safeStorageSet('gkoo_level_progress', JSON.stringify(levelProgress));
   }, [levelProgress]);
 
   useEffect(() => {
-    localStorage.setItem('gkoo_claimed_chests', JSON.stringify(claimedChests));
+    safeStorageSet('gkoo_claimed_chests', JSON.stringify(claimedChests));
   }, [claimedChests]);
 
   const maxUnlockedLevel = useMemo(() => {
@@ -865,11 +867,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('gkoo_active_category', activeCategory);
+    safeStorageSet('gkoo_active_category', activeCategory);
   }, [activeCategory]);
 
   useEffect(() => {
-    localStorage.setItem('gkoo_cat_level_progress', JSON.stringify(categoryLevelProgress));
+    safeStorageSet('gkoo_cat_level_progress', JSON.stringify(categoryLevelProgress));
   }, [categoryLevelProgress]);
 
   const getCategoryMaxUnlocked = (catId: string): number => {
@@ -941,18 +943,24 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   const isGuest = !currentUser || !!currentUser.isGuest;
 
-  // Sync state with LocalStorage
-  useEffect(() => { localStorage.setItem('lang', lang); }, [lang]);
-  useEffect(() => { localStorage.setItem('xp', xp.toString()); }, [xp]);
-  useEffect(() => { localStorage.setItem('streak', streak.toString()); }, [streak]);
-  useEffect(() => { localStorage.setItem('hearts', hearts.toString()); }, [hearts]);
-  useEffect(() => { localStorage.setItem('gems', gems.toString()); }, [gems]);
-  useEffect(() => { localStorage.setItem('userQuests', JSON.stringify(quests)); }, [quests]);
-  useEffect(() => { localStorage.setItem('soundEnabled', String(soundEnabled)); }, [soundEnabled]);
-  useEffect(() => { localStorage.setItem('hapticsEnabled', String(hapticsEnabled)); }, [hapticsEnabled]);
-  useEffect(() => { localStorage.setItem('notificationsEnabled', String(notificationsEnabled)); }, [notificationsEnabled]);
-  useEffect(() => { localStorage.setItem('geminiApiKey', geminiApiKey); }, [geminiApiKey]);
-  useEffect(() => { localStorage.setItem('userProfile', JSON.stringify(profile)); }, [profile]);
+  // Auto-sync Google Sheet questions for 1_SSC_CGL in background if not synced yet & clean up bloated caches
+  useEffect(() => {
+    pruneStorageCaches();
+    autoSyncInitialSheetIfEmpty();
+  }, []);
+
+  // Sync state with LocalStorage safely
+  useEffect(() => { safeStorageSet('lang', lang); }, [lang]);
+  useEffect(() => { safeStorageSet('xp', xp.toString()); }, [xp]);
+  useEffect(() => { safeStorageSet('streak', streak.toString()); }, [streak]);
+  useEffect(() => { safeStorageSet('hearts', hearts.toString()); }, [hearts]);
+  useEffect(() => { safeStorageSet('gems', gems.toString()); }, [gems]);
+  useEffect(() => { safeStorageSet('userQuests', JSON.stringify(quests)); }, [quests]);
+  useEffect(() => { safeStorageSet('soundEnabled', String(soundEnabled)); }, [soundEnabled]);
+  useEffect(() => { safeStorageSet('hapticsEnabled', String(hapticsEnabled)); }, [hapticsEnabled]);
+  useEffect(() => { safeStorageSet('notificationsEnabled', String(notificationsEnabled)); }, [notificationsEnabled]);
+  useEffect(() => { safeStorageSet('geminiApiKey', geminiApiKey); }, [geminiApiKey]);
+  useEffect(() => { safeStorageSet('userProfile', JSON.stringify(profile)); }, [profile]);
 
   // Schedule daily notification reminders
   useEffect(() => {
@@ -963,11 +971,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return await sendImmediateTestNotification(streak, lang);
   };
 
-  useEffect(() => { localStorage.setItem('userStats', JSON.stringify(stats)); }, [stats]);
-  useEffect(() => { localStorage.setItem('gkoo_accounts', JSON.stringify(accounts)); }, [accounts]);
+  useEffect(() => { safeStorageSet('userStats', JSON.stringify(stats)); }, [stats]);
+  useEffect(() => { safeStorageSet('gkoo_accounts', JSON.stringify(accounts)); }, [accounts]);
   useEffect(() => {
     if (currentUserId) {
-      localStorage.setItem('gkoo_current_user_id', currentUserId);
+      safeStorageSet('gkoo_current_user_id', currentUserId);
     } else {
       localStorage.removeItem('gkoo_current_user_id');
     }
@@ -992,13 +1000,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [profile.name, profile.avatar, xp, streak, gems, hearts, stats, currentUserId]);
 
-  // Sync Theme
+  // Sync Theme & Mobile Status Bar Color
   useEffect(() => {
     const root = window.document.documentElement;
-    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', isDark ? '#0A0D18' : '#FCF9F7');
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
@@ -1392,6 +1405,23 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
   }, [stats.quizzesCompleted, streak, xp]);
 
+  const resetAnalyticsReports = () => {
+    const zeroStats: UserStats = {
+      quizzesCompleted: 0,
+      totalAnswered: 0,
+      correctAnswers: 0,
+      bestCombo: 0
+    };
+    setStats(zeroStats);
+    safeStorageSet('userStats', JSON.stringify(zeroStats));
+
+    setCategoryStats({});
+    safeStorageSet('gkoo_category_stats', JSON.stringify({}));
+
+    clearQuestionHistory();
+    safeStorageSet('gkoo_reports_reset_at', Date.now().toString());
+  };
+
   const resetAllProgress = () => {
     setXp(0);
     setStreak(1);
@@ -1401,8 +1431,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setQuests(DEFAULT_QUESTS);
     setLevelProgress({ 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } });
     setCategoryLevelProgress({
-      ca_india: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
-      ca_world: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
       ssc_cgl: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
       ssc_chsl: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
       uppsc: { 1: { completed: false, stars: 0, highAccuracy: 0, bestScore: 0 } },
@@ -1479,6 +1507,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         recordQuizResult,
         badges,
         resetAllProgress,
+        resetAnalyticsReports,
         currentUser,
         isGuest,
         isAuthModalOpen,

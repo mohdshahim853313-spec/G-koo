@@ -11,6 +11,14 @@ interface GkooCompanionCardProps {
   panel: CompanionPanel;
   className?: string;
   defaultMood?: MascotMood;
+  customMessageHi?: string;
+  customMessageEn?: string;
+  customTitleHi?: string;
+  customTitleEn?: string;
+  customButtonTextHi?: string;
+  customButtonTextEn?: string;
+  customButtonAction?: () => void;
+  customMood?: MascotMood;
 }
 
 interface DialogOption {
@@ -153,6 +161,14 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
   panel,
   className = '',
   defaultMood = 'happy',
+  customMessageHi,
+  customMessageEn,
+  customTitleHi,
+  customTitleEn,
+  customButtonTextHi,
+  customButtonTextEn,
+  customButtonAction,
+  customMood,
 }) => {
   const { lang, hapticsEnabled } = useAppContext();
   const config = PANEL_DATA[panel];
@@ -171,18 +187,26 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
   }, [config.dialogs.length]);
 
   const currentDialog = config.dialogs[slotIndex] || config.dialogs[0];
-  const currentMood: MascotMood = currentDialog.mood || defaultMood;
-  const activeMessage = lang === 'hi' ? currentDialog.textHi : currentDialog.textEn;
+  const currentMood: MascotMood = customMood || currentDialog.mood || defaultMood;
+  const activeMessage = lang === 'hi'
+    ? (customMessageHi || currentDialog.textHi)
+    : (customMessageEn || currentDialog.textEn);
+  const activeTitle = lang === 'hi'
+    ? (customTitleHi || config.titleHi)
+    : (customTitleEn || config.titleEn);
+  const activeBtnText = lang === 'hi'
+    ? (customButtonTextHi !== undefined ? customButtonTextHi : config.buttonTextHi)
+    : (customButtonTextEn !== undefined ? customButtonTextEn : config.buttonTextEn);
 
   const [isSpeaking, setIsSpeaking] = useState(false);
 
-  // Stop speech if unmounted
+  // Stop speech if unmounted or message changes
   useEffect(() => {
     return () => {
       stopSpeech();
       setIsSpeaking(false);
     };
-  }, []);
+  }, [activeMessage]);
 
   const handleToggleSpeak = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -207,17 +231,17 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
       {/* G-koo Speech Message Bubble */}
       <div className="flex-1 min-w-0">
         <div
-          className="bg-white dark:bg-[#1E2536] p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-gray-700/80 shadow-md relative flex flex-col justify-between"
+          className="bg-white dark:bg-[#13192B] p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-indigo-900/40 shadow-md relative flex flex-col justify-between"
         >
           {/* Speech Bubble Arrow Tail pointing towards G-koo bird on right */}
-          <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-gray-200 dark:border-l-gray-700 pointer-events-none" />
-          <div className="absolute top-1/2 -right-[6px] -translate-y-1/2 w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-l-[7px] border-l-white dark:border-l-[#1E2536] pointer-events-none" />
+          <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-gray-200 dark:border-l-indigo-900/40 pointer-events-none" />
+          <div className="absolute top-1/2 -right-[6px] -translate-y-1/2 w-0 h-0 border-t-[7px] border-t-transparent border-b-[7px] border-b-transparent border-l-[7px] border-l-white dark:border-l-[#13192B] pointer-events-none" />
 
           {/* Bubble Header */}
           <div className="flex items-center justify-between mb-1.5 gap-2">
             <div className="flex items-center space-x-1.5 text-[11px] sm:text-xs font-black text-rose-500 dark:text-rose-400">
               <Sparkles className="w-3.5 h-3.5 fill-rose-400" />
-              <span>{lang === 'hi' ? config.titleHi : config.titleEn}</span>
+              <span>{activeTitle}</span>
             </div>
 
             {/* Dedicated Voice Pronounce Button */}
@@ -245,14 +269,19 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
           </p>
 
           {/* Optional Action Button for Non-Dashboard panels */}
-          {panel !== 'dashboard' && config.buttonTextEn && (
+          {panel !== 'dashboard' && activeBtnText && (
             <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800/80">
-              <div
-                className={`w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r ${config.buttonGradient} text-white font-black text-xs shadow-[0_3px_0_0_rgba(0,0,0,0.2)] flex items-center justify-center space-x-1.5 select-none whitespace-nowrap`}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerHaptic('click', hapticsEnabled);
+                  if (customButtonAction) customButtonAction();
+                }}
+                className={`w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r ${config.buttonGradient} text-white font-black text-xs shadow-[0_3px_0_0_rgba(0,0,0,0.2)] flex items-center justify-center space-x-1.5 select-none whitespace-nowrap cursor-pointer hover:brightness-105 active:scale-98 transition-all`}
               >
                 <IconComponent className="w-4 h-4 shrink-0" />
-                <span className="whitespace-nowrap">{lang === 'hi' ? config.buttonTextHi : config.buttonTextEn}</span>
-              </div>
+                <span className="whitespace-nowrap">{activeBtnText}</span>
+              </button>
             </div>
           )}
         </div>

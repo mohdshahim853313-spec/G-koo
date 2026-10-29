@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Flame, Heart, Sparkles, Plus } from 'lucide-react';
+import { Flame, Heart, Plus, Gem, Snowflake } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { GkooBirdAvatar } from './Mascot';
@@ -8,11 +8,28 @@ import { motion, AnimatePresence } from 'framer-motion';
 interface TopBarProps {
   onOpenQuests?: () => void;
   onOpenStreakFreeze?: () => void;
+  onOpenDailyReward?: () => void;
+  hasUnclaimedDailyReward?: boolean;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze }) => {
-  const { t, streak, hearts, gems, refillHearts, addGems, setIsAuthModalOpen, isGuest, streakFreezes } = useAppContext();
+export const TopBar: React.FC<TopBarProps> = ({ 
+  onOpenQuests, 
+  onOpenStreakFreeze,
+  onOpenDailyReward,
+  hasUnclaimedDailyReward: propHasUnclaimed 
+}) => {
+  const { t, streak, hearts, gems, refillHearts, addGems, streakFreezes } = useAppContext();
   const [showHeartsModal, setShowHeartsModal] = useState(false);
+
+  const hasUnclaimedDailyReward = propHasUnclaimed !== undefined 
+    ? propHasUnclaimed 
+    : (() => {
+        try {
+          return localStorage.getItem('gkoo_daily_reward_last_claim') !== new Date().toDateString();
+        } catch {
+          return false;
+        }
+      })();
 
   const handleRefillWithGems = () => {
     if (gems >= 20) {
@@ -26,36 +43,22 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white dark:bg-[#121217] border-b border-gray-100 dark:border-gray-800 px-4 pt-[max(env(safe-area-inset-top,0px),26px)] md:pt-4 md:px-8 pb-3.5 text-xs font-black shadow-xs select-none [transform:translateZ(0)]">
+      <header className="sticky top-0 z-40 bg-[#FCF9F7] dark:bg-[#0F121E] border-b border-black/[0.06] dark:border-white/[0.08] px-4 pt-[calc(max(env(safe-area-inset-top,0px),28px)+8px)] md:pt-3.5 md:px-8 pb-2.5 text-xs font-black select-none transition-colors shadow-xs">
         <div className="w-full max-w-6xl mx-auto flex items-center justify-between gap-2">
           {/* Left: App Brand with Real Gkoo Bird Vector Logo */}
-          <motion.div
-            whileTap={{ scale: 0.98 }}
-            onClick={() => {
-              triggerHaptic('click');
-              if (isGuest) {
-                setIsAuthModalOpen(true);
-              }
-            }}
-            className="flex items-center space-x-2 cursor-pointer shrink-0"
-          >
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#FF5F6D] via-[#FF7B7B] to-[#FF9F1A] p-0.5 shadow-md border-b-2 border-[#D93848] flex items-center justify-center shrink-0">
+          <div className="flex items-center space-x-2 shrink-0">
+            <div className="w-8.5 h-8.5 rounded-2xl bg-gradient-to-tr from-[#FF5F6D] via-[#FF7B7B] to-[#FF9F1A] p-0.5 shadow-md border-b-2 border-[#D93848] flex items-center justify-center shrink-0">
               <GkooBirdAvatar size="sm" />
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-sm tracking-tight text-gray-900 dark:text-white leading-none whitespace-nowrap">
+              <span className="font-black text-sm tracking-tight text-gray-900 dark:text-white leading-none whitespace-nowrap drop-shadow-xs">
                 Gkoo
               </span>
-              {isGuest && (
-                <span className="text-[9px] text-[#FF5F6D] font-bold tracking-tight whitespace-nowrap">
-                  {t('guestModeBadge')}
-                </span>
-              )}
             </div>
-          </motion.div>
+          </div>
 
-          {/* Right Stats: Streak, Gems, Hearts, Quests */}
-          <div className="flex items-center space-x-2.5 sm:space-x-3.5 shrink-0 whitespace-nowrap">
+          {/* Right Stats: Streak, Gems, Hearts in a unified floating glass pill */}
+          <div className="flex items-center space-x-2.5 sm:space-x-3 shrink-0 whitespace-nowrap bg-black/[0.05] dark:bg-white/[0.08] border border-black/[0.06] dark:border-white/[0.08] px-3 py-1.5 rounded-full shadow-xs">
           {/* Streak */}
           <motion.button
             whileTap={onOpenStreakFreeze ? { scale: 0.9 } : {}}
@@ -70,20 +73,40 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
             }`}
             title="Daily Streak & Streak Freeze"
           >
-            <Flame className="w-5 h-5 fill-[#FF9F1A] dark:fill-[#FFB020] animate-pulse" />
+            <Flame className="w-5 h-5 fill-[#FF9F1A] dark:fill-[#FFB020]" />
             <span className="text-sm font-black">{streak}</span>
             {streakFreezes > 0 && (
-              <span className="text-[10px] bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 px-1 py-0.2 rounded-full font-bold ml-0.5" title={`${streakFreezes} Streak Freeze active`}>
-                ❄️{streakFreezes}
+              <span className="text-[10px] bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-300 px-1.5 py-0.5 rounded-full font-bold ml-0.5 inline-flex items-center space-x-0.5 shadow-2xs" title={`${streakFreezes} Streak Freeze active`}>
+                <Snowflake className="w-2.5 h-2.5 text-sky-500 inline mr-0.5" />
+                <span>{streakFreezes}</span>
               </span>
             )}
           </motion.button>
 
-          {/* Gems */}
-          <div className="flex items-center space-x-1 text-sky-500 cursor-default">
-            <span className="text-sm">💎</span>
-            <span className="text-sm font-black text-sky-600 dark:text-sky-400">{gems}</span>
-          </div>
+          {/* Blue Gem / Daily Reward Button (No border, clean like others) */}
+          <motion.button
+            whileTap={(onOpenDailyReward || onOpenQuests) ? { scale: 0.88 } : {}}
+            onClick={() => {
+              if (onOpenDailyReward) {
+                triggerHaptic('click');
+                onOpenDailyReward();
+              } else if (onOpenQuests) {
+                triggerHaptic('click');
+                onOpenQuests();
+              }
+            }}
+            className={`relative flex items-center space-x-1.5 text-sky-500 hover:opacity-85 transition-all select-none ${(onOpenDailyReward || onOpenQuests) ? 'cursor-pointer' : 'cursor-default'}`}
+            title="Gems & Daily Reward"
+          >
+            <Gem className="w-4 h-4 fill-sky-400 text-sky-500 shrink-0" />
+            <span className="text-sm font-black text-sky-600 dark:text-sky-400 leading-none">{gems}</span>
+            {hasUnclaimedDailyReward && (
+              <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 border border-white dark:border-[#0F121E]"></span>
+              </span>
+            )}
+          </motion.button>
 
           {/* Hearts / Lives */}
           <motion.button
@@ -98,20 +121,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
             <span className="text-sm font-black">{hearts}</span>
             {hearts < 5 && <Plus className="w-3 h-3 text-[#FF5F6D] stroke-[3] -ml-0.5" />}
           </motion.button>
-
-          {/* Quests Button */}
-          {onOpenQuests && (
-            <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={() => {
-                triggerHaptic('click');
-                onOpenQuests();
-              }}
-              className="p-1 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-200 dark:border-purple-800/60 hover:bg-purple-100 transition-all"
-            >
-              <Sparkles className="w-4 h-4 fill-purple-600 dark:fill-purple-400" />
-            </motion.button>
-          )}
         </div>
         </div>
       </header>
@@ -124,10 +133,10 @@ export const TopBar: React.FC<TopBarProps> = ({ onOpenQuests, onOpenStreakFreeze
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-[#1A1A24] rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-gray-100 dark:border-gray-800 text-center"
+              className="bg-white dark:bg-[#13192B] rounded-3xl p-6 max-w-xs w-full shadow-2xl border border-gray-100 dark:border-indigo-950/80 text-center"
             >
-              <div className="w-16 h-16 rounded-3xl bg-rose-50 dark:bg-rose-950/40 text-4xl flex items-center justify-center mx-auto mb-3 border-2 border-rose-100 dark:border-rose-900/50 shadow-inner">
-                ❤️
+              <div className="w-16 h-16 rounded-3xl bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center mx-auto mb-3 border-2 border-rose-100 dark:border-rose-900/50 shadow-inner">
+                <Heart className="w-8 h-8 fill-[#FF5F6D] text-[#FF5F6D]" />
               </div>
 
               <h3 className="text-xl font-black text-gray-900 dark:text-white mb-1">

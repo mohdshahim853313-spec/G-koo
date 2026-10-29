@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Gift, Lock, X } from 'lucide-react';
+import { Check, Gift, Lock, X, Gem, Snowflake, Sparkles } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { playSound, triggerHaptic } from '../lib/audio';
 
@@ -26,9 +26,11 @@ const REWARDS: RewardTier[] = [
 export function DailyLoginRewardModal({
   isOpen,
   onClose,
+  onOpenQuests,
 }: {
   isOpen: boolean;
   onClose: () => void;
+  onOpenQuests?: () => void;
 }) {
   const { lang, addGems, addStreakFreeze } = useAppContext();
   const [currentDay, setCurrentDay] = useState<number>(1);
@@ -105,8 +107,8 @@ export function DailyLoginRewardModal({
 
             {/* Header Badge & Title */}
             <div className="text-center mb-5">
-              <div className="inline-flex p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-md text-3xl mb-2">
-                🎁
+              <div className="inline-flex p-3 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl shadow-md mb-2">
+                <Gift className="w-8 h-8 text-white stroke-[2.2]" />
               </div>
               <h2 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                 {lang === 'hi' ? 'दैनिक लॉगिन उपहार' : 'Daily Login Rewards'}
@@ -147,7 +149,7 @@ export function DailyLoginRewardModal({
                           <Check className="w-4 h-4 stroke-[3]" />
                         </div>
                       ) : isCurrent ? (
-                        <span className="text-2xl animate-bounce">💎</span>
+                        <Gem className="w-7 h-7 fill-sky-400 text-sky-500 animate-bounce" />
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-400">
                           <Lock className="w-3.5 h-3.5" />
@@ -155,13 +157,16 @@ export function DailyLoginRewardModal({
                       )}
                     </div>
 
-                    <div className="text-xs font-black text-gray-900 dark:text-white">
-                      +{r.gems} 💎
+                    <div className="text-xs font-black text-gray-900 dark:text-white flex items-center justify-center space-x-1">
+                      <span>+{r.gems}</span>
+                      <Gem className="w-3.5 h-3.5 fill-sky-400 text-sky-500 inline" />
                     </div>
 
                     {r.hasFreeze && (
-                      <span className="mt-0.5 text-[9px] font-black text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md">
-                        {lang === 'hi' ? '+1 ❄️ शील्ड' : '+1 ❄️ Shield'}
+                      <span className="mt-0.5 text-[9px] font-black text-sky-600 dark:text-sky-400 bg-sky-100 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-md flex items-center space-x-0.5">
+                        <span>+1</span>
+                        <Snowflake className="w-2.5 h-2.5 text-sky-500 inline" />
+                        <span>{lang === 'hi' ? 'शील्ड' : 'Shield'}</span>
                       </span>
                     )}
                   </div>
@@ -174,10 +179,11 @@ export function DailyLoginRewardModal({
               <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="bg-emerald-500 text-white p-3.5 rounded-2xl text-center font-black shadow-lg mb-2"
+                className="bg-emerald-500 text-white p-3.5 rounded-2xl text-center font-black shadow-lg mb-2 flex items-center justify-center space-x-1.5"
               >
-                🎉 {lang === 'hi' ? 'बधाई! आपको मिले +' : 'Claimed! +'}
-                {claimedReward.gems} 💎
+                <span>{lang === 'hi' ? 'बधाई! आपको मिले +' : 'Claimed! +'}</span>
+                <span>{claimedReward.gems}</span>
+                <Gem className="w-4 h-4 fill-sky-200 text-sky-100 inline" />
                 {claimedReward.hasFreeze && (lang === 'hi' ? ' और 1 ❄️ स्ट्रीक शील्ड!' : ' & 1 ❄️ Streak Shield!')}
               </motion.div>
             ) : alreadyClaimedToday ? (
@@ -198,6 +204,19 @@ export function DailyLoginRewardModal({
                     : `Claim Day ${currentDay} Reward (+${REWARDS[currentDay - 1]?.gems} 💎)`}
                 </span>
               </motion.button>
+            )}
+
+            {onOpenQuests && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenQuests();
+                }}
+                className="w-full py-2.5 mb-2 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-300 font-black text-xs flex items-center justify-center space-x-1.5 border border-purple-200 dark:border-purple-800/50 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+              >
+                <Sparkles className="w-4 h-4 fill-purple-500 text-purple-600 dark:fill-purple-400" />
+                <span>{lang === 'hi' ? '🎯 दैनिक क्वैस्ट (Daily Quests) देखें' : '🎯 View Daily Quests'}</span>
+              </button>
             )}
 
             <button

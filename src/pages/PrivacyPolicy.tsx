@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
   const { lang } = useAppContext();
 
   return (
-    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#0B1120] text-gray-900 dark:text-gray-100 font-sans px-4 pt-[max(env(safe-area-inset-top,0px),24px)] pb-24 max-w-3xl mx-auto">
+    <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#0F121E] text-gray-900 dark:text-gray-100 font-sans px-4 pt-[max(env(safe-area-inset-top,0px),24px)] pb-24 max-w-3xl mx-auto">
       {/* Top Header */}
       <div className="flex items-center space-x-3 mb-6">
         <button

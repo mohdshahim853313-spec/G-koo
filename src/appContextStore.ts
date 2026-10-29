@@ -107,6 +107,7 @@ export interface AppContextType {
   recordQuizResult: (answered: number, correct: number, bestCombo: number, gemsEarned?: number) => void;
   badges: UserBadge[];
   resetAllProgress: () => void;
+  resetAnalyticsReports: () => void;
   currentUser: UserAccount | null;
   isGuest: boolean;
   isAuthModalOpen: boolean;

@@ -8,10 +8,9 @@ import {
   Crown, 
   Sparkles, 
   Compass, 
-  Flame, 
-  ArrowRight,
   ChevronLeft
 } from 'lucide-react';
+import { AppIcon } from './AppIcon';
 import { useAppContext } from '../useAppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { triggerHaptic, playSound } from '../lib/audio';
@@ -20,13 +19,13 @@ import {
   getCategoryLevelConfig, 
   getCategoryWorldConfig, 
   getCategoryInfo, 
-  CATEGORIES_LIST, 
+  LEVELS_PER_SECTOR,
   type LevelConfig 
 } from '../lib/levelData';
-import { getDailyCaCount, getDailyCaMilestone } from '../lib/dailyCurrentAffairs';
 
 interface LearningPathProps {
   onBackToCategories?: () => void;
+  onOpenDailyReward?: () => void;
 }
 
 export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }) => {
@@ -35,10 +34,8 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
     t, 
     lang, 
     activeCategory, 
-    setActiveCategory, 
     categoryLevelProgress, 
     getCategoryMaxUnlocked, 
-    getCategoryTotalStars, 
     claimedChests, 
     claimChest, 
     soundEnabled, 
@@ -49,29 +46,15 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
   const currentCatId = activeCategory || 'ssc_cgl';
   const catInfo = getCategoryInfo(currentCatId);
   const catMaxUnlocked = getCategoryMaxUnlocked(currentCatId);
-  const catTotalStars = getCategoryTotalStars(currentCatId);
   const catProgress = categoryLevelProgress[currentCatId] || {};
 
-  // Active Selected World in Map (Defaults to current unlocked world for this category)
-  const initialWorldId = Math.max(1, Math.floor((catMaxUnlocked - 1) / 10) + 1);
+  // Active Selected World in Map (Defaults to current unlocked world for this category, 50 levels per sector)
+  const initialWorldId = Math.max(1, Math.floor((catMaxUnlocked - 1) / LEVELS_PER_SECTOR) + 1);
   const [selectedWorldId, setSelectedWorldId] = useState<number>(initialWorldId);
-  const [selectedLevel, setSelectedLevel] = useState<LevelConfig | null>(null);
   const [lockedToast, setLockedToast] = useState<string | null>(null);
   const [rewardToast, setRewardToast] = useState<string | null>(null);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineModalLevel, setOfflineModalLevel] = useState<number | null>(null);
-
-  const [dailyCaCount, setDailyCaCount] = useState<number>(() => getDailyCaCount());
-
-  useEffect(() => {
-    const handleCaUpdate = () => {
-      setDailyCaCount(getDailyCaCount());
-    };
-    window.addEventListener('gkoo_daily_ca_updated', handleCaUpdate);
-    return () => {
-      window.removeEventListener('gkoo_daily_ca_updated', handleCaUpdate);
-    };
-  }, []);
 
   const isDeviceOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
 
@@ -108,7 +91,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
 
     // Offline check: If offline and this level is NOT yet completed, block and show Offline modal!
     const isCompleted = !!catProgress[level.level]?.completed;
-    if (isDeviceOffline && !isCompleted) {
+    if (isDeviceOffline && !isCompleted && currentCatId !== 'india') {
       triggerHaptic('error', hapticsEnabled);
       playSound('error', soundEnabled);
       setOfflineModalLevel(level.level);
@@ -116,24 +99,14 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
       return;
     }
 
+    // Direct Launch Level: Jump straight to the quiz without showing any popup!
     triggerHaptic('click', hapticsEnabled);
-    setSelectedLevel(level);
+    playSound('combo', soundEnabled);
+    navigate(`/quiz/level-${currentCatId}-${level.level}`);
   };
 
   const handleStartLevel = (levelNum: number) => {
-    // Offline check before starting quiz
-    const isCompleted = !!catProgress[levelNum]?.completed;
-    if (isDeviceOffline && !isCompleted) {
-      triggerHaptic('error', hapticsEnabled);
-      playSound('error', soundEnabled);
-      setSelectedLevel(null);
-      setOfflineModalLevel(levelNum);
-      setShowOfflineModal(true);
-      return;
-    }
-
     triggerHaptic('click', hapticsEnabled);
-    setSelectedLevel(null);
     navigate(`/quiz/level-${currentCatId}-${levelNum}`);
   };
 
@@ -146,8 +119,10 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
     setTimeout(() => setRewardToast(null), 3500);
   };
 
-  // Determine available world tabs (all unlocked worlds + 1 next preview world)
-  const maxAvailableWorld = Math.max(4, Math.floor((catMaxUnlocked - 1) / 10) + 1);
+  // Determine available world tabs (all unlocked worlds + 1 next preview world, 50 levels per sector)
+  const maxAvailableWorld = currentCatId === 'india'
+    ? 3
+    : Math.max(3, Math.floor((catMaxUnlocked - 1) / LEVELS_PER_SECTOR) + 1);
   const worldTabs = [];
   for (let w = 1; w <= maxAvailableWorld; w++) {
     worldTabs.push(getCategoryWorldConfig(currentCatId, w));
@@ -188,7 +163,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
         {onBackToCategories && (
           <button
             onClick={onBackToCategories}
-            className="flex items-center space-x-1 bg-white dark:bg-[#1A1A24] border border-gray-200 dark:border-gray-800 px-3 py-1.5 rounded-xl text-xs font-black text-gray-700 dark:text-gray-300 shadow-xs hover:bg-gray-50 active:scale-95 transition-all"
+            className="flex items-center space-x-1 bg-white dark:bg-[#13192B] border border-gray-200 dark:border-indigo-950/80 px-3 py-1.5 rounded-xl text-xs font-black text-gray-700 dark:text-gray-300 shadow-xs hover:bg-gray-50 active:scale-95 transition-all"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>{t('allCategories')}</span>
@@ -199,137 +174,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           <span className="text-[10px] font-black uppercase text-gray-400">
             {catInfo.type === 'exam' ? 'Govt Exam' : 'Core GK'}
           </span>
-          <span className="text-sm">{catInfo.icon}</span>
-        </div>
-      </div>
-
-      {/* Horizontal Category Switcher Pills */}
-      <div className="w-full flex space-x-2 overflow-x-auto pb-2 scrollbar-none mb-3">
-        {CATEGORIES_LIST.map((cat) => {
-          const isSelected = cat.id === currentCatId;
-          const maxUnlocked = getCategoryMaxUnlocked(cat.id);
-
-          return (
-            <button
-              key={cat.id}
-              onClick={() => {
-                triggerHaptic('click', hapticsEnabled);
-                setActiveCategory(cat.id);
-                const nextInitialWorld = Math.max(1, Math.floor((getCategoryMaxUnlocked(cat.id) - 1) / 10) + 1);
-                setSelectedWorldId(nextInitialWorld);
-              }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all flex items-center space-x-1.5 border-b-2 active:translate-y-0.5 ${
-                isSelected
-                  ? 'bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white border-b-[#991B1B] shadow-sm scale-102'
-                  : 'bg-white dark:bg-[#1A1A24] text-gray-700 dark:text-gray-300 border-b-gray-200 dark:border-b-gray-800 hover:bg-gray-50'
-              }`}
-            >
-              <span>{cat.icon}</span>
-              <span>{lang === 'hi' ? cat.titleHi.split('(')[0] : cat.titleEn.split(' ')[0]}</span>
-              <span className="text-[9px] px-1 py-0.2 bg-black/20 rounded-md text-white/90">
-                Lvl {maxUnlocked}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* If Current Affairs: Show Dedicated Endless Daily Flow Card with Realtime Status */}
-      {(currentCatId === 'ca_india' || currentCatId === 'ca_world') && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full mb-4"
-        >
-          {dailyCaCount === 0 ? (
-            <div className="bg-gradient-to-r from-rose-500 via-orange-500 to-amber-500 p-4.5 rounded-3xl text-white shadow-lg border-b-[4px] border-orange-700">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                  📰
-                </div>
-                <div>
-                  <h3 className="font-black text-sm sm:text-base leading-tight">
-                    {lang === 'hi' ? 'आज आपने एक भी करेंट अफेयर्स पूरा नहीं किया है!' : 'You have not completed any Current Affairs today!'}
-                  </h3>
-                  <p className="text-xs text-white/95 font-medium mt-0.5">
-                    {lang === 'hi' ? 'दैनिक स्ट्रीक व नए टाइटल्स अनलॉक करने के लिए आज के 10 ताज़ा सवाल हल करें 🚀' : 'Try 10 fresh questions to keep your knowledge sharp and build your streak 🚀'}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  triggerHaptic('click', hapticsEnabled);
-                  navigate(`/quiz/${currentCatId}?count=10`);
-                }}
-                className="w-full bg-white text-orange-600 font-black py-3 rounded-2xl text-xs shadow-md active:translate-y-0.5 transition-all flex items-center justify-center space-x-2 cursor-pointer hover:bg-orange-50"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{lang === 'hi' ? '10 सवाल शुरू करें 🚀' : 'Start 10 Questions 🚀'}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 p-4.5 rounded-3xl text-white shadow-lg border-b-[4px] border-emerald-700">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                  {getDailyCaMilestone(dailyCaCount).badge}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center space-x-2 flex-wrap gap-1">
-                    <h3 className="font-black text-sm sm:text-base leading-tight">
-                      {lang === 'hi' ? `आज ${dailyCaCount} सवाल पूरे! 🎉` : `${dailyCaCount} Questions Solved Today! 🎉`}
-                    </h3>
-                    <span className="bg-amber-300 text-amber-950 text-[10px] font-black px-2.5 py-0.5 rounded-full shadow-xs">
-                      {lang === 'hi' ? getDailyCaMilestone(dailyCaCount).currentTitleHi : getDailyCaMilestone(dailyCaCount).currentTitleEn}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/95 font-medium mt-0.5">
-                    {lang === 'hi' ? getDailyCaMilestone(dailyCaCount).nextPromptHi : getDailyCaMilestone(dailyCaCount).nextPromptEn}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => {
-                  triggerHaptic('click', hapticsEnabled);
-                  navigate(`/quiz/${currentCatId}?count=10`);
-                }}
-                className="w-full bg-white text-emerald-700 font-black py-3 rounded-2xl text-xs shadow-md active:translate-y-0.5 transition-all flex items-center justify-center space-x-2 cursor-pointer hover:bg-emerald-50"
-              >
-                <Sparkles className="w-4 h-4" />
-                <span>{lang === 'hi' ? '+10 और हल करें 🚀' : 'Continue +10 More 🚀'}</span>
-              </button>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {/* Top Map Header HUD for Category */}
-      <div className="w-full bg-white dark:bg-[#1A1A24] rounded-3xl p-3.5 mb-3 border-2 border-gray-200 dark:border-gray-800 border-b-[4px] border-b-gray-300 dark:border-b-gray-950 shadow-sm flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-9 h-9 rounded-2xl bg-amber-100 dark:bg-amber-950/60 flex items-center justify-center text-amber-500 shadow-inner">
-            <Star className="w-5 h-5 fill-amber-400 text-amber-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-              {t('starsEarned')}
-            </p>
-            <p className="text-sm font-black text-amber-500 dark:text-amber-400">
-              {catTotalStars} ⭐
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-2">
-          <div className="w-9 h-9 rounded-2xl bg-rose-100 dark:bg-rose-950/60 flex items-center justify-center text-rose-500 shadow-inner">
-            <Flame className="w-5 h-5 fill-rose-500 text-rose-500 animate-pulse" />
-          </div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-gray-400 tracking-wider">
-              Active Stage
-            </p>
-            <p className="text-sm font-black text-[#FF5F6D]">
-              Level {catMaxUnlocked}
-            </p>
-          </div>
+          <AppIcon icon={catInfo.icon} className="w-4 h-4" />
         </div>
       </div>
 
@@ -354,8 +199,9 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
                   : 'bg-gray-100/70 dark:bg-gray-900/60 text-gray-400 dark:text-gray-600 border-b-transparent opacity-60'
               }`}
             >
-              <span>Sector {w.id}</span>
-              {!isWorldUnlocked && <Lock className="w-3 h-3 text-gray-400" />}
+              <span className="font-bold">{lang === 'hi' ? `खंड ${w.id}` : `Sector ${w.id}`}</span>
+              <span className="text-[10px] opacity-80 font-normal">({w.levelsRange[0]}-{w.levelsRange[1]})</span>
+              {!isWorldUnlocked && <Lock className="w-3 h-3 text-gray-400 shrink-0" />}
             </button>
           );
         })}
@@ -511,7 +357,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
                     ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white border-b-teal-800 shadow-md'
                     : isCurrent
                     ? 'bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF8F8F] text-white border-b-[#991B1B] shadow-lg ring-4 ring-rose-200 dark:ring-rose-950'
-                    : 'bg-white dark:bg-[#1A1A24] text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-gray-800 border-b-[5px] border-b-gray-300 dark:border-b-gray-950 opacity-75'
+                    : 'bg-white dark:bg-[#13192B] text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-indigo-950/80 border-b-[5px] border-b-gray-300 dark:border-b-[#0B0F19] opacity-75'
                 }`}
               >
                 {/* Left Side: Level Number + Icon + Title */}
@@ -611,87 +457,6 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           );
         })}
       </div>
-
-      {/* 3D Mission Briefing Modal */}
-      <AnimatePresence>
-        {selectedLevel && (
-          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              className="bg-white dark:bg-[#1A1A24] rounded-3xl p-6 max-w-sm w-full shadow-2xl border-2 border-gray-100 dark:border-gray-800 text-left"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-[#FF5F6D] to-[#FF8F8F] text-white flex items-center justify-center text-3xl shadow-md">
-                  {selectedLevel.icon}
-                </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-black bg-rose-100 dark:bg-rose-950/60 text-[#FF5F6D] px-2.5 py-1 rounded-full uppercase tracking-wider">
-                    LVL {selectedLevel.level} • {selectedLevel.difficulty}
-                  </span>
-                  <p className="text-xs font-black text-amber-500 mt-1">
-                    +{selectedLevel.xpReward} XP Bounty
-                  </p>
-                </div>
-              </div>
-
-              <h3 className="text-xl font-black text-gray-900 dark:text-white leading-tight mb-3">
-                {lang === 'hi' ? `लेवल ${selectedLevel.level}` : `LEVEL ${selectedLevel.level}`}
-              </h3>
-
-              {/* Offline notice if device is offline */}
-              {isDeviceOffline && (
-                <div className="flex items-center space-x-2 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 p-2.5 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs">
-                  <span className="text-base">💾</span>
-                  <span>
-                    {lang === 'hi'
-                      ? 'ऑफलाइन रेडी: यह लेवल पास हो चुका है और सुरक्षित डेटा से खेला जा सकता है'
-                      : 'Offline Ready: This level was completed and will play from saved data'}
-                  </span>
-                </div>
-              )}
-
-              {/* Star Target Rules */}
-              <div className="bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl mb-5 space-y-1.5">
-                <p className="text-[10px] font-black text-amber-800 dark:text-amber-400 uppercase tracking-wider">
-                  {t('targetStars')}
-                </p>
-                <div className="grid grid-cols-3 gap-1 text-[10px] font-bold text-gray-700 dark:text-gray-300">
-                  <div className="bg-white dark:bg-gray-900 p-1.5 rounded-xl text-center shadow-xs">
-                    ⭐ 40% (1 Star)
-                  </div>
-                  <div className="bg-white dark:bg-gray-900 p-1.5 rounded-xl text-center shadow-xs">
-                    ⭐⭐ 70% (2 Stars)
-                  </div>
-                  <div className="bg-white dark:bg-gray-900 p-1.5 rounded-xl text-center shadow-xs">
-                    ⭐⭐⭐ 90% (3 Stars)
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setSelectedLevel(null)}
-                  className="flex-1 py-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs active:scale-95"
-                >
-                  {t('close')}
-                </button>
-
-                <motion.button
-                  whileTap={{ scale: 0.94, y: 2 }}
-                  onClick={() => handleStartLevel(selectedLevel.level)}
-                  className="flex-2 bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-3 rounded-2xl text-xs shadow-[0_4px_0_0_#991B1B] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center space-x-1.5"
-                >
-                  <span>{t('launchMission')}</span>
-                  <ArrowRight className="w-4 h-4 stroke-[3]" />
-                </motion.button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
       {/* Offline Alert Modal for new/unpassed levels */}
       <OfflineModal

@@ -23,3 +23,12 @@ android/.gradle
 .gradle
 local.properties
 
+# Scratch & temporary dataset generator scripts
+*.py
+generate_all_ssc.js
+__pycache__/
+temp_*.txt
+*.csv
+!public/*.csv
+
+

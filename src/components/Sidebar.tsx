@@ -1,24 +1,25 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { Home, Award, User, Settings, Flame, Heart } from 'lucide-react';
+import { Home, BookOpen, BarChart3, User, Settings, Flame, Heart } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { GkooBirdAvatar } from './Mascot';
 import { motion } from 'framer-motion';
 
 export const Sidebar: React.FC = () => {
-  const { t, streak, hearts, gems, profile, isGuest, setIsAuthModalOpen } = useAppContext();
+  const { t, lang, streak, hearts, gems, profile } = useAppContext();
   const navigate = useNavigate();
 
   const navItems = [
     { to: '/', icon: Home, label: t('home') },
-    { to: '/leaderboard', icon: Award, label: t('rank') },
+    { to: '/subjects', icon: BookOpen, label: lang === 'hi' ? 'विषय' : 'Subjects' },
+    { to: '/leaderboard', icon: BarChart3, label: lang === 'hi' ? 'परीक्षा रिपोर्ट' : 'Analytics' },
     { to: '/profile', icon: User, label: t('profile') },
     { to: '/settings', icon: Settings, label: t('settings') },
   ];
 
   return (
-    <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#121217] border-r border-gray-100 dark:border-gray-800 p-5 z-40 select-none shadow-xs">
+    <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-white dark:bg-[#0B0F19] border-r border-gray-100 dark:border-white/[0.08] p-5 z-40 select-none shadow-xs">
       {/* Brand Header */}
       <motion.div
         whileHover={{ scale: 1.02 }}
@@ -99,15 +100,11 @@ export const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        {/* User Badge / Guest Sign in */}
+        {/* User Profile Badge */}
         <div
           onClick={() => {
-            if (isGuest) {
-              triggerHaptic('click');
-              setIsAuthModalOpen(true);
-            } else {
-              navigate('/profile');
-            }
+            triggerHaptic('click');
+            navigate('/profile');
           }}
           className="flex items-center justify-between p-2.5 rounded-2xl bg-gray-50 dark:bg-gray-800/60 border border-gray-100 dark:border-gray-700/60 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/60 transition-colors"
         >
@@ -115,18 +112,13 @@ export const Sidebar: React.FC = () => {
             <span className="text-xl shrink-0">{profile.avatar || '🦉'}</span>
             <div className="truncate text-left">
               <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">
-                {profile.name || 'User'}
+                {profile.name || 'Learner'}
               </p>
-              <p className="text-[10px] font-bold text-[#FF5F6D]">
-                {isGuest ? t('guestModeBadge') : 'Active Member'}
+              <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                Active Student
               </p>
             </div>
           </div>
-          {isGuest && (
-            <span className="text-[10px] font-black bg-[#FF5F6D] text-white px-2 py-0.5 rounded-lg shrink-0">
-              Sign In
-            </span>
-          )}
         </div>
       </div>
     </aside>

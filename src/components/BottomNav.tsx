@@ -1,49 +1,111 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { Home, Award, User, Settings } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { Home, BookOpen, BarChart3, User } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { motion } from 'framer-motion';
 
 export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) => {
-  const { t } = useAppContext();
+  const { t, lang } = useAppContext();
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  // Always show on page route change
+  useEffect(() => {
+    setIsVisible(true);
+    lastScrollY.current = window.scrollY || 0;
+  }, [currentPath]);
+
+  // Track scroll direction: Hide when scrolling down, show when scrolling up
+  useEffect(() => {
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+          const diff = currentScrollY - lastScrollY.current;
+
+          // Always show when near the very top of page
+          if (currentScrollY <= 45) {
+            setIsVisible(true);
+          } else if (diff > 8) {
+            // User scrolled down (down to up swipe) -> slide away
+            setIsVisible(false);
+          } else if (diff < -8) {
+            // User scrolled up (up to down swipe) -> slide back into view
+            setIsVisible(true);
+          }
+
+          lastScrollY.current = Math.max(0, currentScrollY);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const navItems = [
-    { to: '/', icon: Home, label: t('home') },
-    { to: '/leaderboard', icon: Award, label: t('rank') },
-    { to: '/profile', icon: User, label: t('profile') },
-    { to: '/settings', icon: Settings, label: t('settings') },
+    { to: '/', icon: Home, label: t('home'), checkActive: (p: string) => p === '/' },
+    { to: '/subjects', icon: BookOpen, label: lang === 'hi' ? 'विषय' : 'Subjects', checkActive: (p: string) => p === '/subjects' },
+    { to: '/leaderboard', icon: BarChart3, label: lang === 'hi' ? 'रिपोर्ट' : 'Report', checkActive: (p: string) => p === '/leaderboard' || p === '/report' || p === '/analytics' },
+    { to: '/profile', icon: User, label: t('profile'), checkActive: (p: string) => p === '/profile' },
   ];
 
   return (
-    <nav className={`fixed bottom-0 left-0 right-0 md:hidden bg-white dark:bg-[#121217] border-t border-gray-100 dark:border-gray-800 px-6 py-2 flex justify-around items-center z-50 max-w-md mx-auto shadow-sm select-none [transform:translateZ(0)] ${className}`}>
-      {navItems.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to}
-          to={to}
-          onClick={() => triggerHaptic('click')}
-          className={({ isActive }) =>
-            `flex flex-col items-center py-1 transition-all ${
-              isActive
-                ? 'text-[#FF5F6D] font-black'
-                : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 font-bold'
-            }`
-          }
-        >
-          {({ isActive }) => (
+    <motion.nav 
+      initial={false}
+      animate={{ 
+        x: '-50%',
+        y: isVisible ? 0 : 80,
+        opacity: isVisible ? 1 : 0
+      }}
+      transition={{ 
+        duration: 0.24, 
+        ease: [0.22, 1, 0.36, 1] 
+      }}
+      className={`fixed bottom-[5px] left-1/2 w-[90%] max-w-[330px] md:hidden bg-white/95 dark:bg-[#141828]/95 border border-white/70 dark:border-white/[0.14] p-1 px-1.5 flex justify-around items-center z-50 rounded-full shadow-[0_8px_28px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.6)] dark:shadow-[0_12px_35px_-4px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.1)] select-none ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${className}`}
+    >
+      {navItems.map(({ to, icon: Icon, label, checkActive }) => {
+        const isActive = checkActive(currentPath);
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={() => triggerHaptic('click')}
+            className="flex-1 flex justify-center py-0.5 select-none"
+          >
             <motion.div
-              whileTap={{ scale: 0.82, y: 1 }}
-              className="flex flex-col items-center space-y-1"
+              whileTap={{ scale: 0.94 }}
+              className={`w-full max-w-[72px] min-h-[44px] py-1.5 px-1 rounded-full flex flex-col items-center justify-center space-y-0.5 relative transition-colors duration-100 ${
+                isActive
+                  ? 'text-[#FF5F6D]'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+              }`}
             >
-              <div className={`p-1 rounded-xl transition-colors ${isActive ? 'bg-rose-50 dark:bg-rose-950/50' : ''}`}>
-                <Icon className="w-5 h-5 stroke-[2.4]" />
-              </div>
-              <span className="text-[11px] tracking-wide whitespace-nowrap shrink-0">{label}</span>
+              {isActive && (
+                <motion.div
+                  initial={{ scale: 0.82, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.08, ease: [0.18, 0.9, 0.3, 1.2] }}
+                  className="absolute inset-0 bg-[#FF5F6D]/15 dark:bg-[#FF5F6D]/22 rounded-full shadow-xs pointer-events-none"
+                />
+              )}
+              <Icon className={`w-[18.5px] h-[18.5px] relative z-10 transition-transform duration-100 ${isActive ? 'stroke-[2.5] scale-105' : 'stroke-[2]'}`} />
+              <span className={`text-[11px] relative z-10 tracking-tight whitespace-nowrap leading-none ${isActive ? 'font-black' : 'font-semibold'}`}>
+                {label}
+              </span>
             </motion.div>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+          </NavLink>
+        );
+      })}
+    </motion.nav>
   );
 };
 

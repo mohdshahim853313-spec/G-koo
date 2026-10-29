@@ -19,6 +19,7 @@ import {
   Play, 
   Pin
 } from 'lucide-react';
+import { AppIcon } from './AppIcon';
 
 interface StateExamModalProps {
   isOpen: boolean;
@@ -205,8 +206,8 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                     >
                       {/* Left: Icon & Names */}
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl shadow-inner shrink-0 group-hover:scale-105 transition-transform">
-                          {st.icon}
+                        <div className="w-11 h-11 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center shadow-inner shrink-0 group-hover:scale-105 transition-transform">
+                          <AppIcon icon={st.icon} className="w-6 h-6 stroke-[2.2]" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center space-x-1.5 flex-wrap">
@@ -214,8 +215,9 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                               {lang === 'hi' ? st.nameHi : st.nameEn}
                             </h4>
                             {isPinned && (
-                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded-md bg-amber-400 text-gray-950 shadow-2xs">
-                                📌 {lang === 'hi' ? 'पिन' : 'Pinned'}
+                              <span className="text-[9px] font-black px-1.5 py-0.2 rounded-md bg-amber-400 text-gray-950 shadow-2xs flex items-center space-x-1">
+                                <Pin className="w-2.5 h-2.5 fill-gray-950" />
+                                <span>{lang === 'hi' ? 'पिन' : 'Pinned'}</span>
                               </span>
                             )}
                           </div>
@@ -251,7 +253,9 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
 
                 {filteredStates.length === 0 && (
                   <div className="col-span-full py-12 text-center">
-                    <p className="text-3xl mb-2">🔍</p>
+                    <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-2 text-gray-400">
+                      <Search className="w-6 h-6" />
+                    </div>
                     <p className="text-xs font-black text-gray-600 dark:text-gray-300">
                       {lang === 'hi' ? 'कोई राज्य या परीक्षा नहीं मिली' : 'No state or exam matched your search'}
                     </p>
@@ -271,8 +275,8 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                   return (
                     <div className={`p-4 rounded-2xl bg-gradient-to-r ${selectedState.gradient} text-white shadow-md flex items-center justify-between gap-3 relative overflow-hidden`}>
                       <div className="flex items-center space-x-3 min-w-0 flex-1">
-                        <span className="text-3xl bg-white/20 p-2 rounded-2xl shadow-inner shrink-0">
-                          {selectedState.icon}
+                        <span className="p-2.5 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 shadow-inner shrink-0 flex items-center justify-center">
+                          <AppIcon icon={selectedState.icon} className="w-8 h-8 stroke-[2.2]" />
                         </span>
                         <div className="min-w-0 flex-1">
                           <h4 className="text-base font-black leading-tight drop-shadow-xs truncate">
@@ -295,7 +299,7 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                         }`}
                       >
                         <Pin className={`w-3.5 h-3.5 ${isStatePinned ? 'fill-gray-950 rotate-45' : ''}`} />
-                        <span>{isStatePinned ? (lang === 'hi' ? 'पिन है 📌' : 'Pinned 📌') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin State')}</span>
+                        <span>{isStatePinned ? (lang === 'hi' ? 'पिन है' : 'Pinned') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin State')}</span>
                       </button>
                     </div>
                   );
@@ -324,8 +328,9 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                               {exam.category}
                             </span>
                             {isExamPinned && (
-                              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-gray-950 shadow-2xs">
-                                📌 {lang === 'hi' ? 'होम पर पिन है' : 'Pinned to Home'}
+                              <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-gray-950 shadow-2xs flex items-center space-x-1">
+                                <Pin className="w-2.5 h-2.5 fill-gray-950" />
+                                <span>{lang === 'hi' ? 'होम पर पिन है' : 'Pinned to Home'}</span>
                               </span>
                             )}
                           </div>
@@ -371,10 +376,10 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
           </div>
 
           {/* Footer Note */}
-          <div className="p-3 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-800/80 text-center text-[10px] font-bold text-gray-400 shrink-0">
+          <div className="p-3 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-800/80 text-center text-[10px] font-bold text-gray-500 dark:text-gray-400 shrink-0">
             {lang === 'hi' 
-              ? '💡 टिप: किसी भी राज्य या परीक्षा को 📌 पिन करें ताकि वह सीधे आपके होम स्क्रीन पर उपलब्ध रहे' 
-              : '💡 Tip: Pin 📌 any state or exam to display it prominently on your Home screen'}
+              ? 'टिप: किसी भी राज्य या परीक्षा को पिन करें ताकि वह सीधे आपके होम स्क्रीन पर उपलब्ध रहे' 
+              : 'Tip: Pin any state or exam to display it prominently on your Home screen'}
           </div>
         </motion.div>
       </div>

@@ -243,3 +243,23 @@ export function getAllIncorrectQuestions(): QuizQuestion[] {
   return results;
 }
 
+/**
+ * Get category breakdown of missed questions for Weak Area Analytics
+ */
+export function getWeakCategorySummary(): { category: string; count: number }[] {
+  const incorrect = loadIncorrect();
+  const mastered = loadMastered();
+  const map: Record<string, number> = {};
+
+  for (const entry of incorrect.values()) {
+    if (!mastered.has(entry.key)) {
+      const cat = entry.category || 'General';
+      map[cat] = (map[cat] || 0) + 1;
+    }
+  }
+
+  return Object.entries(map)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+}
+

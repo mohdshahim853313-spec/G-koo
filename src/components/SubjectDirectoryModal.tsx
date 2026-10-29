@@ -5,6 +5,7 @@ import { ALL_SUBJECTS_LIST } from '../data/subjectsData';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { X, Search, Play, Pin } from 'lucide-react';
+import { AppIcon } from './AppIcon';
 import { 
   getPinnedSubjectIds, 
   togglePinSubject, 
@@ -170,8 +171,8 @@ export const SubjectDirectoryModal: React.FC<SubjectDirectoryModalProps> = ({ is
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2 gap-1">
-                        <div className="w-11 h-11 rounded-2xl bg-white/25 backdrop-blur-xs flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                          {sub.icon}
+                        <div className="w-11 h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 backdrop-blur-xs flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform shrink-0">
+                          <AppIcon icon={sub.icon} className="w-6 h-6 stroke-[2.2]" />
                         </div>
                         
                         <div className="flex items-center space-x-1.5">

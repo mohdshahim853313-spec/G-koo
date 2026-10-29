@@ -10,15 +10,32 @@ interface GkooSplashScreenProps {
 
 export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
   onFinish,
-  minDuration = isAndroidApp() ? 250 : 150,
+  minDuration = isAndroidApp() ? 200 : 150,
 }) => {
-  const [isVisible, setIsVisible] = useState(true);
+  // Prevent splash screen from flashing repeatedly across route changes or re-renders
+  const [isVisible, setIsVisible] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('gkoo_splash_shown')) {
+        return false;
+      }
+    } catch {
+      // ignore
+    }
+    return true;
+  });
 
   useEffect(() => {
-    // Hide native Android splash immediately once React mounts to prevent double overlays
-    SplashScreen.hide().catch(() => {
-      // Ignored if running on web
-    });
+    // Hide native Android splash smoothly
+    SplashScreen.hide().catch(() => {});
+
+    if (!isVisible) {
+      if (onFinish) onFinish();
+      return;
+    }
+
+    try {
+      sessionStorage.setItem('gkoo_splash_shown', 'true');
+    } catch {}
 
     const timer = setTimeout(() => {
       setIsVisible(false);
@@ -28,7 +45,9 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
     }, minDuration);
 
     return () => clearTimeout(timer);
-  }, [minDuration, onFinish]);
+  }, [minDuration, onFinish, isVisible]);
+
+  if (!isVisible) return null;
 
   return (
     <AnimatePresence>
@@ -37,18 +56,11 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-between py-12 px-6 bg-[#0B0E17] select-none overflow-hidden"
-          style={{
-            paddingTop: 'max(env(safe-area-inset-top, 0px), 48px)',
-            paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 36px)',
-          }}
+          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0F121E] select-none overflow-hidden"
         >
-          {/* Top spacer */}
-          <div className="w-full" />
-
-          {/* Center Mascot & Brand Section (Exact same square logo as initial splash) */}
-          <div className="flex flex-col items-center justify-center text-center relative z-10">
-            <div className="relative w-40 h-40 sm:w-48 sm:h-48 mb-6">
+          {/* Dead-Center Mascot & Brand (Matches native Android splash centering exactly) */}
+          <div className="flex flex-col items-center justify-center text-center">
+            <div className="relative w-36 h-36 sm:w-44 sm:h-44 mb-4">
               <img
                 src="/gkoo-logo.svg"
                 alt="Gkoo Mascot"
@@ -67,14 +79,19 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
             </p>
           </div>
 
-          {/* Bottom Loading Indicator */}
-          <div className="flex flex-col items-center space-y-3 z-10 w-full max-w-xs">
-            <div className="w-32 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
+          {/* Absolute Bottom Indicator - Positioned absolutely so it NEVER pushes or shakes the mascot */}
+          <div 
+            className="absolute left-0 right-0 flex justify-center pointer-events-none"
+            style={{
+              bottom: 'max(env(safe-area-inset-bottom, 0px), 36px)',
+            }}
+          >
+            <div className="w-28 h-1.5 bg-[#1F2937] rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
                 transition={{
-                  duration: Math.max(0.1, (minDuration - 50) / 1000),
+                  duration: Math.max(0.1, (minDuration - 40) / 1000),
                   ease: 'easeInOut',
                 }}
                 className="h-full bg-gradient-to-r from-[#FF5F6D] to-[#FF7B7B] rounded-full"
