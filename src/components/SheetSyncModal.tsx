@@ -84,11 +84,20 @@ export function SheetSyncModal({ isOpen, onClose, lang = 'hi' }: SheetSyncModalP
 
     if (result.success) {
       triggerHaptic('success');
+      let msg = '';
+      if (result.updatedRows > 0 || result.addedRows > 0) {
+        msg = lang === 'hi'
+          ? `शानदार! ${result.updatedRows} प्रश्न सही स्थान पर अपडेट हुए, ${result.addedRows} नए प्रश्न जोड़े गए!`
+          : `Success! ${result.updatedRows} questions updated in-place, ${result.addedRows} new questions added!`;
+      } else {
+        msg = lang === 'hi'
+          ? `सभी ${result.syncedCategories} विषय पहले से पूरी तरह अप-टू-डेट हैं (कोई बदलाव नहीं था)!`
+          : `All ${result.syncedCategories} subjects are already 100% up-to-date!`;
+      }
+
       setStatusMessage({ 
         type: 'success', 
-        text: lang === 'hi' 
-          ? `शानदार! सभी ${result.syncedCategories} विषयों के ${result.totalQuestions} प्रश्न सफलतापूर्वक सिंक हो गए!`
-          : `Success! Synced ${result.totalQuestions} questions across ${result.syncedCategories} subjects!`
+        text: msg
       });
       setSyncedList(getAllSyncedQuestions());
       setSyncStats(getSheetSyncStats());

@@ -19,20 +19,22 @@ import {
   PINNED_SUBJECTS_EVENT 
 } from '../utils/pinnedSubjects';
 
-// Explicit Universal World Subject IDs (No Indian Exam or localized Polity/Vyakaran)
+// Explicit Universal World Subject IDs (Global Core & World Realms)
 const WORLD_SUBJECT_IDS = new Set([
+  'sub_english',
+  'sub_hindi',
   'sub_math',
   'sub_physics',
   'sub_chemistry',
   'sub_biology',
-  'sub_english',
   'sub_history',
   'sub_geography',
   'sub_gk',
   'sub_space',
   'sub_facts',
   'sub_psychology',
-  'sub_philosophy'
+  'sub_philosophy',
+  'sub_international'
 ]);
 
 // Explicit Indian Competitive Exam & GS Subject IDs
@@ -41,7 +43,6 @@ const INDIA_GS_SUBJECT_IDS = new Set([
   'sub_history',
   'sub_geography',
   'sub_economics',
-  'sub_hindi',
   'sub_reasoning',
   'sub_computer',
   'sub_art_culture',

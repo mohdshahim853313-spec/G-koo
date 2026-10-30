@@ -34,8 +34,8 @@ import {
 import { type StateData } from '../data/stateExamsData';
 
 // World Mode subject groupings
-const WORLD_ACADEMIC_IDS = ['sub_english', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry'];
-const WORLD_GENERAL_IDS = ['sub_geography', 'sub_history', 'sub_political_science', 'sub_gk'];
+const WORLD_ACADEMIC_IDS = ['sub_english', 'sub_hindi', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry'];
+const WORLD_GENERAL_IDS = ['sub_geography', 'sub_history', 'sub_political_science', 'sub_gk', 'sub_international'];
 const WORLD_CURIOSITY_IDS = ['sub_psychology', 'sub_facts', 'sub_space', 'sub_philosophy'];
 
 interface DashboardProps {
@@ -802,7 +802,7 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
             ) : (
               /* WORLD MODE - 3 RICH CATEGORY REALMS */
               <div className="space-y-6 pt-1">
-                {/* SECTION 1: CORE ACADEMIC & SCIENCE SUBJECTS (ENGLISH, MATH, PHYSICS, BIOLOGY, CHEMISTRY) */}
+                {/* SECTION 1: CORE ACADEMIC & SCIENCE SUBJECTS (ENGLISH, HINDI, MATH, PHYSICS, BIOLOGY, CHEMISTRY) */}
                 <div className="bg-sky-100/90 dark:bg-sky-950/50 p-3.5 sm:p-4.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-3">
                   <div className="flex items-center justify-between gap-2 px-1">
                     <div className="flex items-center space-x-1.5 text-blue-600 dark:text-blue-400 min-w-0 flex-1">
@@ -812,11 +812,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                       </h3>
                     </div>
                     <span className="text-[10px] font-black bg-blue-100 dark:bg-blue-950/60 text-blue-800 dark:text-blue-300 px-2.5 py-0.5 rounded-full border border-blue-200 dark:border-blue-900 shrink-0 whitespace-nowrap">
-                      5 Core Subjects
+                      6 Core Subjects
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 md:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5 md:gap-4">
                     {worldAcademicSubjects.map((item) => {
                       const maxUnlocked = getCategoryMaxUnlocked(item.id);
                       return (
@@ -858,7 +858,7 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                   </div>
                 </div>
 
-                {/* SECTION 2: WORLD & GENERAL GK (4 PINNED CATEGORIES WITH DISTINCT BACKGROUNDS) */}
+                {/* SECTION 2: WORLD & GENERAL GK (5 PINNED CATEGORIES WITH DISTINCT BACKGROUNDS) */}
                 <div className="bg-emerald-100/80 dark:bg-emerald-950/50 p-3.5 sm:p-4.5 rounded-3xl border-2 border-emerald-300/80 dark:border-emerald-800/60 shadow-sm space-y-3">
                   <div className="flex items-center justify-between gap-2 px-1">
                     <div className="flex items-center space-x-1.5 text-teal-600 dark:text-teal-400 min-w-0 flex-1">
@@ -868,11 +868,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                       </h3>
                     </div>
                     <span className="text-[10px] font-black bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 px-2.5 py-0.5 rounded-full border border-teal-200 dark:border-teal-900 shrink-0 whitespace-nowrap">
-                      4 Global Realms
+                      5 Global Realms
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3.5 md:gap-5">
+                  <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5 md:gap-5">
                     {worldGeneralSubjects.map((item) => {
                       const maxUnlocked = getCategoryMaxUnlocked(item.id);
                       return (

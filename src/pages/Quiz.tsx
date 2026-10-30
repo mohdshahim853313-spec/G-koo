@@ -63,6 +63,18 @@ const shuffleQuestionsAndOptions = (rawList: QuizQuestion[]): QuizQuestion[] => 
   });
 };
 
+// Auto-purge stale / unbalanced question cache if older than v2
+try {
+  if (typeof window !== 'undefined' && localStorage.getItem('gkoo_q_cache_v') !== 'v2_shuffled') {
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('gkoo_level_q_') || k.startsWith('gkoo_active_quiz_session')) {
+        localStorage.removeItem(k);
+      }
+    });
+    localStorage.setItem('gkoo_q_cache_v', 'v2_shuffled');
+  }
+} catch { }
+
 // Synchronously loads questions from cached level storage or in-memory synced categories
 function getSynchronousQuizQuestions(
   categoryId: string | undefined,
@@ -112,7 +124,7 @@ function getSynchronousQuizQuestions(
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            return filterQuestionsByLanguage(parsed, lang);
+            return shuffleQuestionsAndOptions(filterQuestionsByLanguage(parsed, lang));
           }
         }
       } catch { }
@@ -125,19 +137,22 @@ function getSynchronousQuizQuestions(
     if (isLevel && levelNum) {
       const startIdx = ((levelNum - 1) * 10) % synced.length;
       const slice = synced.slice(startIdx, startIdx + 10);
-      return slice.length > 0 ? slice : synced.slice(0, 10);
+      return shuffleQuestionsAndOptions(slice.length > 0 ? slice : synced.slice(0, 10));
     }
-    return synced.slice(0, 10);
+    return shuffleQuestionsAndOptions(synced.slice(0, 10));
   }
 
-  const fallback = getSyncedQuestionsByCategory('ssc_cgl', lang);
-  if (fallback && fallback.length > 0) {
-    if (isLevel && levelNum) {
-      const startIdx = ((levelNum - 1) * 10) % fallback.length;
-      const slice = fallback.slice(startIdx, startIdx + 10);
-      return slice.length > 0 ? slice : fallback.slice(0, 10);
+  const isGenericCat = activeCat === 'ssc_cgl' || activeCat === 'ssc' || activeCat === 'india' || activeCat === 'mix' || activeCat === 'daily';
+  if (isGenericCat) {
+    const fallback = getSyncedQuestionsByCategory('ssc_cgl', lang);
+    if (fallback && fallback.length > 0) {
+      if (isLevel && levelNum) {
+        const startIdx = ((levelNum - 1) * 10) % fallback.length;
+        const slice = fallback.slice(startIdx, startIdx + 10);
+        return shuffleQuestionsAndOptions(slice.length > 0 ? slice : fallback.slice(0, 10));
+      }
+      return shuffleQuestionsAndOptions(fallback.slice(0, 10));
     }
-    return fallback.slice(0, 10);
   }
 
   return [];
@@ -405,30 +420,36 @@ export default function Quiz() {
       }
       generated = pastMistakes.slice(0, 15);
     } else {
-      // 1. First check if questions were already generated & cached for this level in localStorage
-      if (levelQuestionsKey) {
+      const activeCat = isLevelQuiz ? levelCategory : (categoryId || 'mix');
+
+      // 1. If online, always ensure live category questions are pulled fresh so Google Sheet edits reflect immediately!
+      let syncedForCat = getSyncedQuestionsByCategory(activeCat, lang);
+      const isOnline = typeof navigator === 'undefined' || navigator.onLine;
+
+      if (isOnline || syncedForCat.length === 0) {
+        syncedForCat = await syncCategoryQuestions(activeCat, lang);
+      }
+
+      // 2. Check if questions were already cached for this level (only if offline or unchanged)
+      if (isCurrentlyOffline && levelQuestionsKey) {
         try {
           const saved = localStorage.getItem(levelQuestionsKey);
           if (saved) {
             const parsed = JSON.parse(saved);
             if (Array.isArray(parsed) && parsed.length > 0) {
-              // Check if cached questions are duplicates of other levels (from prior bug)
               if (isLevelQuiz && levelNumber && isLevelCacheCorruptedWithDuplicates(levelCategory, levelNumber, parsed)) {
-                console.warn(`[Quiz] Level ${levelNumber} cache has duplicate questions from prior levels, regenerating clean unique questions...`);
                 generated = [];
               } else if (isPassedLevel) {
                 generated = [];
               } else {
-                generated = filterQuestionsByLanguage(parsed, lang);
+                generated = shuffleQuestionsAndOptions(filterQuestionsByLanguage(parsed, lang));
                 if (isLevelQuiz && levelNumber) {
                   saveCategoryAssignedQuestions(levelCategory, levelNumber, parsed);
                 }
               }
             }
           }
-        } catch (e) {
-          // Fallback to generation
-        }
+        } catch (e) { }
       }
 
       if (generated.length === 0) {
@@ -443,8 +464,9 @@ export default function Quiz() {
           syncedForCat = await syncCategoryQuestions(activeCat, lang);
         }
 
-        // 3. Fallback to SSC CGL / India question bank if still empty
-        if (syncedForCat.length === 0) {
+        // 3. Fallback to SSC CGL / India question bank ONLY for generic categories
+        const isGenericActive = activeCat === 'ssc_cgl' || activeCat === 'ssc' || activeCat === 'india' || activeCat === 'mix' || activeCat === 'daily';
+        if (syncedForCat.length === 0 && isGenericActive) {
           syncedForCat = getSyncedQuestionsByCategory('ssc_cgl', lang);
           if (syncedForCat.length === 0) {
             syncedForCat = await syncCategoryQuestions('ssc_cgl', lang);
@@ -455,10 +477,12 @@ export default function Quiz() {
           if (isLevelQuiz && levelNumber) {
             const startIdx = ((levelNumber - 1) * 10) % syncedForCat.length;
             const slice = syncedForCat.slice(startIdx, startIdx + 10);
-            generated = slice.length > 0 ? slice : syncedForCat.slice(0, 10);
+            const rawSlice = slice.length > 0 ? slice : syncedForCat.slice(0, 10);
+            generated = shuffleQuestionsAndOptions(rawSlice);
           } else {
             const count = effectiveCount || 10;
-            generated = [...syncedForCat].sort(() => Math.random() - 0.5).slice(0, count);
+            const picked = [...syncedForCat].sort(() => Math.random() - 0.5).slice(0, count);
+            generated = shuffleQuestionsAndOptions(picked);
           }
 
           if (levelQuestionsKey && generated.length > 0) {
@@ -628,9 +652,9 @@ export default function Quiz() {
     } catch { }
     const cat = (levelCategory || categoryId || '').toLowerCase();
     const WORLD_CATS = [
-      'world', 'sub_english', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry',
+      'world', 'sub_english', 'sub_hindi', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry',
       'sub_geography', 'sub_history', 'sub_political_science', 'sub_gk',
-      'sub_psychology', 'sub_facts', 'sub_space', 'sub_philosophy'
+      'sub_psychology', 'sub_facts', 'sub_space', 'sub_philosophy', 'sub_international'
     ];
     return WORLD_CATS.some(wc => cat.includes(wc));
   })();

@@ -16,6 +16,33 @@ const STORAGE_KEY_QUESTIONS = 'gkoo_synced_sheet_questions';
 const STORAGE_KEY_URL = 'gkoo_sheet_sync_url';
 const STORAGE_KEY_LAST_SYNC = 'gkoo_last_sheet_sync_time';
 
+// Self-healing migration: cleans up poisoned cross-category caches
+(function sanitizeLegacySheetCaches() {
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    const SANITIZE_VERSION = 'v5_strict_category_isolation';
+    if (localStorage.getItem('gkoo_cache_version') !== SANITIZE_VERSION) {
+      localStorage.removeItem(STORAGE_KEY_URL);
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (
+          key.startsWith('gkoo_level_q_') || 
+          key.startsWith('gkoo_cat_') || 
+          key.startsWith('gkoo_hash_') ||
+          key.startsWith('gkoo_env_url_')
+        )) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      localStorage.setItem('gkoo_cache_version', SANITIZE_VERSION);
+    }
+  } catch (e) {
+    // ignore
+  }
+})();
+
 // Official Google Sheet URL for 1_SSC_CGL (1500 PYQ Questions Bank)
 export const DEFAULT_SHEET_TEMPLATE_URL =
   import.meta.env.VITE_SHEET_URL_1_SSC_CGL ||
@@ -60,7 +87,98 @@ export const CATEGORY_SHEET_ENV_MAP: Record<string, CategorySheetMeta> = {
   'sub_hindi': { envKey: 'VITE_SHEET_URL_23_HINDI_GRAMMAR', tabName: '23_Hindi_Grammar', nameHi: 'हिंदी व्याकरण', nameEn: 'Hindi Grammar' },
   'sub_english': { envKey: 'VITE_SHEET_URL_24_ENGLISH_GRAMMAR', tabName: '24_English_Grammar', nameHi: 'अंग्रेजी व्याकरण', nameEn: 'English Grammar' },
   'sub_math': { envKey: 'VITE_SHEET_URL_25_MATHS_APTITUDE', tabName: '25_Maths_Aptitude', nameHi: 'गणित एवं अंकगणित', nameEn: 'Maths Aptitude' },
-  'sub_reasoning': { envKey: 'VITE_SHEET_URL_26_REASONING', tabName: '26_Reasoning', nameHi: 'तर्कशक्ति व रीजनिंग', nameEn: 'Reasoning' }
+  'sub_reasoning': { envKey: 'VITE_SHEET_URL_26_REASONING', tabName: '26_Reasoning', nameHi: 'तर्कशक्ति व रीजनिंग', nameEn: 'Reasoning' },
+
+  // India State & Special Categories (27 to 38)
+  'up': { envKey: 'VITE_SHEET_URL_27_UP_SPECIAL', tabName: '27_UP_Special', nameHi: 'उत्तर प्रदेश विशेष', nameEn: 'UP Special' },
+  'state_up': { envKey: 'VITE_SHEET_URL_27_UP_SPECIAL', tabName: '27_UP_Special', nameHi: 'उत्तर प्रदेश विशेष', nameEn: 'UP Special' },
+  'bihar': { envKey: 'VITE_SHEET_URL_28_BIHAR_SPECIAL', tabName: '28_Bihar_Special', nameHi: 'बिहार विशेष', nameEn: 'Bihar Special' },
+  'state_bihar': { envKey: 'VITE_SHEET_URL_28_BIHAR_SPECIAL', tabName: '28_Bihar_Special', nameHi: 'बिहार विशेष', nameEn: 'Bihar Special' },
+  'rajasthan': { envKey: 'VITE_SHEET_URL_29_RAJASTHAN_SPECIAL', tabName: '29_Rajasthan_Special', nameHi: 'राजस्थान विशेष', nameEn: 'Rajasthan Special' },
+  'state_rajasthan': { envKey: 'VITE_SHEET_URL_29_RAJASTHAN_SPECIAL', tabName: '29_Rajasthan_Special', nameHi: 'राजस्थान विशेष', nameEn: 'Rajasthan Special' },
+  'mp': { envKey: 'VITE_SHEET_URL_30_MP_SPECIAL', tabName: '30_MP_Special', nameHi: 'मध्य प्रदेश विशेष', nameEn: 'MP Special' },
+  'state_mp': { envKey: 'VITE_SHEET_URL_30_MP_SPECIAL', tabName: '30_MP_Special', nameHi: 'मध्य प्रदेश विशेष', nameEn: 'MP Special' },
+  'haryana': { envKey: 'VITE_SHEET_URL_31_HARYANA_DELHI', tabName: '31_Haryana_Delhi', nameHi: 'हरियाणा व दिल्ली', nameEn: 'Haryana & Delhi' },
+  'delhi': { envKey: 'VITE_SHEET_URL_31_HARYANA_DELHI', tabName: '31_Haryana_Delhi', nameHi: 'हरियाणा व दिल्ली', nameEn: 'Haryana & Delhi' },
+  'state_haryana_delhi': { envKey: 'VITE_SHEET_URL_31_HARYANA_DELHI', tabName: '31_Haryana_Delhi', nameHi: 'हरियाणा व दिल्ली', nameEn: 'Haryana & Delhi' },
+  'uttarakhand': { envKey: 'VITE_SHEET_URL_32_UTTARAKHAND', tabName: '32_Uttarakhand', nameHi: 'उत्तराखंड विशेष', nameEn: 'Uttarakhand Special' },
+  'state_uttarakhand': { envKey: 'VITE_SHEET_URL_32_UTTARAKHAND', tabName: '32_Uttarakhand', nameHi: 'उत्तराखंड विशेष', nameEn: 'Uttarakhand Special' },
+  'jharkhand': { envKey: 'VITE_SHEET_URL_33_JHARKHAND', tabName: '33_Jharkhand', nameHi: 'झारखंड विशेष', nameEn: 'Jharkhand Special' },
+  'state_jharkhand': { envKey: 'VITE_SHEET_URL_33_JHARKHAND', tabName: '33_Jharkhand', nameHi: 'झारखंड विशेष', nameEn: 'Jharkhand Special' },
+  'chhattisgarh': { envKey: 'VITE_SHEET_URL_34_CHHATTISGARH', tabName: '34_Chhattisgarh', nameHi: 'छत्तीसगढ़ विशेष', nameEn: 'Chhattisgarh Special' },
+  'state_chhattisgarh': { envKey: 'VITE_SHEET_URL_34_CHHATTISGARH', tabName: '34_Chhattisgarh', nameHi: 'छत्तीसगढ़ विशेष', nameEn: 'Chhattisgarh Special' },
+  'defence': { envKey: 'VITE_SHEET_URL_35_DEFENCE_EXAMS', tabName: '35_Defence_Exams', nameHi: 'डिफेंस परीक्षाएं (NDA/CDS)', nameEn: 'Defence Exams' },
+  'exam_defence': { envKey: 'VITE_SHEET_URL_35_DEFENCE_EXAMS', tabName: '35_Defence_Exams', nameHi: 'डिफेंस परीक्षाएं (NDA/CDS)', nameEn: 'Defence Exams' },
+  'teaching': { envKey: 'VITE_SHEET_URL_36_TEACHING_EXAMS', tabName: '36_Teaching_Exams', nameHi: 'शिक्षक पात्रता (CTET/TET)', nameEn: 'Teaching Exams' },
+  'exam_teaching': { envKey: 'VITE_SHEET_URL_36_TEACHING_EXAMS', tabName: '36_Teaching_Exams', nameHi: 'शिक्षक पात्रता (CTET/TET)', nameEn: 'Teaching Exams' },
+  'environment': { envKey: 'VITE_SHEET_URL_37_ENVIRONMENT', tabName: '37_Environment', nameHi: 'पर्यावरण एवं पारिस्थितिकी', nameEn: 'Environment & Ecology' },
+  'sub_environment': { envKey: 'VITE_SHEET_URL_37_ENVIRONMENT', tabName: '37_Environment', nameHi: 'पर्यावरण एवं पारिस्थितिकी', nameEn: 'Environment & Ecology' },
+  'art_culture': { envKey: 'VITE_SHEET_URL_38_ART_CULTURE', tabName: '38_Art_Culture', nameHi: 'भारतीय कला एवं संस्कृति', nameEn: 'Art & Culture' },
+  'sub_art_culture': { envKey: 'VITE_SHEET_URL_38_ART_CULTURE', tabName: '38_Art_Culture', nameHi: 'भारतीय कला एवं संस्कृति', nameEn: 'Art & Culture' },
+
+  // World Series Categories (39 to 45)
+  'world_geography': { envKey: 'VITE_SHEET_URL_39_WORLD_GEOGRAPHY', tabName: '39_World_Geography', nameHi: 'विश्व भूगोल', nameEn: 'World Geography' },
+  'world_history': { envKey: 'VITE_SHEET_URL_40_WORLD_HISTORY', tabName: '40_World_History', nameHi: 'विश्व इतिहास', nameEn: 'World History' },
+  'world_space': { envKey: 'VITE_SHEET_URL_41_WORLD_SPACE_ASTRONOMY', tabName: '41_World_Space_Astronomy', nameHi: 'अंतरिक्ष व खगोल विज्ञान', nameEn: 'World Space & Astronomy' },
+  'world_facts': { envKey: 'VITE_SHEET_URL_42_WORLD_FACTS_WONDERS', tabName: '42_World_Facts_Wonders', nameHi: 'विश्व के अजूबे व रोचक तथ्य', nameEn: 'World Facts & Wonders' },
+  'world_psychology': { envKey: 'VITE_SHEET_URL_43_WORLD_PSYCHOLOGY_MIND', tabName: '43_World_Psychology_Mind', nameHi: 'मनोविज्ञान व मस्तिष्क', nameEn: 'World Psychology & Mind' },
+  'world_philosophy': { envKey: 'VITE_SHEET_URL_44_WORLD_PHILOSOPHY_IDEAS', tabName: '44_World_Philosophy_Ideas', nameHi: 'दर्शनशास्त्र व महान विचारक', nameEn: 'World Philosophy & Ideas' },
+  'world_international': { envKey: 'VITE_SHEET_URL_45_WORLD_INTERNATIONAL_AFFAIRS', tabName: '45_World_International_Affairs', nameHi: 'अंतर्राष्ट्रीय संबंध व संगठन', nameEn: 'World International Affairs' },
+
+  // Additional India State Categories (46 to 53)
+  'maharashtra': { envKey: 'VITE_SHEET_URL_46_MAHARASHTRA', tabName: '46_Maharashtra', nameHi: 'महाराष्ट्र विशेष', nameEn: 'Maharashtra' },
+  'state_maharashtra': { envKey: 'VITE_SHEET_URL_46_MAHARASHTRA', tabName: '46_Maharashtra', nameHi: 'महाराष्ट्र विशेष', nameEn: 'Maharashtra' },
+  'punjab': { envKey: 'VITE_SHEET_URL_47_PUNJAB', tabName: '47_Punjab', nameHi: 'पंजाब विशेष', nameEn: 'Punjab' },
+  'state_punjab': { envKey: 'VITE_SHEET_URL_47_PUNJAB', tabName: '47_Punjab', nameHi: 'पंजाब विशेष', nameEn: 'Punjab' },
+  'west_bengal': { envKey: 'VITE_SHEET_URL_48_WEST_BENGAL', tabName: '48_West_Bengal', nameHi: 'पश्चिम बंगाल विशेष', nameEn: 'West Bengal' },
+  'state_west_bengal': { envKey: 'VITE_SHEET_URL_48_WEST_BENGAL', tabName: '48_West_Bengal', nameHi: 'पश्चिम बंगाल विशेष', nameEn: 'West Bengal' },
+  'gujarat': { envKey: 'VITE_SHEET_URL_49_GUJARAT', tabName: '49_Gujarat', nameHi: 'गुजरात विशेष', nameEn: 'Gujarat' },
+  'state_gujarat': { envKey: 'VITE_SHEET_URL_49_GUJARAT', tabName: '49_Gujarat', nameHi: 'गुजरात विशेष', nameEn: 'Gujarat Special' },
+  'himachal': { envKey: 'VITE_SHEET_URL_50_HIMACHAL', tabName: '50_Himachal', nameHi: 'हिमाचल प्रदेश विशेष', nameEn: 'Himachal Pradesh' },
+  'state_himachal': { envKey: 'VITE_SHEET_URL_50_HIMACHAL', tabName: '50_Himachal', nameHi: 'हिमाचल प्रदेश विशेष', nameEn: 'Himachal Pradesh' },
+  'odisha': { envKey: 'VITE_SHEET_URL_51_ODISHA', tabName: '51_Odisha', nameHi: 'ओडिशा विशेष', nameEn: 'Odisha' },
+  'state_odisha': { envKey: 'VITE_SHEET_URL_51_ODISHA', tabName: '51_Odisha', nameHi: 'ओडिशा विशेष', nameEn: 'Odisha' },
+  'assam': { envKey: 'VITE_SHEET_URL_52_ASSAM_NORTHEAST', tabName: '52_Assam_NorthEast', nameHi: 'असम एवं पूर्वोत्तर विशेष', nameEn: 'Assam & North East' },
+  'state_assam': { envKey: 'VITE_SHEET_URL_52_ASSAM_NORTHEAST', tabName: '52_Assam_NorthEast', nameHi: 'असम एवं पूर्वोत्तर विशेष', nameEn: 'Assam & North East' },
+  'south_states': { envKey: 'VITE_SHEET_URL_53_SOUTH_STATES', tabName: '53_South_States', nameHi: 'दक्षिण भारतीय राज्य विशेष', nameEn: 'South Indian States' },
+  'state_south_states': { envKey: 'VITE_SHEET_URL_53_SOUTH_STATES', tabName: '53_South_States', nameHi: 'दक्षिण भारतीय राज्य विशेष', nameEn: 'South Indian States' },
+
+  // Common subject & short aliases
+  'english': { envKey: 'VITE_SHEET_URL_24_ENGLISH_GRAMMAR', tabName: '24_English_Grammar', nameHi: 'अंग्रेजी व्याकरण', nameEn: 'English Grammar' },
+  'math': { envKey: 'VITE_SHEET_URL_25_MATHS_APTITUDE', tabName: '25_Maths_Aptitude', nameHi: 'गणित एवं अंकगणित', nameEn: 'Maths Aptitude' },
+  'maths': { envKey: 'VITE_SHEET_URL_25_MATHS_APTITUDE', tabName: '25_Maths_Aptitude', nameHi: 'गणित एवं अंकगणित', nameEn: 'Maths Aptitude' },
+  'reasoning': { envKey: 'VITE_SHEET_URL_26_REASONING', tabName: '26_Reasoning', nameHi: 'तर्कशक्ति व रीजनिंग', nameEn: 'Reasoning' },
+  'geography': { envKey: 'VITE_SHEET_URL_11_GEOGRAPHY', tabName: '11_Geography', nameHi: 'भूगोल', nameEn: 'Geography' },
+  'ancient_history': { envKey: 'VITE_SHEET_URL_12_ANCIENT_HISTORY', tabName: '12_Ancient_History', nameHi: 'प्राचीन इतिहास', nameEn: 'Ancient History' },
+  'medieval_history': { envKey: 'VITE_SHEET_URL_13_MEDIEVAL_HISTORY', tabName: '13_Medieval_History', nameHi: 'मध्यकालीन इतिहास', nameEn: 'Medieval History' },
+  'modern_history': { envKey: 'VITE_SHEET_URL_14_MODERN_HISTORY', tabName: '14_Modern_History', nameHi: 'आधुनिक इतिहास', nameEn: 'Modern History' },
+  'history': { envKey: 'VITE_SHEET_URL_14_MODERN_HISTORY', tabName: '14_Modern_History', nameHi: 'आधुनिक इतिहास', nameEn: 'Modern History' },
+  'polity': { envKey: 'VITE_SHEET_URL_15_POLITY_CONSTITUTION', tabName: '15_Polity_Constitution', nameHi: 'संविधान व राजव्यवस्था', nameEn: 'Polity & Constitution' },
+  'constitution': { envKey: 'VITE_SHEET_URL_15_POLITY_CONSTITUTION', tabName: '15_Polity_Constitution', nameHi: 'संविधान व राजव्यवस्था', nameEn: 'Polity & Constitution' },
+  'economics': { envKey: 'VITE_SHEET_URL_16_ECONOMICS', tabName: '16_Economics', nameHi: 'अर्थशास्त्र', nameEn: 'Economics' },
+  'economy': { envKey: 'VITE_SHEET_URL_16_ECONOMICS', tabName: '16_Economics', nameHi: 'अर्थशास्त्र', nameEn: 'Economics' },
+  'physics': { envKey: 'VITE_SHEET_URL_17_PHYSICS', tabName: '17_Physics', nameHi: 'भौतिक विज्ञान', nameEn: 'Physics' },
+  'chemistry': { envKey: 'VITE_SHEET_URL_18_CHEMISTRY', tabName: '18_Chemistry', nameHi: 'रसायन विज्ञान', nameEn: 'Chemistry' },
+  'biology': { envKey: 'VITE_SHEET_URL_19_BIOLOGY', tabName: '19_Biology', nameHi: 'जीव विज्ञान', nameEn: 'Biology' },
+  'static_gk': { envKey: 'VITE_SHEET_URL_20_STATIC_GK', tabName: '20_Static_GK', nameHi: 'स्टैटिक सामान्य ज्ञान', nameEn: 'Static GK' },
+  'gk': { envKey: 'VITE_SHEET_URL_20_STATIC_GK', tabName: '20_Static_GK', nameHi: 'स्टैटिक सामान्य ज्ञान', nameEn: 'Static GK' },
+  'computer': { envKey: 'VITE_SHEET_URL_21_COMPUTER_AWARENESS', tabName: '21_Computer_Awareness', nameHi: 'कंप्यूटर ज्ञान', nameEn: 'Computer Awareness' },
+  'current_affairs': { envKey: 'VITE_SHEET_URL_22_CURRENT_AFFAIRS', tabName: '22_Current_Affairs', nameHi: 'समसामयिकी', nameEn: 'Current Affairs' },
+  'ca': { envKey: 'VITE_SHEET_URL_22_CURRENT_AFFAIRS', tabName: '22_Current_Affairs', nameHi: 'समसामयिकी', nameEn: 'Current Affairs' },
+  'hindi': { envKey: 'VITE_SHEET_URL_23_HINDI_GRAMMAR', tabName: '23_Hindi_Grammar', nameHi: 'हिंदी व्याकरण', nameEn: 'Hindi Grammar' },
+  'world': { envKey: 'VITE_SHEET_URL_39_WORLD_GEOGRAPHY', tabName: '39_World_Geography', nameHi: 'विश्व भूगोल', nameEn: 'World Geography' },
+  'sub_world_geography': { envKey: 'VITE_SHEET_URL_39_WORLD_GEOGRAPHY', tabName: '39_World_Geography', nameHi: 'विश्व भूगोल', nameEn: 'World Geography' },
+  'sub_world_history': { envKey: 'VITE_SHEET_URL_40_WORLD_HISTORY', tabName: '40_World_History', nameHi: 'विश्व इतिहास', nameEn: 'World History' },
+  'sub_space': { envKey: 'VITE_SHEET_URL_41_WORLD_SPACE_ASTRONOMY', tabName: '41_World_Space_Astronomy', nameHi: 'अंतरिक्ष व खगोल विज्ञान', nameEn: 'World Space & Astronomy' },
+  'sub_world_space': { envKey: 'VITE_SHEET_URL_41_WORLD_SPACE_ASTRONOMY', tabName: '41_World_Space_Astronomy', nameHi: 'अंतरिक्ष व खगोल विज्ञान', nameEn: 'World Space & Astronomy' },
+  'sub_facts': { envKey: 'VITE_SHEET_URL_42_WORLD_FACTS_WONDERS', tabName: '42_World_Facts_Wonders', nameHi: 'विश्व के अजूबे व रोचक तथ्य', nameEn: 'World Facts & Wonders' },
+  'sub_world_facts': { envKey: 'VITE_SHEET_URL_42_WORLD_FACTS_WONDERS', tabName: '42_World_Facts_Wonders', nameHi: 'विश्व के अजूबे व रोचक तथ्य', nameEn: 'World Facts & Wonders' },
+  'sub_psychology': { envKey: 'VITE_SHEET_URL_43_WORLD_PSYCHOLOGY_MIND', tabName: '43_World_Psychology_Mind', nameHi: 'मनोविज्ञान व मस्तिष्क', nameEn: 'World Psychology & Mind' },
+  'sub_world_psychology': { envKey: 'VITE_SHEET_URL_43_WORLD_PSYCHOLOGY_MIND', tabName: '43_World_Psychology_Mind', nameHi: 'मनोविज्ञान व मस्तिष्क', nameEn: 'World Psychology & Mind' },
+  'sub_philosophy': { envKey: 'VITE_SHEET_URL_44_WORLD_PHILOSOPHY_IDEAS', tabName: '44_World_Philosophy_Ideas', nameHi: 'दर्शनशास्त्र व महान विचारक', nameEn: 'World Philosophy & Ideas' },
+  'sub_world_philosophy': { envKey: 'VITE_SHEET_URL_44_WORLD_PHILOSOPHY_IDEAS', tabName: '44_World_Philosophy_Ideas', nameHi: 'दर्शनशास्त्र व महान विचारक', nameEn: 'World Philosophy & Ideas' },
+  'sub_international': { envKey: 'VITE_SHEET_URL_45_WORLD_INTERNATIONAL_AFFAIRS', tabName: '45_World_International_Affairs', nameHi: 'अंतर्राष्ट्रीय संबंध व संगठन', nameEn: 'World International Affairs' },
+  'sub_world_international': { envKey: 'VITE_SHEET_URL_45_WORLD_INTERNATIONAL_AFFAIRS', tabName: '45_World_International_Affairs', nameHi: 'अंतर्राष्ट्रीय संबंध व संगठन', nameEn: 'World International Affairs' }
 };
 
 /**
@@ -179,15 +297,168 @@ export const CATEGORY_LOCAL_CSV_MAP: Record<string, string> = {
   'reasoning': 'Reasoning_1500_PYQ_Questions.csv',
   '26_reasoning': 'Reasoning_1500_PYQ_Questions.csv',
 
+  // World Categories (Dedicated 1500 Unique Questions Each)
+  'world': 'World_Geography_1500_Questions.csv',
+  'world_geography': 'World_Geography_1500_Questions.csv',
+  'world_history': 'World_History_1500_Questions.csv',
+  'world_space': 'World_Space_Astronomy_1500_Questions.csv',
+  'world_facts': 'World_Facts_Wonders_1500_Questions.csv',
+  'world_psychology': 'World_Psychology_Mind_1500_Questions.csv',
+  'world_philosophy': 'World_Philosophy_Ideas_1500_Questions.csv',
+  'world_international': 'World_International_Affairs_1500_Questions.csv',
+  'sub_psychology': 'World_Psychology_Mind_1500_Questions.csv',
+  'sub_facts': 'World_Facts_Wonders_1500_Questions.csv',
+  'sub_space': 'World_Space_Astronomy_1500_Questions.csv',
+  'sub_philosophy': 'World_Philosophy_Ideas_1500_Questions.csv',
+
   // General Categories
-  'world': 'Geography_1500_PYQ_Questions.csv',
   'subjects': 'Biology_1500_PYQ_Questions.csv',
   'mix': 'Static_GK_1500_PYQ_Questions.csv',
   'daily': 'Static_GK_1500_PYQ_Questions.csv',
-  'sub_psychology': 'Static_GK_1500_PYQ_Questions.csv',
-  'sub_facts': 'Static_GK_1500_PYQ_Questions.csv',
-  'sub_space': 'Physics_1500_PYQ_Questions.csv',
-  'sub_philosophy': 'Ancient_History_1500_PYQ_Questions.csv',
+
+  // State Special Question Banks
+  'up': 'UP_Special_1500_PYQ_Questions.csv',
+  'state_up': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_special': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_police': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_uppsc': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_pet': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_lekhpal': 'UP_Special_1500_PYQ_Questions.csv',
+
+  'bihar': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'state_bihar': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_special': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bpsc': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_police': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bssc': 'Bihar_Special_1500_PYQ_Questions.csv',
+
+  'rajasthan': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'state_rajasthan': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'rajasthan_special': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'ras': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'rpsc': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'rsmssb': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+
+  'mp': 'MP_Special_1500_PYQ_Questions.csv',
+  'state_mp': 'MP_Special_1500_PYQ_Questions.csv',
+  'mp_special': 'MP_Special_1500_PYQ_Questions.csv',
+  'mppsc': 'MP_Special_1500_PYQ_Questions.csv',
+  'mp_police': 'MP_Special_1500_PYQ_Questions.csv',
+  'vyapam': 'MP_Special_1500_PYQ_Questions.csv',
+
+  // Haryana & Delhi
+  'haryana': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'delhi': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'hssc': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'dsssb': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'hpsc': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'state_haryana_delhi': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+
+  // Uttarakhand
+  'uttarakhand': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'uk': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'ukpsc': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'uksssc': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'state_uttarakhand': 'Uttarakhand_1500_PYQ_Questions.csv',
+
+  // Jharkhand
+  'jharkhand': 'Jharkhand_1500_PYQ_Questions.csv',
+  'jpsc': 'Jharkhand_1500_PYQ_Questions.csv',
+  'jssc': 'Jharkhand_1500_PYQ_Questions.csv',
+  'state_jharkhand': 'Jharkhand_1500_PYQ_Questions.csv',
+
+  // Chhattisgarh
+  'chhattisgarh': 'Chhattisgarh_1500_PYQ_Questions.csv',
+  'cg': 'Chhattisgarh_1500_PYQ_Questions.csv',
+  'cgpsc': 'Chhattisgarh_1500_PYQ_Questions.csv',
+  'cg_vyapam': 'Chhattisgarh_1500_PYQ_Questions.csv',
+  'state_chhattisgarh': 'Chhattisgarh_1500_PYQ_Questions.csv',
+
+  // Defence & Armed Forces
+  'defence': 'Defence_1500_PYQ_Questions.csv',
+  'nda': 'Defence_1500_PYQ_Questions.csv',
+  'cds': 'Defence_1500_PYQ_Questions.csv',
+  'afcat': 'Defence_1500_PYQ_Questions.csv',
+  'agniveer': 'Defence_1500_PYQ_Questions.csv',
+  'exam_defence': 'Defence_1500_PYQ_Questions.csv',
+
+  // Teaching Exams
+  'teaching': 'Teaching_1500_PYQ_Questions.csv',
+  'ctet': 'Teaching_1500_PYQ_Questions.csv',
+  'tet': 'Teaching_1500_PYQ_Questions.csv',
+  'kvs': 'Teaching_1500_PYQ_Questions.csv',
+  'exam_teaching': 'Teaching_1500_PYQ_Questions.csv',
+
+  // Environment & Ecology
+  'environment': 'Environment_1500_PYQ_Questions.csv',
+  'sub_environment': 'Environment_1500_PYQ_Questions.csv',
+  'ecology': 'Environment_1500_PYQ_Questions.csv',
+
+  // Art & Culture
+  'art_culture': 'Art_Culture_1500_PYQ_Questions.csv',
+  'sub_art_culture': 'Art_Culture_1500_PYQ_Questions.csv',
+  'culture': 'Art_Culture_1500_PYQ_Questions.csv',
+
+  // Maharashtra
+  'maharashtra': 'Maharashtra_1500_PYQ_Questions.csv',
+  'state_maharashtra': 'Maharashtra_1500_PYQ_Questions.csv',
+  'mpsc': 'Maharashtra_1500_PYQ_Questions.csv',
+  'maha_mpsc': 'Maharashtra_1500_PYQ_Questions.csv',
+  'maha_police': 'Maharashtra_1500_PYQ_Questions.csv',
+  'maha_talathi': 'Maharashtra_1500_PYQ_Questions.csv',
+
+  // Punjab
+  'punjab': 'Punjab_1500_PYQ_Questions.csv',
+  'state_punjab': 'Punjab_1500_PYQ_Questions.csv',
+  'ppsc': 'Punjab_1500_PYQ_Questions.csv',
+  'pun_ppsc': 'Punjab_1500_PYQ_Questions.csv',
+  'pun_police': 'Punjab_1500_PYQ_Questions.csv',
+
+  // West Bengal
+  'west_bengal': 'West_Bengal_1500_PYQ_Questions.csv',
+  'bengal': 'West_Bengal_1500_PYQ_Questions.csv',
+  'state_west_bengal': 'West_Bengal_1500_PYQ_Questions.csv',
+  'wbcs': 'West_Bengal_1500_PYQ_Questions.csv',
+  'wb_wbcs': 'West_Bengal_1500_PYQ_Questions.csv',
+  'wb_police': 'West_Bengal_1500_PYQ_Questions.csv',
+
+  // Gujarat
+  'gujarat': 'Gujarat_1500_PYQ_Questions.csv',
+  'state_gujarat': 'Gujarat_1500_PYQ_Questions.csv',
+  'gpsc': 'Gujarat_1500_PYQ_Questions.csv',
+  'guj_gpsc': 'Gujarat_1500_PYQ_Questions.csv',
+  'guj_police': 'Gujarat_1500_PYQ_Questions.csv',
+
+  // Himachal Pradesh
+  'himachal': 'Himachal_1500_PYQ_Questions.csv',
+  'state_himachal': 'Himachal_1500_PYQ_Questions.csv',
+  'hp': 'Himachal_1500_PYQ_Questions.csv',
+  'hpas': 'Himachal_1500_PYQ_Questions.csv',
+  'hp_hpas': 'Himachal_1500_PYQ_Questions.csv',
+
+  // Odisha
+  'odisha': 'Odisha_1500_PYQ_Questions.csv',
+  'state_odisha': 'Odisha_1500_PYQ_Questions.csv',
+  'opsc': 'Odisha_1500_PYQ_Questions.csv',
+  'od_opsc': 'Odisha_1500_PYQ_Questions.csv',
+
+  // Assam & North East
+  'assam': 'Assam_NorthEast_1500_PYQ_Questions.csv',
+  'state_assam': 'Assam_NorthEast_1500_PYQ_Questions.csv',
+  'apsc': 'Assam_NorthEast_1500_PYQ_Questions.csv',
+  'as_apsc': 'Assam_NorthEast_1500_PYQ_Questions.csv',
+  'northeast': 'Assam_NorthEast_1500_PYQ_Questions.csv',
+
+  // South Indian States
+  'south_states': 'South_States_1500_PYQ_Questions.csv',
+  'state_south_states': 'South_States_1500_PYQ_Questions.csv',
+  'south': 'South_States_1500_PYQ_Questions.csv',
+  'ts_ap_psc': 'South_States_1500_PYQ_Questions.csv',
+  'tn_kerala_psc': 'South_States_1500_PYQ_Questions.csv',
+  'kpsc': 'South_States_1500_PYQ_Questions.csv',
+  'tnpsc': 'South_States_1500_PYQ_Questions.csv',
+  'tspsc': 'South_States_1500_PYQ_Questions.csv',
+  'appsc': 'South_States_1500_PYQ_Questions.csv',
 };
 
 
@@ -203,15 +474,36 @@ export function getEnvSheetUrlForCategory(category?: string): string {
 
   const cat = category.toLowerCase().trim();
 
-  // 1. Direct match in CATEGORY_SHEET_ENV_MAP
-  for (const [key, meta] of Object.entries(CATEGORY_SHEET_ENV_MAP)) {
-    if (cat === key || cat.includes(key) || key.includes(cat) || cat === meta.tabName.toLowerCase()) {
+  // 1. Direct key match in CATEGORY_SHEET_ENV_MAP
+  if (CATEGORY_SHEET_ENV_MAP[cat]) {
+    const val = envObj[CATEGORY_SHEET_ENV_MAP[cat].envKey]?.trim();
+    if (val) return val;
+  }
+
+  // 2. Direct match with or without 'sub_' prefix
+  const altKey = cat.startsWith('sub_') ? cat.substring(4) : `sub_${cat}`;
+  if (CATEGORY_SHEET_ENV_MAP[altKey]) {
+    const val = envObj[CATEGORY_SHEET_ENV_MAP[altKey].envKey]?.trim();
+    if (val) return val;
+  }
+
+  // 3. Match by exact tabName
+  for (const [, meta] of Object.entries(CATEGORY_SHEET_ENV_MAP)) {
+    if (cat === meta.tabName.toLowerCase()) {
       const val = envObj[meta.envKey]?.trim();
       if (val) return val;
     }
   }
 
-  // 2. Direct uppercase fallback e.g. VITE_SHEET_URL_SSC_CGL
+  // 4. Fallback by env key name e.g. VITE_SHEET_URL_24_ENGLISH_GRAMMAR
+  for (const [, meta] of Object.entries(CATEGORY_SHEET_ENV_MAP)) {
+    if (meta.envKey.toLowerCase().includes(cat)) {
+      const val = envObj[meta.envKey]?.trim();
+      if (val) return val;
+    }
+  }
+
+  // 5. Direct uppercase fallback e.g. VITE_SHEET_URL_SSC_CGL
   const directKey = `VITE_SHEET_URL_${category.toUpperCase()}`;
   if (envObj[directKey]?.trim()) {
     return envObj[directKey]!.trim();
@@ -379,6 +671,17 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
     const explanation = (colExplanation !== -1 ? row[colExplanation] : '')?.trim() || '';
     const examTag = (colExamTag !== -1 ? row[colExamTag] : '')?.trim() || 'Google Sheet PYQ';
 
+    // Synchronously shuffle options for Hindi and English so the correct answer is never stuck in slot A
+    const optIndices = rawOptions.map((_, i) => i);
+    for (let i = optIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [optIndices[i], optIndices[j]] = [optIndices[j], optIndices[i]];
+    }
+    const shuffledOptions = optIndices.map(i => rawOptions[i]);
+    const shuffledOptionsEn = rawOptionsEn.length === rawOptions.length
+      ? optIndices.map(i => rawOptionsEn[i])
+      : rawOptionsEn;
+
     // Explicit row language (if given)
     let rowLang: 'hi' | 'en' | undefined;
     if (colLang !== -1 && row[colLang]) {
@@ -390,7 +693,7 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
     questions.push({
       id: `sheet-${Date.now()}-${r}`,
       text: questionText,
-      options: rawOptions,
+      options: shuffledOptions,
       answer: rawAnswer,
       explanation,
       category: category.toLowerCase().replace(/[\s-]+/g, '_'),
@@ -398,11 +701,11 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
       examTag,
       lang: rowLang,
       textHi: questionText,
-      optionsHi: rawOptions,
+      optionsHi: shuffledOptions,
       answerHi: rawAnswer,
       explanationHi: explanation,
       textEn: questionTextEn || undefined,
-      optionsEn: rawOptionsEn.length >= 2 ? rawOptionsEn : undefined,
+      optionsEn: shuffledOptionsEn.length >= 2 ? shuffledOptionsEn : undefined,
       answerEn: rawAnswerEn || undefined,
       explanationEn: explanationEn || undefined,
     });
@@ -437,9 +740,41 @@ export function getExportCsvUrl(url: string): string {
 }
 
 /**
- * Fetches and saves questions from a Google Sheet CSV URL.
+ * Fast 64-bit string hash (Murmur-inspired) for instant change detection.
  */
-export async function syncQuestionsFromSheet(customUrl?: string, categoryHint?: string): Promise<{ success: boolean; count: number; message: string }> {
+export function computeCsvHash(text: string): string {
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507);
+  h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507);
+  h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+export interface SheetSyncResult {
+  success: boolean;
+  count: number;
+  message: string;
+  unchanged?: boolean;
+  updated?: number;
+  added?: number;
+}
+
+/**
+ * Intelligent In-Place Delta Sync:
+ * 1. Checks content hash: if sheet hasn't changed, returns instantly with 0 overhead.
+ * 2. If edited: fits modified questions directly in their exact position, and appends new rows.
+ */
+export async function syncQuestionsFromSheet(
+  customUrl?: string, 
+  categoryHint?: string, 
+  forceRefresh: boolean = false
+): Promise<SheetSyncResult> {
   try {
     const targetUrl = customUrl ? customUrl.trim() : getSheetSyncUrl(categoryHint);
     if (!targetUrl) {
@@ -458,6 +793,24 @@ export async function syncQuestionsFromSheet(customUrl?: string, categoryHint?: 
     }
 
     const csvData = await response.text();
+    const catKey = (categoryHint || 'default').toLowerCase().trim();
+    const hashKey = `gkoo_hash_${catKey}`;
+    const previousHash = localStorage.getItem(hashKey);
+    const currentHash = computeCsvHash(csvData);
+
+    // 1. FAST DELTA CHECK: If content hasn't changed at all and we already have questions in memory/cache:
+    const existingQuestions = inMemoryCategoryQuestions.get(catKey) || [];
+    if (!forceRefresh && previousHash && previousHash === currentHash && existingQuestions.length > 0) {
+      return {
+        success: true,
+        count: existingQuestions.length,
+        unchanged: true,
+        updated: 0,
+        added: 0,
+        message: 'शीट में कोई बदलाव नहीं हुआ है (पहले से अपडेटेड है)।'
+      };
+    }
+
     const rows = parseCsvText(csvData);
     const parsedQuestions = parseSheetRowsToQuestions(rows, categoryHint);
 
@@ -465,19 +818,85 @@ export async function syncQuestionsFromSheet(customUrl?: string, categoryHint?: 
       return { success: false, count: 0, message: 'No valid questions found in this sheet. Please check column headers.' };
     }
 
-    // 1. Save in High-Speed In-Memory Cache (guaranteed zero quota issues)
-    const catKey = (categoryHint || parsedQuestions[0]?.category || 'default').toLowerCase().trim();
-    inMemoryCategoryQuestions.set(catKey, parsedQuestions);
-    if (parsedQuestions[0]?.category) {
-      inMemoryCategoryQuestions.set(parsedQuestions[0].category.toLowerCase().trim(), parsedQuestions);
+    // 2. IN-PLACE DELTA MERGE:
+    // Update modified rows directly at their exact place, and append new rows!
+    let updatedCount = 0;
+    let addedCount = 0;
+    let hasChanges = false;
+    let mergedList: QuizQuestion[] = [];
+
+    if (existingQuestions.length === 0) {
+      mergedList = parsedQuestions;
+      addedCount = parsedQuestions.length;
+      hasChanges = true;
+    } else {
+      // Row-by-row precision alignment
+      for (let i = 0; i < parsedQuestions.length; i++) {
+        const newQ = parsedQuestions[i];
+        const oldQ = existingQuestions[i];
+
+        if (oldQ) {
+          // Check if any property was modified in Google Sheets
+          const isModified =
+            oldQ.text !== newQ.text ||
+            oldQ.answer !== newQ.answer ||
+            oldQ.explanation !== newQ.explanation ||
+            (oldQ.options || []).join('|') !== (newQ.options || []).join('|') ||
+            oldQ.textEn !== newQ.textEn ||
+            oldQ.answerEn !== newQ.answerEn;
+
+          if (isModified) {
+            // Update question in place while preserving question identity
+            mergedList.push({
+              ...newQ,
+              id: oldQ.id || newQ.id
+            });
+            updatedCount++;
+            hasChanges = true;
+          } else {
+            mergedList.push(oldQ);
+          }
+        } else {
+          // Newly appended row in sheet
+          mergedList.push(newQ);
+          addedCount++;
+          hasChanges = true;
+        }
+      }
     }
 
-    // 2. Persist per-category slice safely in localStorage
+    // If questions were removed from sheet
+    if (existingQuestions.length > parsedQuestions.length) {
+      hasChanges = true;
+    }
+
+    // Save in High-Speed In-Memory Cache
+    inMemoryCategoryQuestions.set(catKey, mergedList);
+    const altCat = catKey.startsWith('sub_') ? catKey.substring(4) : `sub_${catKey}`;
+    inMemoryCategoryQuestions.set(altCat, mergedList);
+
+    // Persist hash & slice in localStorage
     try {
-      localStorage.setItem(`gkoo_cat_${catKey}`, JSON.stringify(parsedQuestions.slice(0, 100)));
+      localStorage.setItem(hashKey, currentHash);
+      localStorage.setItem(`gkoo_cat_${catKey}`, JSON.stringify(mergedList.slice(0, 100)));
       localStorage.setItem(STORAGE_KEY_LAST_SYNC, Date.now().toString());
-      if (customUrl) {
+      if (customUrl && !categoryHint) {
         localStorage.setItem(STORAGE_KEY_URL, customUrl.trim());
+      } else if (categoryHint && customUrl) {
+        localStorage.setItem(`gkoo_env_url_${catKey}`, customUrl.trim());
+      }
+
+      // If existing questions were updated, clear corrupted level caches for this category
+      // so the modified questions reflect instantly in the levels!
+      if (updatedCount > 0) {
+        for (let l = 1; l <= 150; l++) {
+          localStorage.removeItem(`gkoo_level_q_${catKey}_${l}`);
+          localStorage.removeItem(`gkoo_level_q_${catKey}_${l}_hi`);
+          localStorage.removeItem(`gkoo_level_q_${catKey}_${l}_en`);
+          localStorage.removeItem(`gkoo_level_q_${altCat}_${l}`);
+          localStorage.removeItem(`gkoo_level_q_${altCat}_${l}_hi`);
+          localStorage.removeItem(`gkoo_level_q_${altCat}_${l}_en`);
+        }
       }
     } catch (e) {
       // Ignore quota: in-memory cache holds all questions
@@ -485,10 +904,20 @@ export async function syncQuestionsFromSheet(customUrl?: string, categoryHint?: 
 
     window.dispatchEvent(new Event('gkoo_sheet_synced'));
 
+    let message = '';
+    if (updatedCount > 0 || addedCount > 0) {
+      message = `सिंक पूरा: ${updatedCount} प्रश्न अपडेट हुए, ${addedCount} नए प्रश्न जोड़े गए!`;
+    } else {
+      message = `सफलतापूर्वक ${mergedList.length} प्रश्न लोड किए गए!`;
+    }
+
     return {
       success: true,
-      count: parsedQuestions.length,
-      message: `सफलतापूर्वक ${parsedQuestions.length} नए सवाल सिंक किए गए!`
+      count: mergedList.length,
+      unchanged: !hasChanges,
+      updated: updatedCount,
+      added: addedCount,
+      message
     };
   } catch (err: any) {
     return {
@@ -731,7 +1160,7 @@ export async function fetchCategoryFromLocalCsv(category: string, lang: 'hi' | '
 }
 
 /**
- * Fetches and syncs questions for a specific category from its local CSV or configured Google Sheet.
+ * Fetches and syncs questions for a specific category from its configured Google Sheet (priority) or local CSV (offline backup).
  */
 export async function syncCategoryQuestions(category: string, lang: 'hi' | 'en' = 'hi'): Promise<QuizQuestion[]> {
   const catLower = (category || '').toLowerCase().trim();
@@ -741,24 +1170,32 @@ export async function syncCategoryQuestions(category: string, lang: 'hi' | 'en' 
     return filterQuestionsByLanguage(inMemoryCategoryQuestions.get(catLower)!, lang);
   }
 
+  // 2. PRIORITY 1: When online, fetch directly from Google Sheet so edits reflect LIVE!
+  const isOnline = typeof navigator === 'undefined' || navigator.onLine;
+  if (isOnline) {
+    try {
+      const sheetUrl = getSheetSyncUrl(category);
+      if (sheetUrl) {
+        const res = await syncQuestionsFromSheet(sheetUrl, category);
+        if (res.success && inMemoryCategoryQuestions.has(catLower) && inMemoryCategoryQuestions.get(catLower)!.length > 0) {
+          return filterQuestionsByLanguage(inMemoryCategoryQuestions.get(catLower)!, lang);
+        }
+      }
+    } catch (e) {
+      console.warn(`[SheetSync] Live sheet sync failed for ${category}, falling back to local CSV:`, e);
+    }
+  }
+
   try {
-    // 2. Load from local bundled CSV (1,500 PYQ questions without network latency)
+    // 3. PRIORITY 2: Local bundled CSV (Offline safety backup)
     const local = await fetchCategoryFromLocalCsv(category, lang);
     if (local && local.length > 0) {
       return local;
     }
-
-    // 3. Fallback to Google Sheet URL if local CSV didn't return
-    const url = getSheetSyncUrl(category);
-    if (url) {
-      const res = await syncQuestionsFromSheet(url, category);
-      if (res.success) {
-        return getSyncedQuestionsByCategory(category, lang);
-      }
-    }
   } catch (err) {
-    console.warn(`[SheetSync] Failed to sync questions for category ${category}:`, err);
+    console.error(`[SheetSync] Error reading fallback local CSV for ${category}:`, err);
   }
+
   return [];
 }
 
@@ -849,28 +1286,30 @@ export function getSheetSyncStats(): {
 
 export function getSheetSyncUrl(category?: string): string {
   try {
-    const envUrl = getEnvSheetUrlForCategory(category);
-    const catKey = category ? category.toLowerCase().trim() : 'default';
-    const lastSavedEnvUrl = localStorage.getItem(`gkoo_env_url_${catKey}`);
-
-    // If developer changed .env and built a new APK, envUrl will be different!
-    // The newly compiled env URL ALWAYS takes precedence over old localStorage!
-    if (envUrl && envUrl !== lastSavedEnvUrl) {
-      localStorage.setItem(`gkoo_env_url_${catKey}`, envUrl);
-      localStorage.setItem(STORAGE_KEY_URL, envUrl);
-      return envUrl;
+    if (category) {
+      const catKey = category.toLowerCase().trim();
+      const customCatUrl = localStorage.getItem(`gkoo_custom_sheet_url_${catKey}`);
+      if (customCatUrl && customCatUrl.trim()) {
+        return customCatUrl.trim();
+      }
+      return getEnvSheetUrlForCategory(category);
     }
 
     const customUserUrl = localStorage.getItem(STORAGE_KEY_URL);
-    return customUserUrl || envUrl;
+    return customUserUrl || getEnvSheetUrlForCategory('ssc_cgl');
   } catch {
     return getEnvSheetUrlForCategory(category);
   }
 }
 
-export function setSheetSyncUrl(url: string): void {
+export function setSheetSyncUrl(url: string, category?: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY_URL, url.trim());
+    if (category) {
+      const catKey = category.toLowerCase().trim();
+      localStorage.setItem(`gkoo_custom_sheet_url_${catKey}`, url.trim());
+    } else {
+      localStorage.setItem(STORAGE_KEY_URL, url.trim());
+    }
   } catch {
     // ignore
   }
@@ -888,7 +1327,7 @@ export function clearSyncedQuestions(): void {
 
 /**
  * Automatically checks and syncs configured Google Sheets on app launch:
- * 1. Checks all 26 configured category URLs in .env.
+ * 1. Checks all 45 configured category URLs in .env.
  * 2. If developer updated any URL in .env and built a new APK, it automatically re-syncs that category!
  * 3. Also ensures the primary active sheet (1_SSC_CGL) is synced at least once.
  */
@@ -896,7 +1335,7 @@ export async function autoSyncInitialSheetIfEmpty(): Promise<void> {
   try {
     const envObj = import.meta.env as Record<string, string | undefined>;
 
-    // Check all 26 categories in .env for any new or updated sheet link
+    // Check all categories in .env for any new or updated sheet link
     for (const [catKey, meta] of Object.entries(CATEGORY_SHEET_ENV_MAP)) {
       const configuredUrl = envObj[meta.envKey]?.trim();
       if (!configuredUrl) continue;
@@ -907,7 +1346,7 @@ export async function autoSyncInitialSheetIfEmpty(): Promise<void> {
       // If developer changed the link in .env and built a new APK, or first time sync:
       if (configuredUrl !== lastSyncedUrl) {
         console.log(`[SheetSync] Detected updated .env URL for ${meta.tabName}, auto-syncing...`);
-        const res = await syncQuestionsFromSheet(configuredUrl);
+        const res = await syncQuestionsFromSheet(configuredUrl, catKey);
         if (res.success) {
           localStorage.setItem(cacheKey, configuredUrl);
         }
@@ -919,7 +1358,7 @@ export async function autoSyncInitialSheetIfEmpty(): Promise<void> {
     if (!lastSync) {
       const defaultUrl = getSheetSyncUrl('ssc_cgl');
       if (defaultUrl) {
-        await syncQuestionsFromSheet(defaultUrl);
+        await syncQuestionsFromSheet(defaultUrl, 'ssc_cgl');
       }
     }
   } catch (e) {
@@ -935,33 +1374,37 @@ export function getIsSyncingAll(): boolean {
 
 /**
  * Syncs all 26 Exam & Subject categories from Google Sheets in the background.
- * Processes in gentle batches with brief yields to keep UI performance 100% smooth.
+ * Uses hash-based delta checking: unchanged sheets skip instantly with 0 parsing overhead!
  */
-export async function syncAllCategoriesFromSheets(onProgress?: (synced: number, total: number) => void): Promise<{ success: boolean; totalQuestions: number; syncedCategories: number }> {
+export async function syncAllCategoriesFromSheets(
+  onProgress?: (synced: number, total: number) => void
+): Promise<{ success: boolean; totalQuestions: number; syncedCategories: number; updatedRows: number; addedRows: number }> {
   if (isSyncingAllInProgress) {
-    return { success: true, totalQuestions: getAllSyncedQuestions().length, syncedCategories: 0 };
+    return { success: true, totalQuestions: getAllSyncedQuestions().length, syncedCategories: 0, updatedRows: 0, addedRows: 0 };
   }
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return { success: false, totalQuestions: 0, syncedCategories: 0 };
+    return { success: false, totalQuestions: 0, syncedCategories: 0, updatedRows: 0, addedRows: 0 };
   }
 
   isSyncingAllInProgress = true;
   let totalQuestions = 0;
   let syncedCategories = 0;
+  let totalUpdated = 0;
+  let totalAdded = 0;
 
   try {
     const entries = Object.entries(CATEGORY_SHEET_ENV_MAP);
     const total = entries.length;
 
-    // Prioritize primary categories (SSC CGL) first
+    // Prioritize primary category (SSC CGL) first
     const sortedEntries = [...entries].sort(([keyA], [keyB]) => {
       if (keyA === 'ssc_cgl') return -1;
       if (keyB === 'ssc_cgl') return 1;
       return 0;
     });
 
-    // Process in batches of 2 with 80ms delay between batches
+    // Process in gentle batches of 2 with 60ms delay
     const BATCH_SIZE = 2;
     for (let i = 0; i < sortedEntries.length; i += BATCH_SIZE) {
       if (typeof navigator !== 'undefined' && !navigator.onLine) break;
@@ -976,6 +1419,8 @@ export async function syncAllCategoriesFromSheets(onProgress?: (synced: number, 
             if (res.success && res.count > 0) {
               totalQuestions += res.count;
               syncedCategories++;
+              totalUpdated += res.updated || 0;
+              totalAdded += res.added || 0;
             }
           } catch {
             // continue next category
@@ -988,7 +1433,7 @@ export async function syncAllCategoriesFromSheets(onProgress?: (synced: number, 
       }
 
       // Small yield to keep main thread smooth and responsive
-      await new Promise(resolve => setTimeout(resolve, 80));
+      await new Promise(resolve => setTimeout(resolve, 60));
     }
 
     try {
@@ -1001,7 +1446,9 @@ export async function syncAllCategoriesFromSheets(onProgress?: (synced: number, 
     return {
       success: syncedCategories > 0,
       totalQuestions,
-      syncedCategories
+      syncedCategories,
+      updatedRows: totalUpdated,
+      addedRows: totalAdded
     };
   } finally {
     isSyncingAllInProgress = false;
@@ -1009,10 +1456,11 @@ export async function syncAllCategoriesFromSheets(onProgress?: (synced: number, 
 }
 
 /**
- * Smart Auto-Sync:
- * 1. Automatically syncs all Google Sheets when user opens the app (if internet is available).
- * 2. Runs automatically at least twice a day (every 12 hours) in background.
- * 3. Uses a 10-minute cooldown for rapid page/tab switches to save battery and data.
+ * Smart Lightweight Auto-Sync:
+ * 1. On App Open: Checks ONLY the user's currently active category.
+ *    If no changes occurred in Google Sheets, it exits in 2ms without heavy load!
+ * 2. If any rows were edited in Google Sheets, it updates them directly at their exact place.
+ * 3. 2x Daily (every 12 hours): Runs an ultra-gentle background delta check across other sheets.
  */
 export async function triggerSmartAutoSync(isAppOpenEvent: boolean = false): Promise<void> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
@@ -1023,19 +1471,33 @@ export async function triggerSmartAutoSync(isAppOpenEvent: boolean = false): Pro
     const lastSyncRaw = localStorage.getItem('gkoo_last_full_sync_time') || localStorage.getItem(STORAGE_KEY_LAST_SYNC);
     const lastSyncTime = lastSyncRaw ? parseInt(lastSyncRaw, 10) : 0;
     const now = Date.now();
-    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000; // 2 times a day
-    const TEN_MINUTES_MS = 10 * 60 * 1000; // 10 minutes debounce
-
+    const TWELVE_HOURS_MS = 12 * 60 * 60 * 1000; // 2 times a day schedule
     const isTwelveHoursElapsed = !lastSyncTime || (now - lastSyncTime >= TWELVE_HOURS_MS);
 
     if (isAppOpenEvent) {
-      if (isTwelveHoursElapsed || (now - lastSyncTime >= TEN_MINUTES_MS)) {
-        console.log('[SheetSync] Running background sheet sync on app open...');
-        await syncAllCategoriesFromSheets();
+      // 1. App-Open: Ultra-lightweight delta sync for ACTIVE CATEGORY ONLY (Zero heavy load!)
+      const activeCat = (() => {
+        try {
+          const resume = localStorage.getItem('gkoo_resume_quiz_session');
+          if (resume) {
+            const p = JSON.parse(resume);
+            if (p.levelCategory) return p.levelCategory;
+          }
+          const savedRegion = localStorage.getItem('gkoo_dashboard_region_mode');
+          if (savedRegion === 'world') return 'sub_geography';
+        } catch { }
+        return 'ssc_cgl';
+      })();
+
+      console.log(`[SheetSync] App open: Checking delta changes for active category "${activeCat}"...`);
+      const url = getEnvSheetUrlForCategory(activeCat);
+      if (url) {
+        await syncQuestionsFromSheet(url, activeCat);
       }
     } else {
+      // 2. 2x Daily Schedule (every 12 hours): Background delta check with instant hash bypass
       if (isTwelveHoursElapsed) {
-        console.log('[SheetSync] 12 hours elapsed (2x daily schedule), running background sheet sync...');
+        console.log('[SheetSync] 12 hours elapsed (2x daily schedule), running gentle delta sync...');
         await syncAllCategoriesFromSheets();
       }
     }

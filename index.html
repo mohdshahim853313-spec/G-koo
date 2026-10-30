@@ -56,27 +56,42 @@
         }
       }, 3800);
 
-      // 3. Service worker registration with auto-reload on update
+      // 3. Service worker registration (Production only - completely disabled on localhost/dev)
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('/sw.js').then(function(reg) {
-            reg.onupdatefound = function() {
-              var inst = reg.installing;
-              if (inst) {
-                inst.onstatechange = function() {
-                  if (inst.state === 'installed' && navigator.serviceWorker.controller) {
-                    window.location.reload();
-                  }
-                };
-              }
-            };
-          }).catch(function(err) {
-            console.log('SW registration skipped:', err);
+        var isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port !== '';
+        if (isLocal) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
           });
-        });
+          if ('caches' in window) {
+            caches.keys().then(function(keys) {
+              keys.forEach(function(k) {
+                caches.delete(k);
+              });
+            });
+          }
+        } else {
+          window.addEventListener('load', function() {
+            navigator.serviceWorker.register('/sw.js').then(function(reg) {
+              reg.onupdatefound = function() {
+                var inst = reg.installing;
+                if (inst) {
+                  inst.onstatechange = function() {
+                    if (inst.state === 'installed' && navigator.serviceWorker.controller) {
+                      window.location.reload();
+                    }
+                  };
+                }
+              };
+            }).catch(function(err) {
+              console.log('SW registration skipped:', err);
+            });
+          });
+        }
       }
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

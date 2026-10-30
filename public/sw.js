@@ -17,6 +17,13 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1' || self.location.port !== '') {
+    e.waitUntil(
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .then(() => self.registration.unregister())
+    );
+    return;
+  }
   e.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
@@ -28,6 +35,9 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1' || self.location.port !== '') {
+    return;
+  }
   if (e.request.method !== 'GET') return;
 
   const url = new URL(e.request.url);

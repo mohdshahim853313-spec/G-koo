@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SplashScreen } from '@capacitor/splash-screen';
+import { Capacitor } from '@capacitor/core';
 import { isAndroidApp } from '../utils/platform';
 
 interface GkooSplashScreenProps {
@@ -26,7 +27,9 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
 
   useEffect(() => {
     // Hide native Android splash smoothly
-    SplashScreen.hide().catch(() => {});
+    if (Capacitor.isNativePlatform()) {
+      SplashScreen.hide().catch(() => {});
+    }
 
     if (!isVisible) {
       if (onFinish) onFinish();

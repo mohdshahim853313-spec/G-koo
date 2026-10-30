@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { BottomNav } from './components/BottomNav';
 import { Sidebar } from './components/Sidebar';
@@ -54,6 +55,7 @@ function AppContent() {
 
     const setupBackButton = async () => {
       try {
+        if (!Capacitor.isNativePlatform()) return;
         backButtonHandle = await CapApp.addListener('backButton', ({ canGoBack }) => {
           // If Exit Modal is currently showing and back is pressed again, close modal
           if (showExitConfirmRef.current) {
@@ -113,7 +115,11 @@ function AppContent() {
 
   const handleConfirmExit = async () => {
     try {
-      await CapApp.exitApp();
+      if (Capacitor.isNativePlatform()) {
+        await CapApp.exitApp();
+      } else {
+        window.close();
+      }
     } catch {
       window.close();
     }
@@ -126,40 +132,42 @@ function AppContent() {
   useEffect(() => {
     // A. Initial launch sync (1.2s delay for instant zero-wait UI render)
     const initTimer = setTimeout(() => {
-      triggerSmartAutoSync(true);
+      triggerSmartAutoSync(true).catch(() => {});
     }, 1200);
 
     // B. Reconnection to internet event
     const handleOnline = () => {
-      triggerSmartAutoSync(true);
+      triggerSmartAutoSync(true).catch(() => {});
     };
     window.addEventListener('online', handleOnline);
 
     // C. Visibility change (when user returns/switches back to app tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        triggerSmartAutoSync(true);
+        triggerSmartAutoSync(true).catch(() => {});
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // D. Capacitor Native Android App Resume listener
     let appStateHandle: any = null;
-    try {
-      CapApp.addListener('appStateChange', ({ isActive }) => {
-        if (isActive) {
-          triggerSmartAutoSync(true);
-        }
-      }).then(handle => {
-        appStateHandle = handle;
-      });
-    } catch {
-      // not in capacitor runtime
+    if (Capacitor.isNativePlatform()) {
+      try {
+        CapApp.addListener('appStateChange', ({ isActive }) => {
+          if (isActive) {
+            triggerSmartAutoSync(true).catch(() => {});
+          }
+        }).then(handle => {
+          appStateHandle = handle;
+        }).catch(() => {});
+      } catch {
+        // not in capacitor runtime
+      }
     }
 
     // E. Periodic background timer check for 2x daily schedule (every 20 minutes)
     const periodicTimer = setInterval(() => {
-      triggerSmartAutoSync(false);
+      triggerSmartAutoSync(false).catch(() => {});
     }, 20 * 60 * 1000);
 
     return () => {

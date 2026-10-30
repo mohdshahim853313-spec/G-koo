@@ -356,5 +356,22 @@ export const ALL_SUBJECTS_LIST: SubjectItem[] = [
     syllabusTopicHi: 'विश्व दर्शनशास्त्र, सुकरात प्लेटो अरस्तू, भारतीय दर्शन, स्टोइसिज्म और नैतिक पहेलियां',
     difficulty: 'hard',
     badge: 'Deep Mind'
+  },
+  {
+    id: 'sub_international',
+    nameEn: 'International Affairs & Global Bodies',
+    nameHi: 'अंतर्राष्ट्रीय संबंध व वैश्विक संगठन',
+    shortName: 'Global Affairs',
+    category: 'General Studies',
+    icon: '🌐',
+    gradient: 'from-blue-600 via-cyan-600 to-indigo-800',
+    border3d: 'border-b-[5px] border-cyan-950',
+    badgeBg: 'bg-cyan-300 text-cyan-950',
+    descEn: 'UN, WTO, WHO, Geopolitics, Global Summits, Treaties & World Affairs',
+    descHi: 'संयुक्त राष्ट्र (UN), विश्व बैंक, शिखर सम्मेलन, संधियां व वैश्विक कूटनीति',
+    syllabusTopicEn: 'International Organizations, United Nations Agencies (WHO, UNESCO, IMF, World Bank), BRICS, G20, QUAD, Bilateral Treaties, International Courts and Global Geopolitics',
+    syllabusTopicHi: 'अंतर्राष्ट्रीय संगठन, संयुक्त राष्ट्र संघ (UN, WHO, UNESCO, IMF), ब्रिक्स, जी20, वैश्विक संधियां, अंतर्राष्ट्रीय न्यायालय और विदेश नीति',
+    difficulty: 'medium',
+    badge: 'Global Affairs'
   }
 ];
