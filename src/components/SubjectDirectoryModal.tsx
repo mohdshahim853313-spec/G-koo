@@ -182,13 +182,13 @@ export const SubjectDirectoryModal: React.FC<SubjectDirectoryModalProps> = ({ is
                               <span>{rank === 1 ? '1st Pin' : rank === 2 ? '2nd Pin' : rank === 3 ? '3rd Pin' : '4th Pin'}</span>
                             </span>
                           )}
-                          <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full ${sub.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
+                          <span className={`text-[9px] font-black px-2.5 py-0.5 rounded-full ${sub.badgeBg} shadow-xs truncate max-w-[120px] shrink-0`}>
                             {sub.badge}
                           </span>
                         </div>
                       </div>
 
-                      <h4 className="font-black text-sm sm:text-base text-white leading-tight mb-1 drop-shadow-md">
+                      <h4 className="font-black text-sm sm:text-base text-white leading-snug pt-1 pb-0.5 mb-1 drop-shadow-md">
                         {lang === 'hi' ? sub.nameHi : sub.nameEn}
                       </h4>
                       <p className="text-[11px] text-white/90 font-medium leading-snug line-clamp-2 drop-shadow-xs">

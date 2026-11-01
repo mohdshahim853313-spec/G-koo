@@ -8,7 +8,9 @@ import {
   Crown, 
   Sparkles, 
   Compass, 
-  ChevronLeft
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp
 } from 'lucide-react';
 import { AppIcon } from './AppIcon';
 import { useAppContext } from '../useAppContext';
@@ -22,6 +24,7 @@ import {
   LEVELS_PER_SECTOR,
   type LevelConfig 
 } from '../lib/levelData';
+import { getSyncedQuestionsByCategory, syncCategoryQuestions } from '../lib/sheetSync';
 
 interface LearningPathProps {
   onBackToCategories?: () => void;
@@ -55,13 +58,44 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
   const [rewardToast, setRewardToast] = useState<string | null>(null);
   const [showOfflineModal, setShowOfflineModal] = useState(false);
   const [offlineModalLevel, setOfflineModalLevel] = useState<number | null>(null);
+  const [syncedCount, setSyncedCount] = useState<number>(() => {
+    try {
+      return getSyncedQuestionsByCategory(currentCatId, lang).length;
+    } catch {
+      return 1500;
+    }
+  });
+
+  // Background auto-refresh questions for current category from Google Sheets when opening Level Map
+  useEffect(() => {
+    let isMounted = true;
+    syncCategoryQuestions(currentCatId, lang).then((qs) => {
+      if (isMounted && qs && qs.length > 0) {
+        setSyncedCount(qs.length);
+      }
+    }).catch(() => {});
+    return () => { isMounted = false; };
+  }, [currentCatId, lang]);
 
   const isDeviceOffline = !isOnline || (typeof navigator !== 'undefined' && !navigator.onLine);
 
-  // Always reset scroll to the very top whenever the level map opens or world/category changes
+  // Sync selected world sector if category or maxUnlocked level changes
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [currentCatId, selectedWorldId]);
+    const targetWorldId = Math.max(1, Math.floor((catMaxUnlocked - 1) / LEVELS_PER_SECTOR) + 1);
+    setSelectedWorldId(targetWorldId);
+  }, [currentCatId, catMaxUnlocked]);
+
+  // Auto-scroll so current unlocked level scrolls automatically and is centered in front of the user
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const activeEl = document.getElementById('active-level-node');
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 180);
+
+    return () => clearTimeout(timer);
+  }, [currentCatId, selectedWorldId, catMaxUnlocked]);
 
   const worldConfig = getCategoryWorldConfig(currentCatId, selectedWorldId);
   const [startLevel, endLevel] = worldConfig.levelsRange;
@@ -119,10 +153,12 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
     setTimeout(() => setRewardToast(null), 3500);
   };
 
-  // Determine available world tabs (all unlocked worlds + 1 next preview world, 50 levels per sector)
-  const maxAvailableWorld = currentCatId === 'india'
-    ? 3
-    : Math.max(3, Math.floor((catMaxUnlocked - 1) / LEVELS_PER_SECTOR) + 1);
+  // Determine available world tabs: dynamically checks synced questions count and unlocked progress
+  const totalLevelsFromQuestions = Math.max(150, Math.ceil(syncedCount / 10));
+  const totalSectorsFromQuestions = Math.ceil(totalLevelsFromQuestions / LEVELS_PER_SECTOR);
+  const unlockedWorldId = Math.floor((catMaxUnlocked - 1) / LEVELS_PER_SECTOR) + 1;
+  const maxAvailableWorld = Math.max(3, totalSectorsFromQuestions, unlockedWorldId);
+
   const worldTabs = [];
   for (let w = 1; w <= maxAvailableWorld; w++) {
     worldTabs.push(getCategoryWorldConfig(currentCatId, w));
@@ -223,7 +259,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
               <Compass className="w-3 h-3" />
               <span>{lang === 'hi' ? catInfo.titleHi : catInfo.titleEn} • Levels {startLevel}-{endLevel}</span>
             </span>
-            <h2 className="text-lg sm:text-xl font-black text-white leading-tight drop-shadow-xs">
+            <h2 className="text-lg sm:text-xl font-black text-white leading-snug pt-0.5 pb-0.5 drop-shadow-xs">
               {lang === 'hi' ? worldConfig.nameHi : worldConfig.nameEn}
             </h2>
             <p className="text-xs text-white/85 font-medium mt-0.5">
@@ -272,7 +308,11 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           // Special Boss Stage Render
           if (level.isBoss) {
             return (
-              <div key={level.level} className="w-full my-2 perf-card">
+              <div 
+                key={level.level} 
+                id={isCurrent ? 'active-level-node' : undefined} 
+                className="w-full my-2 perf-card scroll-mt-28"
+              >
                 <motion.div
                   whileTap={{ scale: isLocked ? 1 : 0.99 }}
                   onClick={() => handleLevelClick(level)}
@@ -348,7 +388,11 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
 
           // Standard Stage Card
           return (
-            <div key={level.level} className="w-full perf-card">
+            <div 
+              key={level.level} 
+              id={isCurrent ? 'active-level-node' : undefined} 
+              className="w-full perf-card scroll-mt-28"
+            >
               <motion.div
                 whileTap={{ scale: isLocked ? 1 : 0.99 }}
                 onClick={() => handleLevelClick(level)}
@@ -457,6 +501,47 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
           );
         })}
       </div>
+
+      {/* Bottom Next Sector Button - ONLY at the bottom of all levels */}
+      {(() => {
+        const nextWorldId = selectedWorldId + 1;
+        const hasNextSector = nextWorldId <= maxAvailableWorld;
+
+        if (hasNextSector) {
+          return (
+            <div className="w-full max-w-sm mt-8 mb-12 px-4 flex justify-center">
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  triggerHaptic('success', hapticsEnabled);
+                  setSelectedWorldId(nextWorldId);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF9E2C] text-white font-black text-sm sm:text-base shadow-xl border-b-[5px] border-[#D93848] active:border-b-[2px] active:translate-y-0.5 flex items-center justify-center space-x-2 transition-all cursor-pointer tracking-wider select-none uppercase"
+              >
+                <span>{lang === 'hi' ? 'NEXT SECTOR' : 'NEXT SECTOR'}</span>
+                <ChevronRight className="w-5 h-5 stroke-[3] shrink-0" />
+              </motion.button>
+            </div>
+          );
+        }
+
+        return (
+          <div className="w-full max-w-sm mt-6 mb-10 px-4 flex justify-center">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                triggerHaptic('click', hapticsEnabled);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-5 py-2.5 rounded-2xl bg-white dark:bg-[#13192B] border-2 border-gray-200 dark:border-indigo-950/80 text-xs font-black text-gray-700 dark:text-gray-300 shadow-sm flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-900"
+            >
+              <ArrowUp className="w-4 h-4 text-rose-500" />
+              <span>{lang === 'hi' ? 'शीर्ष पर वापस जाएं' : 'Back to Top'}</span>
+            </motion.button>
+          </div>
+        );
+      })()}
 
       {/* Offline Alert Modal for new/unpassed levels */}
       <OfflineModal

@@ -5,6 +5,7 @@ import { useAppContext } from '../useAppContext';
 import { Mascot } from './Mascot';
 import { triggerHaptic, playSound } from '../lib/audio';
 import { isAndroidApp } from '../utils/platform';
+import { showRewardedVideoAd } from '../services/admobService';
 
 interface AdMobRewardModalProps {
   isOpen: boolean;
@@ -51,10 +52,24 @@ export const AdMobRewardModal: React.FC<AdMobRewardModalProps> = ({
 
   if (!isOpen || !isAndroidApp()) return null;
 
-  const handleStartWatchAd = () => {
+  const handleStartWatchAd = async () => {
     triggerHaptic('click', hapticsEnabled);
     setAdState('watching');
     setSecondsRemaining(10);
+
+    try {
+      const res = await showRewardedVideoAd();
+      if (res.success) {
+        setAdState('rewarded');
+        triggerHaptic('success', hapticsEnabled);
+        playSound('success', soundEnabled);
+      } else {
+        // If user cancelled or ad was dismissed early
+        setAdState('prompt');
+      }
+    } catch {
+      // Fallback timer will continue if native ad is unavailable
+    }
   };
 
   const handleClaimReward = () => {

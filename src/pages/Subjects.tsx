@@ -16,43 +16,14 @@ import {
   getPinnedSubjectIds, 
   togglePinSubject, 
   getSubjectPinRank,
-  PINNED_SUBJECTS_EVENT 
+  PINNED_SUBJECTS_EVENT,
+  WORLD_SUBJECT_IDS,
+  INDIA_GS_SUBJECT_IDS
 } from '../utils/pinnedSubjects';
 
-// Explicit Universal World Subject IDs (Global Core & World Realms)
-const WORLD_SUBJECT_IDS = new Set([
-  'sub_english',
-  'sub_hindi',
-  'sub_math',
-  'sub_physics',
-  'sub_chemistry',
-  'sub_biology',
-  'sub_history',
-  'sub_geography',
-  'sub_gk',
-  'sub_space',
-  'sub_facts',
-  'sub_psychology',
-  'sub_philosophy',
-  'sub_international'
-]);
-
-// Explicit Indian Competitive Exam & GS Subject IDs
-const INDIA_GS_SUBJECT_IDS = new Set([
-  'sub_civics',
-  'sub_history',
-  'sub_geography',
-  'sub_economics',
-  'sub_reasoning',
-  'sub_computer',
-  'sub_art_culture',
-  'sub_environment',
-  'sub_physics',
-  'sub_chemistry',
-  'sub_biology',
-  'sub_math',
-  'sub_gk'
-]);
+const WORLD_ACADEMIC_IDS = ['sub_english', 'sub_hindi', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry'];
+const WORLD_GENERAL_IDS = ['sub_world_geography', 'sub_world_history', 'sub_international', 'sub_gk'];
+const WORLD_CURIOSITY_IDS = ['sub_psychology', 'sub_facts', 'sub_space', 'sub_philosophy'];
 
 export default function Subjects() {
   const navigate = useNavigate();
@@ -109,7 +80,7 @@ export default function Subjects() {
   const handleTogglePin = (e: React.MouseEvent, subId: string) => {
     e.stopPropagation();
     triggerHaptic('success');
-    togglePinSubject(subId);
+    togglePinSubject(subId, regionMode);
   };
 
   // Pure World Subjects filtering (Excludes local Indian exam topics)
@@ -130,7 +101,7 @@ export default function Subjects() {
         if (worldCategoryFilter === 'all') return true;
         if (worldCategoryFilter === 'Science') return sub.category === 'Science' || sub.category === 'Quantitative';
         if (worldCategoryFilter === 'Language') return sub.category === 'Language';
-        if (worldCategoryFilter === 'Social') return sub.category === 'General' || sub.category === 'Social Studies';
+        if (worldCategoryFilter === 'Social') return sub.category === 'General' || sub.category === 'Social Studies' || sub.category === 'General Studies';
         if (worldCategoryFilter === 'Curiosity') return sub.category === 'Curiosity' || sub.id.includes('facts') || sub.id.includes('space') || sub.id.includes('psychology') || sub.id.includes('philosophy');
         return true;
       });
@@ -167,6 +138,149 @@ export default function Subjects() {
       });
   }, [searchQuery]);
 
+  // World Mode grouped realms
+  const worldAcademicSubjects = useMemo(() => {
+    return filteredWorldSubjects.filter(sub => WORLD_ACADEMIC_IDS.includes(sub.id));
+  }, [filteredWorldSubjects]);
+
+  const worldGeneralSubjects = useMemo(() => {
+    return filteredWorldSubjects.filter(sub => WORLD_GENERAL_IDS.includes(sub.id));
+  }, [filteredWorldSubjects]);
+
+  const worldCuriositySubjects = useMemo(() => {
+    return filteredWorldSubjects.filter(sub => WORLD_CURIOSITY_IDS.includes(sub.id));
+  }, [filteredWorldSubjects]);
+
+  const renderSubjectCard = (sub: SubjectItem) => {
+    const maxUnlocked = getCategoryMaxUnlocked(sub.id);
+    const pinRank = getSubjectPinRank(sub.id, regionMode);
+
+    return (
+      <motion.div
+        key={sub.id}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => handleSelectSubject(sub.id)}
+        className={`perf-card bg-gradient-to-br ${sub.gradient} text-white ${sub.border3d} rounded-3xl px-2.5 py-3 sm:p-4 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
+      >
+        <div>
+          {/* Top Row: Icon + Pin Button */}
+          <div className="flex items-center justify-between mb-2 gap-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform shrink-0">
+              <AppIcon icon={sub.icon} className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => handleTogglePin(e, sub.id)}
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                pinRank > 0
+                  ? 'bg-amber-400 text-gray-950 shadow-xs ring-2 ring-amber-200'
+                  : 'bg-black/20 hover:bg-black/40 text-white/80'
+              }`}
+              title={pinRank > 0 ? (lang === 'hi' ? 'होम से अनपिन करें' : 'Unpin from Home') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin to Home')}
+            >
+              <Pin className={`w-3.5 h-3.5 ${pinRank > 0 ? 'fill-gray-950 rotate-45' : ''}`} />
+            </button>
+          </div>
+
+          {/* Category Badge Pill */}
+          <div className="mb-1.5 flex items-center">
+            <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full ${sub.badgeBg} shadow-xs truncate max-w-full`}>
+              {sub.badge}
+            </span>
+          </div>
+
+          <h3 className="font-black text-[13px] sm:text-base text-white leading-tight min-h-[2.4rem] line-clamp-2 pt-0.5 mb-1 drop-shadow-xs flex items-center">
+            {lang === 'hi' ? sub.nameHi : sub.nameEn}
+          </h3>
+
+          <p className="text-[11px] text-white/90 font-medium line-clamp-2 leading-relaxed mb-3">
+            {lang === 'hi' ? sub.descHi : sub.descEn}
+          </p>
+        </div>
+
+        {/* Bottom Action Footer */}
+        <div className="mt-2 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
+          <span className="text-[10px] font-black bg-black/35 text-yellow-300 px-2 py-1 rounded-xl border border-white/10 shadow-xs whitespace-nowrap shrink-0">
+            Level {maxUnlocked}
+          </span>
+
+          <button
+            type="button"
+            onClick={(e) => handleStartDirectQuiz(e, sub.id)}
+            className="px-2.5 py-1 rounded-xl bg-white text-gray-900 hover:bg-yellow-300 text-[10px] font-black flex items-center space-x-1 shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            <Play className="w-2.5 h-2.5 fill-current" />
+            <span>{lang === 'hi' ? 'खेलें' : 'Play'}</span>
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const renderExamCard = (cat: CategoryInfo) => {
+    const maxUnlocked = getCategoryMaxUnlocked(cat.id);
+    const pinRank = getSubjectPinRank(cat.id, 'india');
+
+    return (
+      <motion.div
+        key={cat.id}
+        whileTap={{ scale: 0.98 }}
+        onClick={() => handleSelectSubject(cat.id)}
+        className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} rounded-3xl px-2.5 py-3 sm:p-4 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
+      >
+        <div>
+          <div className="flex items-center justify-between mb-2 gap-1">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-105 transition-transform shrink-0">
+              <AppIcon icon={cat.icon} className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => handleTogglePin(e, cat.id)}
+              className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                pinRank > 0
+                  ? 'bg-amber-400 text-gray-950 shadow-xs ring-2 ring-amber-200'
+                  : 'bg-black/20 hover:bg-black/40 text-white/80'
+              }`}
+              title={pinRank > 0 ? (lang === 'hi' ? 'होम से अनपिन करें' : 'Unpin from Home') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin to Home')}
+            >
+              <Pin className={`w-3.5 h-3.5 ${pinRank > 0 ? 'fill-gray-950 rotate-45' : ''}`} />
+            </button>
+          </div>
+
+          <div className="mb-1.5 flex items-center">
+            <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full ${cat.badgeBg} shadow-xs truncate max-w-full`}>
+              {cat.badgeText}
+            </span>
+          </div>
+
+          <h3 className="font-black text-[13px] sm:text-base text-white leading-tight min-h-[2.4rem] line-clamp-2 pt-0.5 mb-1 drop-shadow-xs flex items-center">
+            {lang === 'hi' ? cat.titleHi : cat.titleEn}
+          </h3>
+          <p className="text-[11px] text-white/90 font-medium line-clamp-2 leading-relaxed mb-3">
+            {lang === 'hi' ? cat.descHi : cat.descEn}
+          </p>
+        </div>
+
+        <div className="mt-2 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
+          <span className="text-[10px] font-black bg-black/35 text-yellow-300 px-2 py-1 rounded-xl border border-white/10 shadow-xs whitespace-nowrap shrink-0">
+            Level {maxUnlocked}
+          </span>
+
+          <button
+            type="button"
+            onClick={(e) => handleStartDirectQuiz(e, cat.id)}
+            className="px-2.5 py-1 rounded-xl bg-white text-gray-900 hover:bg-yellow-300 text-[10px] font-black flex items-center space-x-1 shadow-xs transition-colors shrink-0 cursor-pointer"
+          >
+            <Play className="w-2.5 h-2.5 fill-current" />
+            <span>{lang === 'hi' ? 'टेस्ट दें' : 'Test'}</span>
+          </button>
+        </div>
+      </motion.div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-transparent pb-28 font-sans transition-colors duration-200">
       <TopBar 
@@ -175,7 +289,7 @@ export default function Subjects() {
         onOpenDailyReward={() => setShowDailyRewardModal(true)}
       />
 
-      <main className="p-4 pt-3.5 sm:pt-4 max-w-md md:max-w-5xl lg:max-w-6xl mx-auto">
+      <main className="px-3 sm:px-4 py-3.5 sm:py-4 max-w-md sm:max-w-xl md:max-w-5xl lg:max-w-6xl mx-auto">
         {/* World vs India Switcher (Crystal clear descriptive pills) */}
         <div className="flex bg-gray-200/90 dark:bg-[#13192B] p-1.5 rounded-2xl mb-4 sm:mb-5 text-xs font-black shadow-inner border border-gray-300/40 dark:border-indigo-950/80 max-w-md mx-auto">
           {/* 1st Button: World Mode */}
@@ -319,251 +433,183 @@ export default function Subjects() {
           )}
         </div>
 
-        {/* -------------------- WORLD MODE SUBJECTS GRID -------------------- */}
+        {/* -------------------- WORLD MODE SUBJECTS CATEGORIES -------------------- */}
         {regionMode === 'world' ? (
-          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 md:gap-5">
-            {filteredWorldSubjects.map((sub: SubjectItem) => {
-              const maxUnlocked = getCategoryMaxUnlocked(sub.id);
-              const pinRank = getSubjectPinRank(sub.id);
-
-              return (
-                <motion.div
-                  key={sub.id}
-                  whileTap={{ scale: 0.99 }}
-                  onClick={() => handleSelectSubject(sub.id)}
-                  className={`perf-card bg-gradient-to-br ${sub.gradient} text-white ${sub.border3d} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
-                >
-                  <div>
-                    {/* Top Row: Icon + Pin Button + Badge */}
-                    <div className="flex items-center justify-between mb-2.5 gap-1">
-                      <div className="w-11 h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                        <AppIcon icon={sub.icon} className="w-6 h-6 stroke-[2.2]" />
-                      </div>
-
-                      <div className="flex items-center space-x-1.5">
-                        <button
-                          type="button"
-                          onClick={(e) => handleTogglePin(e, sub.id)}
-                          className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all ${
-                            pinRank > 0
-                              ? 'bg-amber-400 text-gray-950 shadow-xs'
-                              : 'bg-black/20 hover:bg-black/40 text-white/80'
-                          }`}
-                          title={pinRank > 0 ? (lang === 'hi' ? 'होम से अनपिन करें' : 'Unpin from Home') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin to Home')}
-                        >
-                          <Pin className={`w-3.5 h-3.5 ${pinRank > 0 ? 'fill-gray-950 rotate-45' : ''}`} />
-                        </button>
-                        <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full ${sub.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
-                          {sub.badge}
-                        </span>
-                      </div>
-                    </div>
-
-                    <h3 className="font-black text-sm sm:text-base text-white leading-tight mb-1 tracking-tight drop-shadow-xs line-clamp-1">
-                      {lang === 'hi' ? sub.nameHi : sub.nameEn}
+          <div className="space-y-4 sm:space-y-5">
+            {/* 1. Academic & Science Subjects */}
+            {worldAcademicSubjects.length > 0 && (
+              <div className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-sky-600 dark:text-sky-400 min-w-0 flex-1">
+                    <BookOpen className="w-4 h-4 shrink-0" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
+                      {lang === 'hi' ? 'प्रमुख विषय एवं विज्ञान (Core Subjects & Science)' : 'Core Subjects & Science'}
                     </h3>
-
-                    <p className="text-[11px] text-white/90 font-medium line-clamp-2 leading-relaxed mb-3">
-                      {lang === 'hi' ? sub.descHi : sub.descEn}
-                    </p>
                   </div>
 
-                  {/* Bottom Action Footer */}
-                  <div className="mt-2 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
-                    <span className="text-[10px] font-black bg-black/35 text-yellow-300 px-2 py-0.5 rounded-xl border border-white/10 shadow-xs">
-                      Lvl {maxUnlocked} Unlocked
-                    </span>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-200/80 dark:bg-sky-900/60 text-sky-950 dark:text-sky-200 shrink-0">
+                    {worldAcademicSubjects.length} {lang === 'hi' ? 'विषय' : 'Subjects'}
+                  </span>
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={(e) => handleStartDirectQuiz(e, sub.id)}
-                      className="px-2.5 py-1 rounded-xl bg-white text-gray-900 hover:bg-yellow-300 text-[10px] font-black flex items-center space-x-1 shadow-xs transition-colors shrink-0"
-                    >
-                      <Play className="w-2.5 h-2.5 fill-current" />
-                      <span>{lang === 'hi' ? 'खेलें' : 'Play'}</span>
-                    </button>
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-1">
+                  {worldAcademicSubjects.map(renderSubjectCard)}
+                </div>
+              </div>
+            )}
+
+            {/* 2. World & General GK */}
+            {worldGeneralSubjects.length > 0 && (
+              <div className="bg-emerald-100/80 dark:bg-emerald-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-emerald-300/80 dark:border-emerald-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 min-w-0 flex-1">
+                    <Globe className="w-4 h-4 shrink-0" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
+                      {lang === 'hi' ? 'विश्व एवं सामान्य ज्ञान (World & General GK)' : 'World & General GK'}
+                    </h3>
                   </div>
-                </motion.div>
-              );
-            })}
+
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-200/80 dark:bg-emerald-900/60 text-emerald-950 dark:text-emerald-200 shrink-0">
+                    {worldGeneralSubjects.length} {lang === 'hi' ? 'विषय' : 'Subjects'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-1">
+                  {worldGeneralSubjects.map(renderSubjectCard)}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Curiosity & Fascinating Minds */}
+            {worldCuriositySubjects.length > 0 && (
+              <div className="bg-purple-100/85 dark:bg-purple-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-purple-300/80 dark:border-purple-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-purple-600 dark:text-purple-400 min-w-0 flex-1">
+                    <Sparkles className="w-4 h-4 shrink-0" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
+                      {lang === 'hi' ? 'रोचक ज्ञान एवं जिज्ञासा (Curiosity & Minds)' : 'Curiosity & Fascinating Minds'}
+                    </h3>
+                  </div>
+
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-purple-200/80 dark:bg-purple-900/60 text-purple-950 dark:text-purple-200 shrink-0">
+                    {worldCuriositySubjects.length} {lang === 'hi' ? 'विषय' : 'Subjects'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-1">
+                  {worldCuriositySubjects.map(renderSubjectCard)}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State for World Mode */}
+            {worldAcademicSubjects.length === 0 && worldGeneralSubjects.length === 0 && worldCuriositySubjects.length === 0 && (
+              <div className="text-center py-12 px-4 bg-white/60 dark:bg-white/5 rounded-3xl border border-gray-200 dark:border-white/10">
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-bold">
+                  {lang === 'hi' ? 'कोई विषय नहीं मिला। कृपया दूसरा शब्द खोजें।' : 'No subjects found matching your search.'}
+                </p>
+              </div>
+            )}
           </div>
         ) : (
-          /* -------------------- INDIA MODE SUBJECTS & EXAMS GRID -------------------- */
-          <div className="space-y-6">
+          /* -------------------- INDIA MODE SUBJECTS & EXAMS CATEGORIES -------------------- */
+          <div className="space-y-4 sm:space-y-5">
             {/* 1. Indian Competitive Exams Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'exam') && examCategories.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center space-x-2 text-rose-600 dark:text-rose-400">
+              <div className="bg-orange-100/85 dark:bg-orange-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-orange-300/80 dark:border-orange-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-rose-600 dark:text-rose-400 min-w-0 flex-1">
                     <Landmark className="w-4 h-4 shrink-0" />
-                    <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white">
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
                       {lang === 'hi' ? 'प्रमुख राष्ट्रीय परीक्षाएं (Central & State Exams)' : 'National Exam Specializations'}
-                    </h2>
+                    </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400">
+
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-orange-200/80 dark:bg-orange-900/60 text-orange-950 dark:text-orange-200 shrink-0">
                     {examCategories.length} {lang === 'hi' ? 'परीक्षाएं' : 'Exams'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 md:gap-5">
-                  {examCategories.map((cat: CategoryInfo) => {
-                    const maxUnlocked = getCategoryMaxUnlocked(cat.id);
-
-                    return (
-                      <motion.div
-                        key={cat.id}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => handleSelectSubject(cat.id)}
-                        className={`perf-card bg-gradient-to-br ${cat.gradient} text-white ${cat.border3d} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2.5 gap-1">
-                            <div className="w-11 h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                              <AppIcon icon={cat.icon} className="w-6 h-6 stroke-[2.2]" />
-                            </div>
-                            <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full ${cat.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
-                              {cat.badgeText}
-                            </span>
-                          </div>
-
-                          <h3 className="font-black text-sm sm:text-base text-white leading-tight mb-1 tracking-tight drop-shadow-xs line-clamp-1">
-                            {lang === 'hi' ? cat.titleHi : cat.titleEn}
-                          </h3>
-                          <p className="text-[11px] text-white/90 font-medium line-clamp-2 leading-relaxed mb-3">
-                            {lang === 'hi' ? cat.descHi : cat.descEn}
-                          </p>
-                        </div>
-
-                        <div className="mt-2 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-black bg-black/35 text-yellow-300 px-2 py-0.5 rounded-xl border border-white/10 shadow-xs">
-                            Lvl {maxUnlocked} Unlocked
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleStartDirectQuiz(e, cat.id)}
-                            className="px-2.5 py-1 rounded-xl bg-white text-gray-900 hover:bg-yellow-300 text-[10px] font-black flex items-center space-x-1 shadow-xs transition-colors shrink-0"
-                          >
-                            <Play className="w-2.5 h-2.5 fill-current" />
-                            <span>{lang === 'hi' ? 'टेस्ट दें' : 'Test'}</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-1">
+                  {examCategories.map(renderExamCard)}
                 </div>
               </div>
             )}
 
             {/* 2. Indian GS & Academic Subjects Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'subject') && gsSubjectCategories.length > 0 && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400">
+              <div className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-sky-600 dark:text-sky-400 min-w-0 flex-1">
                     <Layers className="w-4 h-4 shrink-0" />
-                    <h2 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white">
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
                       {lang === 'hi' ? 'सामान्य अध्ययन व विषय (General Studies & Subjects)' : 'GS & Core Academic Subjects'}
-                    </h2>
+                    </h3>
                   </div>
-                  <span className="text-[10px] font-bold text-gray-400">
+
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-sky-200/80 dark:bg-sky-900/60 text-sky-950 dark:text-sky-200 shrink-0">
                     {gsSubjectCategories.length} {lang === 'hi' ? 'विषय' : 'Subjects'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 md:gap-5">
-                  {gsSubjectCategories.map((sub: SubjectItem) => {
-                    const maxUnlocked = getCategoryMaxUnlocked(sub.id);
-                    const pinRank = getSubjectPinRank(sub.id);
-
-                    return (
-                      <motion.div
-                        key={sub.id}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => handleSelectSubject(sub.id)}
-                        className={`perf-card bg-gradient-to-br ${sub.gradient} text-white ${sub.border3d} rounded-3xl p-4 sm:p-4.5 text-left shadow-md active:brightness-95 transition-all flex flex-col justify-between group select-none relative overflow-hidden cursor-pointer`}
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-2.5 gap-1">
-                            <div className="w-11 h-11 rounded-2xl bg-black/20 dark:bg-black/40 border border-white/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                              <AppIcon icon={sub.icon} className="w-6 h-6 stroke-[2.2]" />
-                            </div>
-
-                            <div className="flex items-center space-x-1.5">
-                              <button
-                                type="button"
-                                onClick={(e) => handleTogglePin(e, sub.id)}
-                                className={`w-7 h-7 rounded-xl flex items-center justify-center transition-all ${
-                                  pinRank > 0
-                                    ? 'bg-amber-400 text-gray-950 shadow-xs'
-                                    : 'bg-black/20 hover:bg-black/40 text-white/80'
-                                }`}
-                                title={pinRank > 0 ? (lang === 'hi' ? 'होम से अनपिन करें' : 'Unpin from Home') : (lang === 'hi' ? 'होम पर पिन करें' : 'Pin to Home')}
-                              >
-                                <Pin className={`w-3.5 h-3.5 ${pinRank > 0 ? 'fill-gray-950 rotate-45' : ''}`} />
-                              </button>
-                              <span className={`text-[9px] sm:text-[10px] font-black px-2 py-0.5 rounded-full ${sub.badgeBg} shadow-xs whitespace-nowrap shrink-0`}>
-                                {sub.badge}
-                              </span>
-                            </div>
-                          </div>
-
-                          <h3 className="font-black text-sm sm:text-base text-white leading-tight mb-1 tracking-tight drop-shadow-xs line-clamp-1">
-                            {lang === 'hi' ? sub.nameHi : sub.nameEn}
-                          </h3>
-                          <p className="text-[11px] text-white/90 font-medium line-clamp-2 leading-relaxed mb-3">
-                            {lang === 'hi' ? sub.descHi : sub.descEn}
-                          </p>
-                        </div>
-
-                        <div className="mt-2 pt-2.5 border-t border-white/25 flex items-center justify-between gap-1">
-                          <span className="text-[10px] font-black bg-black/35 text-yellow-300 px-2 py-0.5 rounded-xl border border-white/10 shadow-xs">
-                            Lvl {maxUnlocked} Unlocked
-                          </span>
-
-                          <button
-                            type="button"
-                            onClick={(e) => handleStartDirectQuiz(e, sub.id)}
-                            className="px-2.5 py-1 rounded-xl bg-white text-gray-900 hover:bg-yellow-300 text-[10px] font-black flex items-center space-x-1 shadow-xs transition-colors shrink-0"
-                          >
-                            <Play className="w-2.5 h-2.5 fill-current" />
-                            <span>{lang === 'hi' ? 'खेलें' : 'Play'}</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 pt-1">
+                  {gsSubjectCategories.map(renderSubjectCard)}
                 </div>
               </div>
             )}
 
-            {/* 3. State Special Exams Hero Banner */}
+            {/* 3. State Special Exams Hero Banner Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'state') && (
-              <motion.div
-                whileTap={{ scale: 0.99 }}
-                onClick={() => setShowStateModal(true)}
-                className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg border-b-4 border-amber-900 cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4"
-              >
-                <div className="flex items-center space-x-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
-                    🏛️
-                  </div>
-                  <div>
-                    <h3 className="text-base sm:text-lg font-black leading-tight">
-                      {lang === 'hi' ? '🇮🇳 17+ भारतीय राज्य विशेष परीक्षाएं (State Special GK & Exams)' : '🇮🇳 17+ Indian States Special GK & Exams'}
+              <div className="bg-amber-100/90 dark:bg-amber-950/40 p-2 sm:p-3.5 rounded-3xl border-2 border-amber-300/80 dark:border-amber-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+                <div className="flex items-center justify-between gap-2 px-1">
+                  <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 min-w-0 flex-1">
+                    <Landmark className="w-4 h-4 shrink-0" />
+                    <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-gray-800 dark:text-white truncate">
+                      {lang === 'hi' ? 'भारतीय राज्य विशेष परीक्षाएं (17+ States Special GK)' : 'Indian States Special GK & Exams'}
                     </h3>
-                    <p className="text-xs text-white/90 font-medium mt-0.5">
-                      {lang === 'hi'
-                        ? 'उत्तर प्रदेश, बिहार, राजस्थान, एमपी, दिल्ली, हरियाणा व सभी राज्यों की परीक्षाएं खोलें'
-                        : 'Explore UP, Bihar, Rajasthan, MP, Haryana, Delhi & all state exams'}
-                    </p>
                   </div>
+
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-amber-200/80 dark:bg-amber-900/60 text-amber-950 dark:text-amber-200 shrink-0">
+                    17+ States
+                  </span>
                 </div>
 
-                <div className="flex items-center space-x-2 bg-white text-amber-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow-md shrink-0">
-                  <span>{lang === 'hi' ? 'सभी राज्य देखें' : 'View All States'}</span>
-                  <ChevronRight className="w-4 h-4" />
-                </div>
-              </motion.div>
+                <motion.div
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => setShowStateModal(true)}
+                  className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 rounded-3xl p-5 sm:p-6 text-white shadow-lg border-b-4 border-amber-900 cursor-pointer flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="flex items-center space-x-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                      🏛️
+                    </div>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black leading-tight">
+                        {lang === 'hi' ? '🇮🇳 17+ भारतीय राज्य विशेष परीक्षाएं (State Special GK & Exams)' : '🇮🇳 17+ Indian States Special GK & Exams'}
+                      </h3>
+                      <p className="text-xs text-white/90 font-medium mt-0.5">
+                        {lang === 'hi'
+                          ? 'उत्तर प्रदेश, बिहार, राजस्थान, एमपी, दिल्ली, हरियाणा व सभी राज्यों की परीक्षाएं खोलें'
+                          : 'Explore UP, Bihar, Rajasthan, MP, Haryana, Delhi & all state exams'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 bg-white text-amber-950 font-black text-xs px-4 py-2.5 rounded-2xl shadow-md shrink-0">
+                    <span>{lang === 'hi' ? 'सभी राज्य देखें' : 'View All States'}</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {/* Empty State for India Mode */}
+            {examCategories.length === 0 && gsSubjectCategories.length === 0 && (
+              <div className="text-center py-12 px-4 bg-white/60 dark:bg-white/5 rounded-3xl border border-gray-200 dark:border-white/10">
+                <p className="text-gray-500 dark:text-gray-400 text-sm font-bold">
+                  {lang === 'hi' ? 'कोई परीक्षा या विषय नहीं मिला। कृपया दूसरा शब्द खोजें।' : 'No exams or subjects found matching your search.'}
+                </p>
+              </div>
             )}
           </div>
         )}

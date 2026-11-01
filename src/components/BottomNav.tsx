@@ -1,55 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Home, BookOpen, BarChart3, User } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { motion } from 'framer-motion';
 
+function useScrollDirection() {
+  const [scrollDirection, setScrollDirection] = useState<'up' | 'down'>('up');
+
+  useEffect(() => {
+    let lastScrollY = window.pageYOffset || window.scrollY || 0;
+
+    const updateScrollDirection = () => {
+      const scrollY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || 0;
+      
+      // Always show when near the top of the page
+      if (scrollY <= 40) {
+        setScrollDirection('up');
+        lastScrollY = scrollY > 0 ? scrollY : 0;
+        return;
+      }
+
+      const diff = scrollY - lastScrollY;
+      // Instant trigger on 6px scroll
+      if (diff > 6 && scrollDirection !== 'down') {
+        setScrollDirection('down');
+      } else if (diff < -6 && scrollDirection !== 'up') {
+        setScrollDirection('up');
+      }
+
+      lastScrollY = scrollY > 0 ? scrollY : 0;
+    };
+
+    window.addEventListener('scroll', updateScrollDirection, { passive: true });
+    return () => window.removeEventListener('scroll', updateScrollDirection);
+  }, [scrollDirection]);
+
+  return scrollDirection;
+}
+
 export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) => {
   const { t, lang } = useAppContext();
   const location = useLocation();
   const currentPath = location.pathname;
-
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-
-  // Always show on page route change
-  useEffect(() => {
-    setIsVisible(true);
-    lastScrollY.current = window.scrollY || 0;
-  }, [currentPath]);
-
-  // Track scroll direction: Hide when scrolling down, show when scrolling up
-  useEffect(() => {
-    let ticking = false;
-
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
-          const diff = currentScrollY - lastScrollY.current;
-
-          // Always show when near the very top of page
-          if (currentScrollY <= 45) {
-            setIsVisible(true);
-          } else if (diff > 8) {
-            // User scrolled down (down to up swipe) -> slide away
-            setIsVisible(false);
-          } else if (diff < -8) {
-            // User scrolled up (up to down swipe) -> slide back into view
-            setIsVisible(true);
-          }
-
-          lastScrollY.current = Math.max(0, currentScrollY);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  const scrollDirection = useScrollDirection();
 
   const navItems = [
     { to: '/', icon: Home, label: t('home'), checkActive: (p: string) => p === '/' },
@@ -59,18 +53,10 @@ export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) 
   ];
 
   return (
-    <motion.nav 
-      initial={false}
-      animate={{ 
-        x: '-50%',
-        y: isVisible ? 0 : 80,
-        opacity: isVisible ? 1 : 0
-      }}
-      transition={{ 
-        duration: 0.24, 
-        ease: [0.22, 1, 0.36, 1] 
-      }}
-      className={`fixed bottom-[5px] left-1/2 w-[90%] max-w-[330px] md:hidden bg-white/95 dark:bg-[#141828]/95 border border-white/70 dark:border-white/[0.14] p-1 px-1.5 flex justify-around items-center z-50 rounded-full shadow-[0_8px_28px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.6)] dark:shadow-[0_12px_35px_-4px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.1)] select-none ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'} ${className}`}
+    <nav 
+      className={`fixed bottom-[8px] left-1/2 -translate-x-1/2 w-[90%] max-w-[330px] md:hidden bg-white/95 dark:bg-[#141828]/95 border border-white/70 dark:border-white/[0.14] p-1 px-1.5 flex justify-around items-center z-50 rounded-full shadow-[0_8px_28px_rgba(0,0,0,0.12),inset_0_1px_1.5px_rgba(255,255,255,0.6)] dark:shadow-[0_12px_35px_-4px_rgba(0,0,0,0.7),inset_0_1px_1px_rgba(255,255,255,0.1)] select-none transition-transform duration-300 ease-in-out ${
+        scrollDirection === 'down' ? 'translate-y-[130px]' : 'translate-y-0'
+      } ${className}`}
     >
       {navItems.map(({ to, icon: Icon, label, checkActive }) => {
         const isActive = checkActive(currentPath);
@@ -105,7 +91,6 @@ export const BottomNav: React.FC<{ className?: string }> = ({ className = '' }) 
           </NavLink>
         );
       })}
-    </motion.nav>
+    </nav>
   );
 };
-

@@ -950,7 +950,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   // Sync state with LocalStorage safely
-  useEffect(() => { safeStorageSet('lang', lang); }, [lang]);
+  useEffect(() => { 
+    safeStorageSet('lang', lang); 
+    document.documentElement.lang = lang;
+  }, [lang]);
   useEffect(() => { safeStorageSet('xp', xp.toString()); }, [xp]);
   useEffect(() => { safeStorageSet('streak', streak.toString()); }, [streak]);
   useEffect(() => { safeStorageSet('hearts', hearts.toString()); }, [hearts]);

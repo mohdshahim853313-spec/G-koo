@@ -5,14 +5,17 @@ import { App as CapApp } from '@capacitor/app';
 import { BottomNav } from './components/BottomNav';
 import { Sidebar } from './components/Sidebar';
 import { AppProvider } from './AppContext';
-import { GkooSplashScreen } from './components/GkooSplashScreen';
 import { ExitConfirmModal } from './components/ExitConfirmModal';
 import { triggerSmartAutoSync } from './lib/sheetSync';
+import { triggerHaptic } from './lib/audio';
 import Dashboard from './pages/Dashboard';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { GkooSplashScreen } from './components/GkooSplashScreen';
+import { initializeAdMob, hideBannerAd, resumeBannerAd } from './services/admobService';
+import { isAndroidApp } from './utils/platform';
 
 // Lazy load non-tab secondary pages only
 const Subjects = lazy(() => import('./pages/Subjects'));
@@ -38,6 +41,16 @@ function ScrollToTop() {
   return null;
 }
 
+const MAIN_TABS = ['/', '/subjects', '/leaderboard', '/profile'];
+
+const getTabIndex = (path: string): number => {
+  if (path === '/') return 0;
+  if (path === '/subjects') return 1;
+  if (path === '/leaderboard' || path === '/report' || path === '/analytics') return 2;
+  if (path === '/profile') return 3;
+  return -1;
+};
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -48,6 +61,65 @@ function AppContent() {
   showExitConfirmRef.current = showExitConfirm;
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
+
+  // AdMob Banner & SDK Lifecycle Management (APK ONLY, NEVER on Web)
+  useEffect(() => {
+    if (isAndroidApp() && Capacitor.isNativePlatform()) {
+      initializeAdMob();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isAndroidApp() || !Capacitor.isNativePlatform()) return;
+
+    // STRICT USER DIRECTIVE: Home screen ('/') and Quiz ('/quiz') must NEVER show ads!
+    if (pathname === '/' || isQuiz) {
+      hideBannerAd();
+    } else {
+      resumeBannerAd();
+    }
+  }, [pathname, isQuiz]);
+
+  const currentTabIdx = getTabIndex(pathname);
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isQuiz || currentTabIdx === -1) return;
+    const touch = e.touches[0];
+    touchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+      time: Date.now(),
+    };
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStartRef.current || isQuiz || currentTabIdx === -1) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - touchStartRef.current.x;
+    const dy = touch.clientY - touchStartRef.current.y;
+    const dt = Date.now() - touchStartRef.current.time;
+    touchStartRef.current = null;
+
+    // Check if target is an interactive horizontal scroll or input
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('input, textarea, select, [role="slider"], [role="dialog"], .overflow-x-auto, .scrollbar-none')) {
+      return;
+    }
+
+    // Swipe criteria: fast enough (<480ms), distance >= 55px, and horizontal dominant
+    if (dt < 480 && Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && currentTabIdx < MAIN_TABS.length - 1) {
+        // Swipe Left (finger goes right to left) -> Next tab
+        triggerHaptic('click');
+        navigate(MAIN_TABS[currentTabIdx + 1]);
+      } else if (dx > 0 && currentTabIdx > 0) {
+        // Swipe Right (finger goes left to right) -> Previous tab
+        triggerHaptic('click');
+        navigate(MAIN_TABS[currentTabIdx - 1]);
+      }
+    }
+  };
 
   // Handle Capacitor Native Android Back Button & Leaving Confirmation
   useEffect(() => {
@@ -125,23 +197,17 @@ function AppContent() {
     }
   };
 
-  // Google Sheets Auto-Sync Engine:
-  // 1. Full auto-sync whenever user opens or switches to the app (if internet is available).
-  // 2. Guaranteed 2x a day sync (every 12 hours) in background.
-  // 3. Auto-syncs as soon as device reconnects to internet.
+  // Google Sheets Auto-Sync Engine
   useEffect(() => {
-    // A. Initial launch sync (1.2s delay for instant zero-wait UI render)
     const initTimer = setTimeout(() => {
       triggerSmartAutoSync(true).catch(() => {});
     }, 1200);
 
-    // B. Reconnection to internet event
     const handleOnline = () => {
       triggerSmartAutoSync(true).catch(() => {});
     };
     window.addEventListener('online', handleOnline);
 
-    // C. Visibility change (when user returns/switches back to app tab)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         triggerSmartAutoSync(true).catch(() => {});
@@ -149,7 +215,6 @@ function AppContent() {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // D. Capacitor Native Android App Resume listener
     let appStateHandle: any = null;
     if (Capacitor.isNativePlatform()) {
       try {
@@ -165,7 +230,6 @@ function AppContent() {
       }
     }
 
-    // E. Periodic background timer check for 2x daily schedule (every 20 minutes)
     const periodicTimer = setInterval(() => {
       triggerSmartAutoSync(false).catch(() => {});
     }, 20 * 60 * 1000);
@@ -183,6 +247,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen w-full bg-[#FCF9F7] dark:bg-[#0F121E] flex font-sans">
+      <GkooSplashScreen />
       <ScrollToTop />
 
       {/* Pinned Slim Mobile Status Bar Header */}
@@ -195,7 +260,11 @@ function AppContent() {
       {!isQuiz && <Sidebar />}
 
       {/* Main Content Area */}
-      <div className={`w-full flex-1 relative flex flex-col min-h-screen ${!isQuiz ? 'md:pl-64' : ''}`}>
+      <div 
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className={`w-full flex-1 relative flex flex-col min-h-screen ${!isQuiz ? 'md:pl-64' : ''}`}
+      >
         <ErrorBoundary fallbackTitle="पेज लोड करने में समस्या आई">
           <Suspense fallback={<RouteFallback />}>
             <Routes>
@@ -219,7 +288,6 @@ function AppContent() {
           </Suspense>
         </ErrorBoundary>
         {!isQuiz && <BottomNav />}
-        <GkooSplashScreen />
         <ExitConfirmModal
           isOpen={showExitConfirm}
           onStay={() => setShowExitConfirm(false)}
@@ -241,5 +309,3 @@ export default function App() {
     </ErrorBoundary>
   );
 }
-
-

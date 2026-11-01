@@ -2,6 +2,9 @@ package com.gkoo.app;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Message;
 import android.webkit.WebChromeClient;
@@ -17,8 +20,17 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        // Ensure window background is always G-koo theme color #FF5F6D (never black)
+        getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#FF5F6D")));
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setStatusBarContrastEnforced(false);
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
+        
         if (this.bridge != null && this.bridge.getWebView() != null) {
             WebView webView = this.bridge.getWebView();
+            webView.setBackgroundColor(Color.parseColor("#FF5F6D"));
             WebSettings settings = webView.getSettings();
             settings.setJavaScriptEnabled(true);
             settings.setJavaScriptCanOpenWindowsAutomatically(true);

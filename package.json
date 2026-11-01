@@ -10,9 +10,11 @@
     "cap:open": "npx cap open android",
     "lint": "oxlint",
     "icons:generate": "node scripts/generate_android_icons.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "splash:generate": "node scripts/generate-splash.cjs"
   },
   "dependencies": {
+    "@capacitor-community/admob": "^8.0.0",
     "@capacitor-community/text-to-speech": "^8.0.2",
     "@capacitor/android": "^8.5.1",
     "@capacitor/app": "^8.1.2",

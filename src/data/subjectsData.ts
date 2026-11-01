@@ -373,5 +373,39 @@ export const ALL_SUBJECTS_LIST: SubjectItem[] = [
     syllabusTopicHi: 'अंतर्राष्ट्रीय संगठन, संयुक्त राष्ट्र संघ (UN, WHO, UNESCO, IMF), ब्रिक्स, जी20, वैश्विक संधियां, अंतर्राष्ट्रीय न्यायालय और विदेश नीति',
     difficulty: 'medium',
     badge: 'Global Affairs'
+  },
+  {
+    id: 'sub_world_history',
+    nameEn: 'World History (Global Revolutions & Empires)',
+    nameHi: 'विश्व इतिहास (World History - क्रांतियां व युद्ध)',
+    shortName: 'World History',
+    category: 'General Studies',
+    icon: '🏛️',
+    gradient: 'from-amber-700 via-orange-800 to-stone-900',
+    border3d: 'border-b-[5px] border-stone-950',
+    badgeBg: 'bg-amber-300 text-amber-950',
+    descEn: 'World Wars, Industrial Revolution, French Revolution, Renaissance, Rome & Greece',
+    descHi: 'विश्व युद्ध, फ्रांसीसी क्रांति, पुनर्जागरण, औद्योगिक क्रांति, प्राचीन रोम व मिस्र',
+    syllabusTopicEn: 'World History, World War I & II, French Revolution, Russian Revolution, Industrial Revolution, Renaissance, Ancient Egypt, Greek and Roman Civilizations, Cold War, League of Nations and Global Treaties',
+    syllabusTopicHi: 'विश्व इतिहास, प्रथम व द्वितीय विश्व युद्ध, फ्रांसीसी क्रांति, रूसी क्रांति, औद्योगिक क्रांति, पुनर्जागरण, प्राचीन मिस्र, ग्रीक व रोमन सभ्यताएं, शीत युद्ध और वैश्विक संधियां',
+    difficulty: 'hard',
+    badge: 'World Series'
+  },
+  {
+    id: 'sub_world_geography',
+    nameEn: 'World Geography (Continents, Oceans & Climates)',
+    nameHi: 'विश्व भूगोल (World Geography - महाद्वीप व महासागर)',
+    shortName: 'World Geography',
+    category: 'General Studies',
+    icon: '🌍',
+    gradient: 'from-emerald-600 via-teal-700 to-cyan-900',
+    border3d: 'border-b-[5px] border-teal-950',
+    badgeBg: 'bg-emerald-300 text-emerald-950',
+    descEn: '7 Continents, Oceans, Amazon, Nile, Alps, Sahara Desert & Climate Zones',
+    descHi: '7 महाद्वीप, महासागर, अमेज़न-नील नदियां, आल्प्स-एंडीज पर्वत, सहारा मरुस्थल व जलवायु',
+    syllabusTopicEn: 'World Geography, 7 Continents, 5 Oceans, Global Rivers (Nile, Amazon, Danube), Mountain Ranges (Alps, Andes, Rockies), Deserts (Sahara, Gobi), Climate Zones, Ocean Currents, Volcanoes and World Maps',
+    syllabusTopicHi: 'विश्व भूगोल, सातों महाद्वीप, पांचों महासागर, विश्व की नदियां (नील, अमेज़न), पर्वतमालाएं (आल्प्स, एंडीज), रेगिस्तान (सहारा), महासागरीय धाराएं, ज्वालामुखी व विश्व मानचित्र',
+    difficulty: 'medium',
+    badge: 'World Series'
   }
 ];

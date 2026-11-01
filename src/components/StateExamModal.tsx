@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ALL_INDIA_STATES, type StateData, type StateExamItem } from '../data/stateExamsData';
+import { ALL_INDIA_STATES, type StateData } from '../data/stateExamsData';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { 
@@ -32,7 +32,7 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
   onClose,
   initialStateId = null 
 }) => {
-  const { lang } = useAppContext();
+  const { lang, setActiveCategory, getCategoryMaxUnlocked } = useAppContext();
   const navigate = useNavigate();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,14 +91,12 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
     togglePinExam(examId);
   };
 
-  const handleStartExamQuiz = (exam: StateExamItem, state: StateData) => {
+  const handleOpenExamLevels = (categoryId: string) => {
     triggerHaptic('click');
+    setActiveCategory(categoryId);
     onClose();
-
-    const topicParam = lang === 'hi' ? exam.syllabusTopicHi : exam.syllabusTopicEn;
-    const promptParam = `Focus on authentic examination questions for ${exam.nameEn} (${state.nameEn}). Include state special GK, past year pattern questions, constitutional and factual topics.`;
-
-    navigate(`/quiz/${exam.id}?topic=${encodeURIComponent(topicParam)}&prompt=${encodeURIComponent(promptParam)}&diff=${exam.difficulty}&count=15`);
+    navigate('/map');
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   };
 
   const handleBackToStates = () => {
@@ -279,7 +277,7 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                           <AppIcon icon={selectedState.icon} className="w-8 h-8 stroke-[2.2]" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <h4 className="text-base font-black leading-tight drop-shadow-xs truncate">
+                          <h4 className="text-base font-black leading-snug pt-1 pb-0.5 drop-shadow-xs truncate">
                             {lang === 'hi' ? selectedState.nameHi : selectedState.nameEn}
                           </h4>
                           <p className="text-[11px] text-white/90 font-medium mt-0.5 truncate">
@@ -308,12 +306,15 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                 <div className="space-y-3">
                   {selectedState.exams.map((exam) => {
                     const isExamPinned = pinnedExams.includes(exam.id);
+                    const maxUnlocked = getCategoryMaxUnlocked(exam.id);
 
                     return (
                       <motion.div
                         key={exam.id}
                         whileHover={{ scale: 1.01 }}
-                        className={`p-4 rounded-2xl border-2 transition-all bg-white dark:bg-[#1A2232] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left ${
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => handleOpenExamLevels(exam.id)}
+                        className={`p-4 rounded-2xl border-2 transition-all bg-white dark:bg-[#1A2232] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-left cursor-pointer ${
                           isExamPinned
                             ? 'border-amber-400 dark:border-amber-500/80 bg-amber-50/20 dark:bg-amber-950/20 ring-1 ring-amber-400/40'
                             : 'border-gray-100 dark:border-gray-800 hover:border-amber-400 dark:hover:border-amber-600/60'
@@ -327,10 +328,13 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                             <span className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-500">
                               {exam.category}
                             </span>
+                            <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-amber-400 text-gray-950 shadow-2xs">
+                              Level {maxUnlocked}
+                            </span>
                             {isExamPinned && (
                               <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-400 text-gray-950 shadow-2xs flex items-center space-x-1">
                                 <Pin className="w-2.5 h-2.5 fill-gray-950" />
-                                <span>{lang === 'hi' ? 'होम पर पिन है' : 'Pinned to Home'}</span>
+                                <span>{lang === 'hi' ? 'होम पर पिन है' : 'Pinned'}</span>
                               </span>
                             )}
                           </div>
@@ -343,13 +347,13 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
                           </p>
                         </div>
 
-                        {/* Action buttons (Pin + Start Test) */}
-                        <div className="flex items-center space-x-2 shrink-0 pt-1 sm:pt-0">
+                        {/* Action buttons (Pin + Play Levels) */}
+                        <div className="flex items-center space-x-2 shrink-0 pt-1 sm:pt-0" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             title={isExamPinned ? 'Unpin Exam' : 'Pin Exam to Home'}
                             onClick={(e) => handleToggleExamPin(e, exam.id)}
-                            className={`p-2.5 rounded-xl font-bold text-xs flex items-center justify-center transition-all active:scale-90 ${
+                            className={`p-2.5 rounded-xl font-bold text-xs flex items-center justify-center transition-all active:scale-90 cursor-pointer ${
                               isExamPinned
                                 ? 'bg-amber-400 text-gray-950 shadow-xs ring-2 ring-amber-300'
                                 : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-gray-200 dark:border-gray-700'
@@ -360,11 +364,11 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
 
                           <motion.button
                             whileTap={{ scale: 0.94 }}
-                            onClick={() => handleStartExamQuiz(exam, selectedState)}
-                            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#FF5F6D] to-rose-600 hover:from-rose-500 hover:to-rose-700 text-white font-black text-xs shadow-md border-b-2 border-rose-900 flex items-center justify-center space-x-1.5 shrink-0 active:scale-95 cursor-pointer"
+                            onClick={() => handleOpenExamLevels(exam.id)}
+                            className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white font-black text-xs shadow-md border-b-2 border-rose-900 flex items-center justify-center space-x-1.5 shrink-0 active:scale-95 cursor-pointer"
                           >
                             <Play className="w-3.5 h-3.5 fill-white" />
-                            <span>{lang === 'hi' ? 'टेस्ट शुरू करें (15 Qs)' : 'Start Test (15 Qs)'}</span>
+                            <span>{lang === 'hi' ? `Level ${maxUnlocked} खेलें` : `Play Level ${maxUnlocked}`}</span>
                           </motion.button>
                         </div>
                       </motion.div>
@@ -378,8 +382,8 @@ export const StateExamModal: React.FC<StateExamModalProps> = ({
           {/* Footer Note */}
           <div className="p-3 bg-gray-50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-800/80 text-center text-[10px] font-bold text-gray-500 dark:text-gray-400 shrink-0">
             {lang === 'hi' 
-              ? 'टिप: किसी भी राज्य या परीक्षा को पिन करें ताकि वह सीधे आपके होम स्क्रीन पर उपलब्ध रहे' 
-              : 'Tip: Pin any state or exam to display it prominently on your Home screen'}
+              ? 'टिप: किसी भी परीक्षा पर क्लिक करके सीधे उसके सभी लेवल्स (Levels) खेलें' 
+              : 'Tip: Click any exam to play its progressive level road map'}
           </div>
         </motion.div>
       </div>

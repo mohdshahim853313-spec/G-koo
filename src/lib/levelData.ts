@@ -1,6 +1,7 @@
 import { ALL_SUBJECTS_LIST } from '../data/subjectsData';
 import { SUBJECT_TOPIC_BANK } from '../data/subjectTopicsBank';
 import { INDIA_150_TOPICS } from '../data/indiaTopicsBank';
+import { ALL_INDIA_STATES } from '../data/stateExamsData';
 
 // Universal sector size: exactly 50 levels per sector across all subjects & categories
 export const LEVELS_PER_SECTOR = 50;
@@ -244,6 +245,47 @@ export function getCategoryInfo(categoryId: string): CategoryInfo {
     };
   }
 
+  // Check state exams and states
+  for (const state of ALL_INDIA_STATES) {
+    const exam = state.exams.find(e => e.id === categoryId);
+    if (exam) {
+      return {
+        id: exam.id,
+        icon: state.icon,
+        titleKey: exam.id,
+        descKey: exam.id,
+        titleEn: exam.nameEn,
+        titleHi: exam.nameHi,
+        descEn: exam.descEn,
+        descHi: exam.descHi,
+        type: 'exam',
+        gradient: state.gradient || 'from-amber-500 via-orange-600 to-rose-600',
+        border3d: 'border-b-[4px] border-amber-800',
+        activeBorder: 'active:border-b-[2px]',
+        badgeBg: 'bg-amber-400 text-gray-950',
+        badgeText: exam.badge || exam.category,
+      };
+    }
+    if (state.id === categoryId || `state_${state.id}` === categoryId) {
+      return {
+        id: state.id,
+        icon: state.icon,
+        titleKey: state.id,
+        descKey: state.id,
+        titleEn: state.nameEn,
+        titleHi: state.nameHi,
+        descEn: `${state.nameEn} Competitive Exams & State GK`,
+        descHi: `${state.nameHi} प्रतियोगी परीक्षाएं व राज्य सामान्य ज्ञान`,
+        type: 'exam',
+        gradient: state.gradient,
+        border3d: 'border-b-[4px] border-amber-800',
+        activeBorder: 'active:border-b-[2px]',
+        badgeBg: 'bg-amber-400 text-gray-950',
+        badgeText: 'State Special',
+      };
+    }
+  }
+
   return CATEGORIES_LIST[0];
 }
 
@@ -473,6 +515,157 @@ export function getCategoryLevelConfig(categoryId: string, levelNumber: number):
           icon: "👑"
         }
       ];
+    }
+  }
+
+  if (!catTopics) {
+    for (const state of ALL_INDIA_STATES) {
+      const exam = state.exams.find(e => e.id === categoryId);
+      if (exam) {
+        catTopics = [
+          {
+            titleEn: `${exam.shortName} Foundation & Key Concepts`,
+            titleHi: `${exam.nameHi} - आधारभूत ज्ञान`,
+            descEn: `Core principles and fundamentals for ${exam.nameEn}`,
+            descHi: `${exam.nameHi} के मूलभूत सिद्धांत और संकल्पनाएं`,
+            promptEn: `Fundamentals for ${exam.nameEn} (${state.nameEn}), ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} की मूलभूत संकल्पनाएं, ${exam.syllabusTopicHi}`,
+            icon: state.icon
+          },
+          {
+            titleEn: `${exam.shortName} State GK & History`,
+            titleHi: `${exam.nameHi} - राज्य सामान्य ज्ञान व इतिहास`,
+            descEn: `Important state facts, history and heritage of ${state.nameEn}`,
+            descHi: `${state.nameHi} का इतिहास, धरोहर और प्रमुख राज्य तथ्य`,
+            promptEn: `${state.nameEn} state GK, history, culture, dynasties and heritage for ${exam.nameEn}`,
+            promptHi: `${state.nameHi} का इतिहास, संस्कृति और राज्य सामान्य ज्ञान, ${exam.syllabusTopicHi}`,
+            icon: '🏛️'
+          },
+          {
+            titleEn: `${exam.shortName} Geography & Environment`,
+            titleHi: `${exam.nameHi} - राज्य भूगोल व पर्यावरण`,
+            descEn: `Rivers, wildlife, agriculture and climate of ${state.nameEn}`,
+            descHi: `${state.nameHi} की नदियां, वन्यजीव, कृषि और भौगोलिक व्यवस्था`,
+            promptEn: `${state.nameEn} geography, rivers, dams, national parks and climate for ${exam.nameEn}`,
+            promptHi: `${state.nameHi} का भूगोल, प्रमुख नदियां, अभयारण्य और जलवायु`,
+            icon: '🏞️'
+          },
+          {
+            titleEn: `${exam.shortName} Polity, Administration & Economy`,
+            titleHi: `${exam.nameHi} - राजव्यवस्था, प्रशासन व अर्थव्यवस्था`,
+            descEn: `State administration, Panchayati Raj, budget & schemes of ${state.nameEn}`,
+            descHi: `${state.nameHi} की प्रशासनिक व्यवस्था, पंचायती राज व जनकल्याणकारी योजनाएं`,
+            promptEn: `${state.nameEn} state polity, legislative assembly, panchayati raj, economy and budget for ${exam.nameEn}`,
+            promptHi: `${state.nameHi} की राजव्यवस्था, विधानसभा, पंचायती राज और सरकारी योजनाएं`,
+            icon: '📊'
+          },
+          {
+            titleEn: `🎁 ${exam.shortName} Milestone Stage`,
+            titleHi: `🎁 ${exam.nameHi} - माइलस्टोन स्टेज`,
+            descEn: `High-yield milestone test with bonus chest rewards!`,
+            descHi: `बोनस संदूक इनामों के साथ विशेष माइलस्टोन टेस्ट!`,
+            promptEn: `High-yield past year exam questions on ${exam.nameEn} (${state.nameEn}), ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} के उच्च स्तरीय महत्वपूर्ण पिछले वर्षों के प्रश्न`,
+            icon: '🎁'
+          },
+          {
+            titleEn: `${exam.shortName} Core Syllabus Advanced Stage`,
+            titleHi: `${exam.nameHi} - मुख्य पाठ्यक्रम उन्नत चरण`,
+            descEn: `Advanced high-weightage topics and past exam patterns for ${exam.nameEn}`,
+            descHi: `${exam.nameHi} के गहन और उच्च अंक वाले महत्वपूर्ण विषय`,
+            promptEn: `Advanced high-weightage topics and difficult questions for ${exam.nameEn}, ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} के कठिन व उच्च स्तरीय प्रश्न`,
+            icon: state.icon
+          },
+          {
+            titleEn: `${exam.shortName} Speed & Accuracy Test`,
+            titleHi: `${exam.nameHi} - स्पीड व सटीकता टेस्ट`,
+            descEn: `Fast-paced question solving for high competitive score`,
+            descHi: `${exam.nameHi} में तीव्र गति व सटीकता की परख`,
+            promptEn: `Speed-oriented competitive questions for ${exam.nameEn}, ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} के तीव्र गति स्पीड टेस्ट प्रश्न`,
+            icon: '⚡'
+          },
+          {
+            titleEn: `${exam.shortName} Current Affairs & State Schemes`,
+            titleHi: `${exam.nameHi} - समसामयिकी व राज्य योजनाएं`,
+            descEn: `Latest state developments, awards, budget and policy updates`,
+            descHi: `${state.nameHi} की नवीनतम समसामयिकी, पुरस्कार और प्रमुख नीतियां`,
+            promptEn: `Current affairs, government schemes, awards and events for ${state.nameEn} and ${exam.nameEn}`,
+            promptHi: `${state.nameHi} की समसामयिकी और महत्वपूर्ण सरकारी योजनाएं`,
+            icon: '📰'
+          },
+          {
+            titleEn: `${exam.shortName} Pre-Boss Qualifier`,
+            titleHi: `${exam.nameHi} - प्री-बॉस क्वालीफायर`,
+            descEn: `Ultimate preparation before the sector boss battle!`,
+            descHi: `सेक्टर बॉस मुकाबले से पहले की अंतिम तैयारी!`,
+            promptEn: `Pre-boss comprehensive exam on ${exam.nameEn} (${state.nameEn}), ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} का प्री-बॉस महा-टेस्ट`,
+            icon: '🔥'
+          },
+          {
+            titleEn: `👑 ${exam.shortName} Grand Sector Boss`,
+            titleHi: `👑 ${exam.nameHi} - महा-बॉस मुकाबला`,
+            descEn: `The Supreme Championship Test across all ${exam.nameEn} syllabus!`,
+            descHi: `${exam.nameHi} का संपूर्ण महा-बॉस मुकाबला!`,
+            promptEn: `Supreme championship boss exam covering all syllabus of ${exam.nameEn} (${state.nameEn}), ${exam.syllabusTopicEn}`,
+            promptHi: `${exam.nameHi} का संपूर्ण और सर्वोच्च महा-बॉस टेस्ट`,
+            icon: '👑'
+          }
+        ];
+        break;
+      }
+      if (state.id === categoryId || `state_${state.id}` === categoryId) {
+        catTopics = [
+          {
+            titleEn: `${state.nameEn} History & Heritage`,
+            titleHi: `${state.nameHi} का इतिहास व धरोहर`,
+            descEn: `Historical landmarks and ancient dynasties of ${state.nameEn}`,
+            descHi: `${state.nameHi} के ऐतिहासिक स्थल, राजवंश और स्वतंत्रता सेनानी`,
+            promptEn: `History and heritage of ${state.nameEn}`,
+            promptHi: `${state.nameHi} का इतिहास और ऐतिहासिक स्थल`,
+            icon: state.icon
+          },
+          {
+            titleEn: `${state.nameEn} Geography & Rivers`,
+            titleHi: `${state.nameHi} का भूगोल व नदियां`,
+            descEn: `Rivers, mountains, soil and climate of ${state.nameEn}`,
+            descHi: `${state.nameHi} की नदियां, पर्वत, मिट्टी और जलवायु`,
+            promptEn: `Geography, rivers and climate of ${state.nameEn}`,
+            promptHi: `${state.nameHi} का भूगोल, नदियां और अभयारण्य`,
+            icon: '🏞️'
+          },
+          {
+            titleEn: `${state.nameEn} Culture, Arts & Fairs`,
+            titleHi: `${state.nameHi} की संस्कृति, कला व मेले`,
+            descEn: `Folk dances, music, festivals and traditions of ${state.nameEn}`,
+            descHi: `${state.nameHi} के लोक नृत्य, संगीत, त्यौहार और मेले`,
+            promptEn: `Culture, folk arts, festivals and traditions of ${state.nameEn}`,
+            promptHi: `${state.nameHi} की कला, संस्कृति और लोक उत्सव`,
+            icon: '🎭'
+          },
+          {
+            titleEn: `${state.nameEn} Administration & Schemes`,
+            titleHi: `${state.nameHi} की राजव्यवस्था व योजनाएं`,
+            descEn: `State polity, governor, assembly and state government schemes`,
+            descHi: `${state.nameHi} की विधानसभा, राज्यपाल और प्रमुख सरकारी योजनाएं`,
+            promptEn: `Polity, governance and welfare schemes of ${state.nameEn}`,
+            promptHi: `${state.nameHi} की शासन व्यवस्था और जनकल्याण योजनाएं`,
+            icon: '🏛️'
+          },
+          {
+            titleEn: `👑 ${state.nameEn} Grand State Titan Boss`,
+            titleHi: `👑 ${state.nameHi} महा-राज्य टाइटैन बॉस`,
+            descEn: `Comprehensive State GK Championship!`,
+            descHi: `${state.nameHi} का संपूर्ण राज्य ज्ञान महा-मुकाबला!`,
+            promptEn: `Comprehensive examination questions on ${state.nameEn} state GK and competitive topics`,
+            promptHi: `${state.nameHi} का संपूर्ण महा-टेस्ट`,
+            icon: '👑'
+          }
+        ];
+        break;
+      }
     }
   }
 

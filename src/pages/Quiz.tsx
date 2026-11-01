@@ -12,8 +12,8 @@ import { recordQuestionAnswer, getAllIncorrectQuestions } from '../lib/questionT
 import { saveCategoryAssignedQuestions, isLevelCacheCorruptedWithDuplicates } from '../lib/levelDeduplicator';
 import { MistakesReviewModal, type MistakeRecord } from '../components/MistakesReviewModal';
 import { RateAppModal } from '../components/RateAppModal';
-import { AdMobRewardModal } from '../components/AdMobRewardModal';
 import { isAndroidApp } from '../utils/platform';
+import { triggerQuizCompletionInterstitial, showRewardedVideoAd } from '../services/admobService';
 
 const QUIT_MESSAGES = [
   {
@@ -65,13 +65,13 @@ const shuffleQuestionsAndOptions = (rawList: QuizQuestion[]): QuizQuestion[] => 
 
 // Auto-purge stale / unbalanced question cache if older than v2
 try {
-  if (typeof window !== 'undefined' && localStorage.getItem('gkoo_q_cache_v') !== 'v2_shuffled') {
+  if (typeof window !== 'undefined' && localStorage.getItem('gkoo_q_cache_v') !== 'v3_state_exams') {
     Object.keys(localStorage).forEach(k => {
-      if (k.startsWith('gkoo_level_q_') || k.startsWith('gkoo_active_quiz_session')) {
+      if (k.startsWith('gkoo_level_q_') || k.startsWith('gkoo_cat_') || k.startsWith('gkoo_active_quiz_session')) {
         localStorage.removeItem(k);
       }
     });
-    localStorage.setItem('gkoo_q_cache_v', 'v2_shuffled');
+    localStorage.setItem('gkoo_q_cache_v', 'v3_state_exams');
   }
 } catch { }
 
@@ -252,7 +252,53 @@ export default function Quiz() {
   const [isOfflineBlocked, setIsOfflineBlocked] = useState(false);
   const [showOfflineBanner, setShowOfflineBanner] = useState(true);
   const [showRateModal, setShowRateModal] = useState(false);
-  const [showAdMobModal, setShowAdMobModal] = useState(false);
+  const [isWatchingRewardAd, setIsWatchingRewardAd] = useState(false);
+  const [rewardAdTimer, setRewardAdTimer] = useState(5);
+
+  // Live countdown timer for video reward (directly on screen without modal popup)
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | null = null;
+    if (isWatchingRewardAd) {
+      interval = setInterval(() => {
+        setRewardAdTimer((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval!);
+            setIsWatchingRewardAd(false);
+            refillHearts();
+            setQuizHearts(5);
+            playSound('success', soundEnabled);
+            triggerHaptic('success', hapticsEnabled);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isWatchingRewardAd, refillHearts, soundEnabled, hapticsEnabled]);
+
+  const handleWatchVideoReward = async () => {
+    triggerHaptic('click', hapticsEnabled);
+    setIsWatchingRewardAd(true);
+    setRewardAdTimer(5);
+
+    if (isAndroidApp()) {
+      try {
+        const res = await showRewardedVideoAd();
+        if (res.success) {
+          setIsWatchingRewardAd(false);
+          refillHearts();
+          setQuizHearts(5);
+          playSound('success', soundEnabled);
+          triggerHaptic('success', hapticsEnabled);
+        }
+      } catch {
+        // Fallback timer will complete and grant hearts
+      }
+    }
+  };
   const [currentIndex, setCurrentIndex] = useState<number>(() => savedResumeSession?.currentIndex ?? 0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [isAnswerChecked, setIsAnswerChecked] = useState(false);
@@ -587,7 +633,9 @@ export default function Quiz() {
   const handleStartNextLevel = (targetLvl: number) => {
     stopSpeech();
     triggerHaptic('click', hapticsEnabled);
-    navigate(`/quiz/level-${levelCategory}-${targetLvl}`);
+    triggerQuizCompletionInterstitial().finally(() => {
+      navigate(`/quiz/level-${levelCategory}-${targetLvl}`);
+    });
   };
 
   useEffect(() => {
@@ -1108,72 +1156,86 @@ export default function Quiz() {
   if (!isDailyChallenge && !isExamMockMode && quizHearts <= 0 && isAnswerChecked && !isCorrect) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-4 pt-[max(env(safe-area-inset-top,0px),30px)] pb-[max(env(safe-area-inset-bottom,0px),28px)] text-center max-w-md md:max-w-xl mx-auto bg-[#FCF9F7] dark:bg-[#0B0F19]">
-        <Mascot size="lg" mood="sad" message={lang === 'hi' ? 'ओह नहीं! सारे हार्ट्स खत्म हो गए 💔' : 'Out of Hearts! 💔'} />
+        <Mascot
+          size="lg"
+          mood={isWatchingRewardAd ? "happy" : "sad"}
+          message={
+            isWatchingRewardAd
+              ? (lang === 'hi' ? '🎬 वीडियो चल रहा है... 5 हार्ट्स मिलने वाले हैं! 💖' : '🎬 Video playing... 5 Hearts refilling! 💖')
+              : (lang === 'hi' ? 'ओह नहीं! सारे हार्ट्स खत्म हो गए 💔' : 'Out of Hearts! 💔')
+          }
+        />
         <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
           {lang === 'hi' ? 'सभी 5 हार्ट्स समाप्त हो गए! 💔' : 'Out of Hearts (5/5 Lost)! 💔'}
         </h2>
         <p className="text-xs text-gray-500 dark:text-gray-300 font-medium max-w-xs mb-6 leading-relaxed">
           {lang === 'hi'
-            ? 'आप 5 गलत उत्तर देने के कारण बाहर हो गए हैं। आप इन्हीं समान 10 प्रश्नों के साथ दोबारा टेस्ट शुरू कर सकते हैं!'
-            : 'You used up all 5 hearts in this quiz. You can restart the test with the exact same 10 questions!'}
+            ? 'आप 5 गलत उत्तर देने के कारण बाहर हो गए हैं। वीडियो देखकर अभी तुरंत 5 हार्ट्स पाएँ या दोबारा टेस्ट शुरू करें!'
+            : 'You used up all 5 hearts in this quiz. Watch video to refill 5 hearts or restart the test!'}
         </p>
         <div className="space-y-3 w-full">
-          {/* Option A: Watch Ad to Refill (ONLY on Android App) */}
-          {isAndroidApp() ? (
+          {/* Watch Ad to Refill - works inline with live countdown timer, NO popup modal */}
+          {isWatchingRewardAd ? (
+            <div className="w-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white font-black py-3 px-4 rounded-2xl shadow-[0_4px_0_0_#065F46] text-xs flex flex-col items-center justify-center gap-1.5 cursor-wait select-none">
+              <div className="flex items-center space-x-2">
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-black tracking-wide">
+                  {lang === 'hi' ? `🎬 वीडियो चल रहा है... ${rewardAdTimer}s ⏳` : `🎬 Video playing... ${rewardAdTimer}s ⏳`}
+                </span>
+              </div>
+              <div className="w-48 h-2 bg-black/25 rounded-full overflow-hidden mt-0.5">
+                <div
+                  className="h-full bg-amber-300 rounded-full transition-all duration-1000 ease-linear"
+                  style={{ width: `${Math.max(10, ((5 - rewardAdTimer) / 5) * 100)}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-emerald-100 font-semibold">
+                {lang === 'hi' ? 'टाइमर खत्म होते ही 5 हार्ट्स भर जाएंगे 💖' : '5 hearts will refill automatically 💖'}
+              </span>
+            </div>
+          ) : (
             <button
-              onClick={() => {
-                triggerHaptic('click', hapticsEnabled);
-                setShowAdMobModal(true);
-              }}
+              onClick={handleWatchVideoReward}
               className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#065F46] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 animate-pulse cursor-pointer"
             >
               <Play className="w-4 h-4 fill-white" />
               <span>{lang === 'hi' ? '🎬 वीडियो देखें और 5 हार्ट्स पाएँ (Free)' : '🎬 Watch Video to Refill 5 Hearts (Free)'}</span>
             </button>
-          ) : (
-            /* Option B: Refill with Gems on Web / Desktop */
-            gems >= 30 && (
-              <button
-                onClick={() => {
-                  addGems(-30);
-                  refillHearts();
-                  setQuizHearts(5);
-                  playSound('success', soundEnabled);
-                  triggerHaptic('success', hapticsEnabled);
-                }}
-                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#B45309] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 cursor-pointer"
-              >
-                <Gem className="w-4 h-4 fill-sky-200 text-sky-100 inline" />
-                <span>{lang === 'hi' ? '30 जेम्स से 5 हार्ट्स रिफिल करें' : 'Refill 5 Hearts for 30 Gems'}</span>
-              </button>
-            )
+          )}
+
+          {/* Option B: Refill with Gems on Web / Desktop if not watching ad */}
+          {!isWatchingRewardAd && !isAndroidApp() && gems >= 30 && (
+            <button
+              onClick={() => {
+                addGems(-30);
+                refillHearts();
+                setQuizHearts(5);
+                playSound('success', soundEnabled);
+                triggerHaptic('success', hapticsEnabled);
+              }}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#B45309] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 cursor-pointer"
+            >
+              <Gem className="w-4 h-4 fill-sky-200 text-sky-100 inline" />
+              <span>{lang === 'hi' ? '30 जेम्स से 5 हार्ट्स रिफिल करें' : 'Refill 5 Hearts for 30 Gems'}</span>
+            </button>
           )}
 
           <button
+            disabled={isWatchingRewardAd}
             onClick={handleRestartSameQuiz}
-            className="w-full bg-[#FF5F6D] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 cursor-pointer"
+            className={`w-full bg-[#FF5F6D] text-white font-black py-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none text-xs flex items-center justify-center space-x-2 ${isWatchingRewardAd ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             <RotateCcw className="w-4 h-4 stroke-[2.5]" />
             <span>{lang === 'hi' ? 'दोबारा टेस्ट दें' : 'Restart Test'}</span>
           </button>
           <button
+            disabled={isWatchingRewardAd}
             onClick={() => navigate('/')}
-            className="w-full py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs cursor-pointer"
+            className={`w-full py-3.5 rounded-2xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs ${isWatchingRewardAd ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
           >
             {t('returnHome')}
           </button>
         </div>
-
-        {/* AdMob Rewarded Video Modal for Android */}
-        <AdMobRewardModal
-          isOpen={showAdMobModal}
-          onClose={() => setShowAdMobModal(false)}
-          onRewardGranted={() => {
-            refillHearts();
-            setQuizHearts(5);
-            setShowAdMobModal(false);
-          }}
-        />
       </div>
     );
   }
@@ -1466,7 +1528,11 @@ export default function Quiz() {
 
           {/* Back to Level Map Button (Light Red theme color) */}
           <button
-            onClick={() => navigate('/')}
+            onClick={() => {
+              triggerQuizCompletionInterstitial().finally(() => {
+                navigate('/');
+              });
+            }}
             className="w-full bg-[#FF5F6D] hover:bg-[#E64553] text-white font-black py-3 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none transition-all text-xs cursor-pointer border-b-2 border-[#D93848]"
           >
             {isLevelQuiz ? (lang === 'hi' ? 'लेवल्स मैप पर लौटें' : 'Back to Level Map') : t('returnHome')}
@@ -1750,7 +1816,7 @@ export default function Quiz() {
                 </div>
 
                 {/* Question Text takes the FULL width of the card across left to right */}
-                <h2 className="w-full text-base sm:text-lg md:text-xl font-black text-gray-800 dark:text-white leading-relaxed text-left">
+                <h2 className="w-full text-base sm:text-lg md:text-xl font-black text-gray-800 dark:text-white leading-relaxed text-left selectable-text select-text">
                   {currentQ.text}
                 </h2>
               </div>
@@ -1900,7 +1966,7 @@ export default function Quiz() {
                       <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
                       <span>{lang === 'hi' ? '💡 व्याख्या (Explanation):' : '💡 Explanation:'}</span>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-semibold">
+                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-semibold selectable-text select-text">
                       {currentQ.explanation}
                     </p>
                   </motion.div>
@@ -2081,7 +2147,7 @@ export default function Quiz() {
                       <Volume2 className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed">
+                  <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed selectable-text select-text">
                     {String(currentQ.explanation || '')}
                   </p>
                 </div>

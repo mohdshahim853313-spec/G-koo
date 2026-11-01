@@ -310,6 +310,9 @@ export const CATEGORY_LOCAL_CSV_MAP: Record<string, string> = {
   'sub_facts': 'World_Facts_Wonders_1500_Questions.csv',
   'sub_space': 'World_Space_Astronomy_1500_Questions.csv',
   'sub_philosophy': 'World_Philosophy_Ideas_1500_Questions.csv',
+  'sub_world_geography': 'World_Geography_1500_Questions.csv',
+  'sub_world_history': 'World_History_1500_Questions.csv',
+  'sub_international': 'World_International_Affairs_1500_Questions.csv',
 
   // General Categories
   'subjects': 'Biology_1500_PYQ_Questions.csv',
@@ -324,18 +327,28 @@ export const CATEGORY_LOCAL_CSV_MAP: Record<string, string> = {
   'up_uppsc': 'UP_Special_1500_PYQ_Questions.csv',
   'up_pet': 'UP_Special_1500_PYQ_Questions.csv',
   'up_lekhpal': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_ro_aro': 'UP_Special_1500_PYQ_Questions.csv',
+  'up_tet': 'UP_Special_1500_PYQ_Questions.csv',
 
   'bihar': 'Bihar_Special_1500_PYQ_Questions.csv',
   'state_bihar': 'Bihar_Special_1500_PYQ_Questions.csv',
   'bihar_special': 'Bihar_Special_1500_PYQ_Questions.csv',
   'bpsc': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_bpsc': 'Bihar_Special_1500_PYQ_Questions.csv',
   'bihar_police': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_police_si': 'Bihar_Special_1500_PYQ_Questions.csv',
   'bssc': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_bssc_cgl': 'Bihar_Special_1500_PYQ_Questions.csv',
+  'bihar_tre': 'Bihar_Special_1500_PYQ_Questions.csv',
 
   'rajasthan': 'Rajasthan_Special_1500_PYQ_Questions.csv',
   'state_rajasthan': 'Rajasthan_Special_1500_PYQ_Questions.csv',
   'rajasthan_special': 'Rajasthan_Special_1500_PYQ_Questions.csv',
   'ras': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'raj_ras': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'raj_cet': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'raj_police': 'Rajasthan_Special_1500_PYQ_Questions.csv',
+  'raj_patwari': 'Rajasthan_Special_1500_PYQ_Questions.csv',
   'rpsc': 'Rajasthan_Special_1500_PYQ_Questions.csv',
   'rsmssb': 'Rajasthan_Special_1500_PYQ_Questions.csv',
 
@@ -343,7 +356,9 @@ export const CATEGORY_LOCAL_CSV_MAP: Record<string, string> = {
   'state_mp': 'MP_Special_1500_PYQ_Questions.csv',
   'mp_special': 'MP_Special_1500_PYQ_Questions.csv',
   'mppsc': 'MP_Special_1500_PYQ_Questions.csv',
+  'mp_mppsc': 'MP_Special_1500_PYQ_Questions.csv',
   'mp_police': 'MP_Special_1500_PYQ_Questions.csv',
+  'mp_patwari': 'MP_Special_1500_PYQ_Questions.csv',
   'vyapam': 'MP_Special_1500_PYQ_Questions.csv',
 
   // Haryana & Delhi
@@ -351,20 +366,29 @@ export const CATEGORY_LOCAL_CSV_MAP: Record<string, string> = {
   'delhi': 'Haryana_Delhi_1500_PYQ_Questions.csv',
   'hssc': 'Haryana_Delhi_1500_PYQ_Questions.csv',
   'dsssb': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'delhi_dsssb': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'delhi_police': 'Haryana_Delhi_1500_PYQ_Questions.csv',
   'hpsc': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'har_hpsc': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'har_cet': 'Haryana_Delhi_1500_PYQ_Questions.csv',
+  'har_police': 'Haryana_Delhi_1500_PYQ_Questions.csv',
   'state_haryana_delhi': 'Haryana_Delhi_1500_PYQ_Questions.csv',
 
   // Uttarakhand
   'uttarakhand': 'Uttarakhand_1500_PYQ_Questions.csv',
   'uk': 'Uttarakhand_1500_PYQ_Questions.csv',
   'ukpsc': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'uk_ukpsc': 'Uttarakhand_1500_PYQ_Questions.csv',
   'uksssc': 'Uttarakhand_1500_PYQ_Questions.csv',
+  'uk_uksssc': 'Uttarakhand_1500_PYQ_Questions.csv',
   'state_uttarakhand': 'Uttarakhand_1500_PYQ_Questions.csv',
 
   // Jharkhand
   'jharkhand': 'Jharkhand_1500_PYQ_Questions.csv',
   'jpsc': 'Jharkhand_1500_PYQ_Questions.csv',
+  'jhk_jpsc': 'Jharkhand_1500_PYQ_Questions.csv',
   'jssc': 'Jharkhand_1500_PYQ_Questions.csv',
+  'jhk_jssc_cgl': 'Jharkhand_1500_PYQ_Questions.csv',
   'state_jharkhand': 'Jharkhand_1500_PYQ_Questions.csv',
 
   // Chhattisgarh
@@ -875,6 +899,19 @@ export async function syncQuestionsFromSheet(
     const altCat = catKey.startsWith('sub_') ? catKey.substring(4) : `sub_${catKey}`;
     inMemoryCategoryQuestions.set(altCat, mergedList);
 
+    // Index individual exam subcategories if present (e.g. mp_police within state_mp)
+    const byRowCat = new Map<string, QuizQuestion[]>();
+    for (const q of mergedList) {
+      const rc = (q.category || '').toLowerCase().trim();
+      if (rc && rc !== catKey) {
+        if (!byRowCat.has(rc)) byRowCat.set(rc, []);
+        byRowCat.get(rc)!.push(q);
+      }
+    }
+    for (const [rc, qList] of byRowCat.entries()) {
+      inMemoryCategoryQuestions.set(rc, qList);
+    }
+
     // Persist hash & slice in localStorage
     try {
       localStorage.setItem(hashKey, currentHash);
@@ -1135,14 +1172,26 @@ export async function fetchCategoryFromLocalCsv(category: string, lang: 'hi' | '
     const parsedQuestions = parseSheetRowsToQuestions(rows, category);
 
     if (parsedQuestions.length > 0) {
-      // 1. Save directly in High-Speed In-Memory Cache (ZERO Quota limits!)
-      inMemoryCategoryQuestions.set(catKey, parsedQuestions);
-      inMemoryCategoryQuestions.set((category || '').toLowerCase().trim(), parsedQuestions);
-      if (parsedQuestions[0]?.category) {
-        inMemoryCategoryQuestions.set(parsedQuestions[0].category.toLowerCase().trim(), parsedQuestions);
+      // 1. Group questions by their individual row category (e.g. mp_police, mp_mppsc, mp_patwari)
+      const byRowCat = new Map<string, QuizQuestion[]>();
+      for (const q of parsedQuestions) {
+        const rc = (q.category || '').toLowerCase().trim();
+        if (rc) {
+          if (!byRowCat.has(rc)) byRowCat.set(rc, []);
+          byRowCat.get(rc)!.push(q);
+        }
       }
 
-      // 2. Cache small per-category slice in localStorage
+      // 2. Index each individual exam category into in-memory cache
+      for (const [rc, qList] of byRowCat.entries()) {
+        inMemoryCategoryQuestions.set(rc, qList);
+      }
+
+      // Also save full list under file/state key
+      inMemoryCategoryQuestions.set(catKey, parsedQuestions);
+      inMemoryCategoryQuestions.set((category || '').toLowerCase().trim(), parsedQuestions);
+
+      // 3. Cache small per-category slice in localStorage
       try {
         localStorage.setItem(`gkoo_cat_${catKey}`, JSON.stringify(parsedQuestions.slice(0, 100)));
         localStorage.setItem(STORAGE_KEY_LAST_SYNC, Date.now().toString());
@@ -1151,6 +1200,13 @@ export async function fetchCategoryFromLocalCsv(category: string, lang: 'hi' | '
       }
 
       window.dispatchEvent(new Event('gkoo_sheet_synced'));
+
+      // If requested category matches one of the distinct exam categories in this file, return ONLY that exam's questions!
+      const targeted = byRowCat.get(catKey) || byRowCat.get((category || '').toLowerCase().trim());
+      if (targeted && targeted.length > 0) {
+        return filterQuestionsByLanguage(targeted, lang);
+      }
+
       return filterQuestionsByLanguage(parsedQuestions, lang);
     }
   } catch (err) {
@@ -1168,6 +1224,15 @@ export async function syncCategoryQuestions(category: string, lang: 'hi' | 'en' 
   // 1. Instant check in memory
   if (inMemoryCategoryQuestions.has(catLower) && inMemoryCategoryQuestions.get(catLower)!.length > 0) {
     return filterQuestionsByLanguage(inMemoryCategoryQuestions.get(catLower)!, lang);
+  }
+
+  // Check if questions matching catLower exist inside any already-cached parent pool
+  for (const list of inMemoryCategoryQuestions.values()) {
+    const subset = list.filter(q => (q.category || '').toLowerCase().trim() === catLower);
+    if (subset.length > 0) {
+      inMemoryCategoryQuestions.set(catLower, subset);
+      return filterQuestionsByLanguage(subset, lang);
+    }
   }
 
   // 2. PRIORITY 1: When online, fetch directly from Google Sheet so edits reflect LIVE!
@@ -1205,7 +1270,7 @@ export async function syncCategoryQuestions(category: string, lang: 'hi' | 'en' 
 export function getSyncedQuestionsByCategory(category: string, lang: 'hi' | 'en' = 'hi'): QuizQuestion[] {
   const catLower = (category || '').toLowerCase().trim();
 
-  // 1. Check in-memory category cache first (fastest, guaranteed)
+  // 1. Exact match in in-memory category cache first (fastest, guaranteed)
   if (inMemoryCategoryQuestions.has(catLower)) {
     const list = inMemoryCategoryQuestions.get(catLower)!;
     if (list && list.length > 0) {
@@ -1213,16 +1278,25 @@ export function getSyncedQuestionsByCategory(category: string, lang: 'hi' | 'en'
     }
   }
 
-  // Check aliases in in-memory cache
-  for (const [key, questions] of inMemoryCategoryQuestions.entries()) {
-    if (key === catLower || key.includes(catLower) || catLower.includes(key)) {
-      if (questions && questions.length > 0) {
-        return filterQuestionsByLanguage(questions, lang);
-      }
+  // 2. Exact match inside any cached category question pool (e.g. mp_police within state_mp)
+  for (const list of inMemoryCategoryQuestions.values()) {
+    const subset = list.filter(q => (q.category || '').toLowerCase().trim() === catLower);
+    if (subset.length > 0) {
+      inMemoryCategoryQuestions.set(catLower, subset);
+      return filterQuestionsByLanguage(subset, lang);
     }
   }
 
-  // 2. Check per-category localStorage
+  // 3. Check clean aliases in in-memory cache
+  const altKey = catLower.startsWith('sub_') ? catLower.substring(4) : `sub_${catLower}`;
+  if (inMemoryCategoryQuestions.has(altKey)) {
+    const list = inMemoryCategoryQuestions.get(altKey)!;
+    if (list && list.length > 0) {
+      return filterQuestionsByLanguage(list, lang);
+    }
+  }
+
+  // 4. Check per-category localStorage
   try {
     const catRaw = localStorage.getItem(`gkoo_cat_${catLower}`);
     if (catRaw) {
@@ -1234,7 +1308,7 @@ export function getSyncedQuestionsByCategory(category: string, lang: 'hi' | 'en'
     }
   } catch { }
 
-  // 3. Check legacy full questions in localStorage
+  // 5. Check legacy full questions in localStorage
   const all = getAllSyncedQuestions();
   if (all.length === 0) return [];
 
@@ -1243,11 +1317,11 @@ export function getSyncedQuestionsByCategory(category: string, lang: 'hi' | 'en'
   const matched = (!catLower || catLower === 'mix' || catLower === 'daily')
     ? all
     : all.filter(q => {
-      const qCat = (q.category || '').toLowerCase();
+      const qCat = (q.category || '').toLowerCase().trim();
       if (isSsc && (qCat.includes('ssc') || qCat === 'ssc_cgl' || qCat === 'india' || !qCat)) {
         return true;
       }
-      return qCat === catLower || qCat.includes(catLower) || catLower.includes(qCat);
+      return qCat === catLower;
     });
 
   return filterQuestionsByLanguage(matched, lang);
