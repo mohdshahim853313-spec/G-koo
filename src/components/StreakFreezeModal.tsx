@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Flame } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { playSound, triggerHaptic } from '../lib/audio';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export function StreakFreezeModal({
   isOpen,
@@ -12,6 +13,7 @@ export function StreakFreezeModal({
   onClose: () => void;
 }) {
   const { streak, streakFreezes, buyStreakFreeze, gems, lang } = useAppContext();
+  useBodyScrollLock(isOpen);
   const [purchaseSuccess, setPurchaseSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 

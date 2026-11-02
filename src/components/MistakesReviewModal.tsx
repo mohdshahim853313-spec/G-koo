@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic, playSound } from '../lib/audio';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { X, CheckCircle2, XCircle, RotateCcw, Star } from 'lucide-react';
 import type { QuizQuestion } from '../lib/gemini';
 
@@ -24,6 +25,7 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
   onRetest,
 }) => {
   const { lang, t, toggleBookmark, isBookmarked, soundEnabled, hapticsEnabled } = useAppContext();
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 

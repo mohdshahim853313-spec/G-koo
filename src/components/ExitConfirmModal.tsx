@@ -5,6 +5,7 @@ import { Mascot } from './Mascot';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
 import { PLAY_STORE_APP_URL, PLAY_STORE_MARKET_URI } from '../utils/platform';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface ExitConfirmModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
   onConfirmExit,
 }) => {
   const { lang, streak } = useAppContext();
+  useBodyScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -41,7 +43,14 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs select-none">
+      <div 
+        className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs select-none modal-backdrop-freeze"
+        onTouchMove={(e) => {
+          if (e.target === e.currentTarget) {
+            e.preventDefault();
+          }
+        }}
+      >
         <motion.div
           initial={{ scale: 0.9, opacity: 0, y: 15 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}

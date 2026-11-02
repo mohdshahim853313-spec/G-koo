@@ -114,3 +114,23 @@
 :lang(hi), [lang="hi"] {
   letter-spacing: normal !important;
 }
+
+/* Background screen freeze when any popup/modal is open */
+body.modal-open,
+html:has(body.modal-open) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
+.modal-backdrop-freeze {
+  overscroll-behavior: contain !important;
+  touch-action: none !important;
+}
+
+.modal-content-scroll {
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-y !important;
+}
+

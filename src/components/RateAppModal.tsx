@@ -5,6 +5,7 @@ import { useAppContext } from '../useAppContext';
 import { Mascot } from './Mascot';
 import { triggerHaptic } from '../lib/audio';
 import { isAndroidApp, PLAY_STORE_APP_URL, PLAY_STORE_MARKET_URI } from '../utils/platform';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface RateAppModalProps {
   isOpen: boolean;
@@ -13,6 +14,7 @@ interface RateAppModalProps {
 
 export const RateAppModal: React.FC<RateAppModalProps> = ({ isOpen, onClose }) => {
   const { lang, hapticsEnabled } = useAppContext();
+  useBodyScrollLock(isOpen);
 
   // If not running inside the native Android App, never show this modal!
   if (!isOpen || !isAndroidApp()) return null;

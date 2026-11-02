@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Gift, Lock, X, Gem, Snowflake, Sparkles } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { playSound, triggerHaptic } from '../lib/audio';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const STORAGE_KEY_LAST_CLAIM = 'gkoo_daily_reward_last_claim';
 const STORAGE_KEY_CURRENT_DAY = 'gkoo_daily_reward_cycle_day';
@@ -33,6 +34,7 @@ export function DailyLoginRewardModal({
   onOpenQuests?: () => void;
 }) {
   const { lang, addGems, addStreakFreeze } = useAppContext();
+  useBodyScrollLock(isOpen);
   const [currentDay, setCurrentDay] = useState<number>(1);
   const [alreadyClaimedToday, setAlreadyClaimedToday] = useState<boolean>(false);
   const [claimedReward, setClaimedReward] = useState<RewardTier | null>(null);
