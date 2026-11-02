@@ -1,11 +1,10 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Volume2, Globe, Sun, Moon, Monitor, AlertTriangle, Vibrate, Bell, BellRing, Music, Play, Upload, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight, ChevronLeft, FileSpreadsheet, Check, Edit2, Settings as SettingsIcon } from 'lucide-react';
+import { Volume2, Globe, Sun, Moon, Monitor, AlertTriangle, Vibrate, Bell, BellRing, Music, Play, Sparkles, Timer, ShieldCheck, FileText, Info, Mail, ChevronRight, ChevronLeft, Check, Edit2, RefreshCw } from 'lucide-react';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic, previewCustomSound, type SuccessSoundPreset, type ErrorSoundPreset } from '../lib/audio';
 import { GkooCompanionCard } from '../components/GkooCompanionCard';
-import { getSheetSyncStats } from '../lib/sheetSync';
-import { SheetSyncModal } from '../components/SheetSyncModal';
+import { triggerSmartAutoSync } from '../lib/sheetSync';
 import { motion } from 'framer-motion';
 
 export default function Settings() {
@@ -32,84 +31,47 @@ export default function Settings() {
     setExamTimerSeconds,
   } = useAppContext();
 
-  // Custom Sound Effects State (Default: Gentle Harp for correct, Gentle Chime for error)
+  // Sound Effects State (Default: Gentle Harp for correct, Gentle Chime for error)
   const [successPreset, setSuccessPreset] = useState<SuccessSoundPreset>(() => {
-    return (localStorage.getItem('gkoo_sound_success_preset') as SuccessSoundPreset) || 'harp';
+    const saved = localStorage.getItem('gkoo_sound_success_preset');
+    return (saved && saved !== 'custom' ? saved : 'harp') as SuccessSoundPreset;
   });
   const [errorPreset, setErrorPreset] = useState<ErrorSoundPreset>(() => {
-    return (localStorage.getItem('gkoo_sound_error_preset') as ErrorSoundPreset) || 'chime_down';
+    const saved = localStorage.getItem('gkoo_sound_error_preset');
+    return (saved && saved !== 'custom' ? saved : 'chime_down') as ErrorSoundPreset;
   });
-  const [hasCustomSuccess, setHasCustomSuccess] = useState<boolean>(() => {
-    return !!localStorage.getItem('gkoo_sound_success_custom');
-  });
-  const [hasCustomError, setHasCustomError] = useState<boolean>(() => {
-    return !!localStorage.getItem('gkoo_sound_error_custom');
-  });
-
-  const successFileRef = useRef<HTMLInputElement>(null);
-  const errorFileRef = useRef<HTMLInputElement>(null);
 
   const handleSelectSuccessPreset = (preset: SuccessSoundPreset) => {
     triggerHaptic('click');
     setSuccessPreset(preset);
     localStorage.setItem('gkoo_sound_success_preset', preset);
-    const customData = localStorage.getItem('gkoo_sound_success_custom') || undefined;
-    previewCustomSound('success', preset, customData);
+    previewCustomSound('success', preset);
   };
 
   const handleSelectErrorPreset = (preset: ErrorSoundPreset) => {
     triggerHaptic('click');
     setErrorPreset(preset);
     localStorage.setItem('gkoo_sound_error_preset', preset);
-    const customData = localStorage.getItem('gkoo_sound_error_custom') || undefined;
-    previewCustomSound('error', preset, customData);
+    previewCustomSound('error', preset);
   };
 
-  const handleSuccessUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      try {
-        localStorage.setItem('gkoo_sound_success_custom', dataUrl);
-        localStorage.setItem('gkoo_sound_success_preset', 'custom');
-        setHasCustomSuccess(true);
-        setSuccessPreset('custom');
-        previewCustomSound('success', 'custom', dataUrl);
-      } catch (err) {
-        alert("Audio file too large. Please select a shorter sound clip.");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshSuccess, setRefreshSuccess] = useState(false);
 
-  const handleErrorUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      try {
-        localStorage.setItem('gkoo_sound_error_custom', dataUrl);
-        localStorage.setItem('gkoo_sound_error_preset', 'custom');
-        setHasCustomError(true);
-        setErrorPreset('custom');
-        previewCustomSound('error', 'custom', dataUrl);
-      } catch (err) {
-        alert("Audio file too large. Please select a shorter sound clip.");
-      }
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const [showSheetSyncModal, setShowSheetSyncModal] = useState(false);
-  const [sheetStats, setSheetStats] = useState(() => getSheetSyncStats());
-
-  const handleOpenSheetSync = () => {
+  const handleRefreshGkoo = async () => {
+    if (isRefreshing) return;
     triggerHaptic('click');
-    setSheetStats(getSheetSyncStats());
-    setShowSheetSyncModal(true);
+    setIsRefreshing(true);
+    try {
+      await triggerSmartAutoSync(true);
+      setRefreshSuccess(true);
+      triggerHaptic('success');
+      setTimeout(() => setRefreshSuccess(false), 2500);
+    } catch {
+      // ignore
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleReset = () => {
@@ -388,8 +350,8 @@ export default function Settings() {
           </div>
           <p className="text-[11px] text-gray-400 font-medium mb-4">
             {lang === 'hi'
-              ? 'सही और गलत उत्तर के लिए पसंदीदा ध्वनि चुनें या अपने डिवाइस से कोई भी ऑडियो फाइल अपलोड करें।'
-              : 'Choose presets or upload audio files from your device for correct and wrong answers.'}
+              ? 'सही और गलत उत्तर के लिए अपनी पसंदीदा ध्वनि चुनें।'
+              : 'Choose your preferred sound effects for correct and wrong answers.'}
           </p>
 
           {/* Correct Answer Sound Section */}
@@ -397,32 +359,31 @@ export default function Settings() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{lang === 'hi' ? '🟢 सही उत्तर की ध्वनि (Correct)' : '🟢 Correct Answer Sound'}</span>
+                <span>{lang === 'hi' ? 'सही उत्तर की ध्वनि (Correct)' : 'Correct Answer Sound'}</span>
               </span>
               <button
                 onClick={() => {
                   triggerHaptic('click');
-                  const customData = localStorage.getItem('gkoo_sound_success_custom') || undefined;
-                  previewCustomSound('success', successPreset, customData);
+                  previewCustomSound('success', successPreset);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-black border border-emerald-200 dark:border-emerald-800 flex items-center space-x-1 active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[11px] font-black border border-emerald-200 dark:border-emerald-800 flex items-center space-x-1 active:scale-95 cursor-pointer"
               >
                 <Play className="w-3 h-3 fill-current" />
                 <span>{lang === 'hi' ? 'सुनें (Play)' : 'Preview'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'harp', label: lang === 'hi' ? '🪕 सौम्य वीणा ' : '🪕 Gentle Harp' },
-                { id: 'ding', label: lang === 'hi' ? '🎵 ब्राइट डिंग' : '🎵 Bright Ding' },
-                { id: 'bell', label: lang === 'hi' ? '💎 क्रिस्टल बेल' : '💎 Crystal Bell' },
-                { id: 'arcade', label: lang === 'hi' ? '👾 आर्केड 8-बिट' : '👾 8-Bit Arcade' },
+                { id: 'harp', label: lang === 'hi' ? 'सौम्य वीणा' : 'Gentle Harp' },
+                { id: 'ding', label: lang === 'hi' ? 'ब्राइट डिंग' : 'Bright Ding' },
+                { id: 'bell', label: lang === 'hi' ? 'क्रिस्टल बेल' : 'Crystal Bell' },
+                { id: 'arcade', label: lang === 'hi' ? 'आर्केड 8-बिट' : '8-Bit Arcade' },
               ].map(item => (
                 <button
                   key={item.id}
                   onClick={() => handleSelectSuccessPreset(item.id as SuccessSoundPreset)}
-                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all border ${
+                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all border cursor-pointer ${
                     successPreset === item.id
                       ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-500 text-emerald-700 dark:text-emerald-300 shadow-sm'
                       : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
@@ -432,47 +393,6 @@ export default function Settings() {
                 </button>
               ))}
             </div>
-
-            {/* Custom Success File Input */}
-            <input
-              type="file"
-              ref={successFileRef}
-              accept="audio/*"
-              className="hidden"
-              onChange={handleSuccessUpload}
-            />
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => {
-                  triggerHaptic('click');
-                  successFileRef.current?.click();
-                }}
-                className={`flex-1 py-2 px-3 rounded-xl border text-xs font-black flex items-center justify-center space-x-1.5 transition-all ${
-                  successPreset === 'custom'
-                    ? 'bg-emerald-500 text-white border-emerald-600 shadow-sm'
-                    : 'bg-gray-50 dark:bg-gray-900 border-dashed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-emerald-400'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>
-                  {hasCustomSuccess
-                    ? (lang === 'hi' ? '📁 कस्टम ध्वनि बदलें' : '📁 Replace Custom Sound')
-                    : (lang === 'hi' ? '📁 डिवाइस से ध्वनि अपलोड करें' : '📁 Upload Sound from Device')}
-                </span>
-              </button>
-              {hasCustomSuccess && (
-                <button
-                  onClick={() => handleSelectSuccessPreset('custom')}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border ${
-                    successPreset === 'custom'
-                      ? 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 border-emerald-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700'
-                  }`}
-                >
-                  {lang === 'hi' ? 'चुना गया' : 'Active'}
-                </button>
-              )}
-            </div>
           </div>
 
           {/* Wrong Answer Sound Section */}
@@ -480,32 +400,31 @@ export default function Settings() {
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-rose-600 dark:text-rose-400 flex items-center space-x-1.5">
                 <Sparkles className="w-3.5 h-3.5" />
-                <span>{lang === 'hi' ? '🔴 गलत उत्तर की ध्वनि (Wrong)' : '🔴 Wrong Answer Sound'}</span>
+                <span>{lang === 'hi' ? 'गलत उत्तर की ध्वनि (Wrong)' : 'Wrong Answer Sound'}</span>
               </span>
               <button
                 onClick={() => {
                   triggerHaptic('click');
-                  const customData = localStorage.getItem('gkoo_sound_error_custom') || undefined;
-                  previewCustomSound('error', errorPreset, customData);
+                  previewCustomSound('error', errorPreset);
                 }}
-                className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200 dark:border-rose-800 flex items-center space-x-1 active:scale-95"
+                className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 text-[11px] font-black border border-rose-200 dark:border-rose-800 flex items-center space-x-1 active:scale-95 cursor-pointer"
               >
                 <Play className="w-3 h-3 fill-current" />
                 <span>{lang === 'hi' ? 'सुनें (Play)' : 'Preview'}</span>
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mb-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                { id: 'chime_down', label: lang === 'hi' ? '🎼 चाइम डाउन' : '🎼 Gentle Chime' },
-                { id: 'thump', label: lang === 'hi' ? '🥁 मधुर थंप' : '🥁 Warm Thump' },
-                { id: 'wood', label: lang === 'hi' ? '🪵 वुड ब्लॉक' : '🪵 Wood Block Knock' },
-                { id: 'buzzer', label: lang === 'hi' ? '📢 धीमा बज़र' : '📢 Soft Buzzer' },
+                { id: 'chime_down', label: lang === 'hi' ? 'चाइम डाउन' : 'Gentle Chime' },
+                { id: 'thump', label: lang === 'hi' ? 'मधुर थंप' : 'Warm Thump' },
+                { id: 'wood', label: lang === 'hi' ? 'वुड ब्लॉक' : 'Wood Block Knock' },
+                { id: 'buzzer', label: lang === 'hi' ? 'धीमा बज़र' : 'Soft Buzzer' },
               ].map(item => (
                 <button
                   key={item.id}
                   onClick={() => handleSelectErrorPreset(item.id as ErrorSoundPreset)}
-                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all border ${
+                  className={`p-2 rounded-xl text-left text-xs font-bold transition-all border cursor-pointer ${
                     errorPreset === item.id
                       ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-500 text-rose-700 dark:text-rose-300 shadow-sm'
                       : 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
@@ -514,47 +433,6 @@ export default function Settings() {
                   {item.label}
                 </button>
               ))}
-            </div>
-
-            {/* Custom Error File Input */}
-            <input
-              type="file"
-              ref={errorFileRef}
-              accept="audio/*"
-              className="hidden"
-              onChange={handleErrorUpload}
-            />
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => {
-                  triggerHaptic('click');
-                  errorFileRef.current?.click();
-                }}
-                className={`flex-1 py-2 px-3 rounded-xl border text-xs font-black flex items-center justify-center space-x-1.5 transition-all ${
-                  errorPreset === 'custom'
-                    ? 'bg-rose-500 text-white border-rose-600 shadow-sm'
-                    : 'bg-gray-50 dark:bg-gray-900 border-dashed border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-rose-400'
-                }`}
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>
-                  {hasCustomError
-                    ? (lang === 'hi' ? '📁 कस्टम ध्वनि बदलें (Device Audio)' : '📁 Replace Custom Sound')
-                    : (lang === 'hi' ? '📁 डिवाइस से ध्वनि अपलोड करें' : '📁 Upload Sound from Device')}
-                </span>
-              </button>
-              {hasCustomError && (
-                <button
-                  onClick={() => handleSelectErrorPreset('custom')}
-                  className={`px-3 py-2 rounded-xl text-xs font-bold border ${
-                    errorPreset === 'custom'
-                      ? 'bg-rose-100 dark:bg-rose-900 text-rose-800 dark:text-rose-200 border-rose-400'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-700'
-                  }`}
-                >
-                  {lang === 'hi' ? 'चुना गया' : 'Active'}
-                </button>
-              )}
             </div>
           </div>
         </div>
@@ -612,47 +490,25 @@ export default function Settings() {
       </div>
 
 
-      {/* Google Sheets Question Bank Live Sync */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-4 mb-4 border border-emerald-100 dark:border-emerald-950/60 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400">
-            <FileSpreadsheet className="w-4 h-4" />
-            <h2 className="text-xs font-black uppercase tracking-wider">
-              {lang === 'hi' ? 'Google Sheets लाइव प्रश्न बैंक' : 'Google Sheets Live Questions'}
-            </h2>
-          </div>
-          <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
-            {sheetStats.totalCount > 0 
-              ? `${sheetStats.totalCount} ${lang === 'hi' ? 'सवाल सिंक' : 'Synced'}` 
-              : (lang === 'hi' ? 'कोई सवाल नहीं' : 'Not Configured')}
-          </span>
-        </div>
-
-        <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-3 leading-relaxed">
-          {lang === 'hi'
-            ? 'बिना ऐप अपडेट किए अपनी Google Sheet से लाइव नए प्रश्न जोड़ें और अपडेट करें। सभी प्रश्न ऑफ़लाइन भी तुरंत काम करेंगे!'
-            : 'Add & update exam questions instantly via Google Sheets without Play Store app updates. Works 100% offline too!'}
-        </p>
-
-        {sheetStats.totalCount > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {Object.entries(sheetStats.categories).map(([cat, count]) => (
-              <span key={cat} className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50 dark:border-emerald-800/40 text-emerald-800 dark:text-emerald-300">
-                {cat}: <strong>{count}</strong>
-              </span>
-            ))}
-          </div>
-        )}
-
+      {/* Single Clean "Refresh G-koo" Button */}
+      <div className="mb-4">
         <motion.button
           whileTap={{ scale: 0.96 }}
-          onClick={handleOpenSheetSync}
-          className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs flex items-center justify-center space-x-2 transition-all cursor-pointer"
+          onClick={handleRefreshGkoo}
+          disabled={isRefreshing}
+          className={`w-full py-3.5 px-4 rounded-2xl text-xs sm:text-sm font-black shadow-xs flex items-center justify-center space-x-2 transition-all cursor-pointer ${
+            refreshSuccess
+              ? 'bg-emerald-600 text-white'
+              : 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-98'
+          }`}
         >
-          <FileSpreadsheet className="w-4 h-4" />
-          <span className="flex items-center space-x-1.5">
-            <span>{lang === 'hi' ? 'शीट लिंक बदलें / सवाल सिंक करें' : 'Manage Sheet & Sync Questions'}</span>
-            <SettingsIcon className="w-3.5 h-3.5 inline" />
+          <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span>
+            {refreshSuccess
+              ? (lang === 'hi' ? 'G-koo रिफ्रेश हो गया! ⚡' : 'G-koo Refreshed! ⚡')
+              : isRefreshing
+              ? (lang === 'hi' ? 'रिफ्रेश हो रहा है...' : 'Refreshing G-koo...')
+              : (lang === 'hi' ? 'रिफ्रेश G-koo' : 'Refresh G-koo')}
           </span>
         </motion.button>
       </div>
@@ -750,16 +606,6 @@ export default function Settings() {
         </button>
       </div>
       </div>
-
-      {/* Google Sheets Question Bank Live Sync Modal */}
-      <SheetSyncModal 
-        isOpen={showSheetSyncModal} 
-        onClose={() => {
-          setShowSheetSyncModal(false);
-          setSheetStats(getSheetSyncStats());
-        }} 
-        lang={lang} 
-      />
     </div>
   );
 }

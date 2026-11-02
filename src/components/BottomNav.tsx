@@ -22,10 +22,10 @@ function useScrollDirection() {
       }
 
       const diff = scrollY - lastScrollY;
-      // Instant trigger on 6px scroll
-      if (diff > 6 && scrollDirection !== 'down') {
+      // Sturdy trigger on 20px intentional scroll (prevents nervous micro-twitching)
+      if (diff > 20 && scrollDirection !== 'down') {
         setScrollDirection('down');
-      } else if (diff < -6 && scrollDirection !== 'up') {
+      } else if (diff < -20 && scrollDirection !== 'up') {
         setScrollDirection('up');
       }
 

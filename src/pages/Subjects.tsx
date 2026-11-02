@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Globe, BookOpen, Search, Pin, Play, Sparkles, Layers, Landmark, ChevronRight } from 'lucide-react';
 import { TopBar } from '../components/TopBar';
@@ -18,20 +18,24 @@ import {
   getSubjectPinRank,
   PINNED_SUBJECTS_EVENT,
   WORLD_SUBJECT_IDS,
-  INDIA_GS_SUBJECT_IDS
+  INDIA_GS_SUBJECT_IDS,
+  WORLD_ACADEMIC_IDS,
+  WORLD_GENERAL_IDS,
+  WORLD_CURIOSITY_IDS
 } from '../utils/pinnedSubjects';
-
-const WORLD_ACADEMIC_IDS = ['sub_english', 'sub_hindi', 'sub_math', 'sub_physics', 'sub_biology', 'sub_chemistry'];
-const WORLD_GENERAL_IDS = ['sub_world_geography', 'sub_world_history', 'sub_international', 'sub_gk'];
-const WORLD_CURIOSITY_IDS = ['sub_psychology', 'sub_facts', 'sub_space', 'sub_philosophy'];
 
 export default function Subjects() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetRegion = searchParams.get('region');
+  const targetSection = searchParams.get('section');
   const { lang, setActiveCategory, getCategoryMaxUnlocked } = useAppContext();
 
-  // Region Mode: World vs India (Synchronized with Home Dashboard)
+  // Region Mode: World vs India (Synchronized with Home Dashboard & URL query)
   const [regionMode, setRegionMode] = useState<'india' | 'world'>(() => {
     try {
+      const urlRegion = new URLSearchParams(window.location.search).get('region');
+      if (urlRegion === 'world' || urlRegion === 'india') return urlRegion;
       return (localStorage.getItem('gkoo_dashboard_region_mode') as 'india' | 'world') || 'india';
     } catch {
       return 'india';
@@ -53,6 +57,39 @@ export default function Subjects() {
     window.addEventListener(PINNED_SUBJECTS_EVENT, syncPinned);
     return () => window.removeEventListener(PINNED_SUBJECTS_EVENT, syncPinned);
   }, []);
+
+  // Sync region mode when changed via navigation query param
+  useEffect(() => {
+    if (targetRegion === 'world' || targetRegion === 'india') {
+      setRegionMode(targetRegion);
+      try {
+        localStorage.setItem('gkoo_dashboard_region_mode', targetRegion);
+      } catch {}
+    }
+  }, [targetRegion]);
+
+  // Auto-scroll target category section to center of screen when navigated from Home
+  useEffect(() => {
+    if (!targetSection) return;
+    setSearchQuery('');
+    setWorldCategoryFilter('all');
+    setIndiaCategoryFilter('all');
+
+    const timer = setTimeout(() => {
+      const el = document.getElementById(`section_${targetSection}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Pulse ring highlight so user sees the section clearly
+        el.classList.add('ring-4', 'ring-amber-400', 'transition-all');
+        const clearRing = setTimeout(() => {
+          el.classList.remove('ring-4', 'ring-amber-400');
+        }, 1800);
+        return () => clearTimeout(clearRing);
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [targetSection, regionMode]);
 
   const handleRegionModeChange = (mode: 'india' | 'world') => {
     triggerHaptic('click');
@@ -99,10 +136,10 @@ export default function Subjects() {
         if (!matchesSearch) return false;
 
         if (worldCategoryFilter === 'all') return true;
-        if (worldCategoryFilter === 'Science') return sub.category === 'Science' || sub.category === 'Quantitative';
-        if (worldCategoryFilter === 'Language') return sub.category === 'Language';
-        if (worldCategoryFilter === 'Social') return sub.category === 'General' || sub.category === 'Social Studies' || sub.category === 'General Studies';
-        if (worldCategoryFilter === 'Curiosity') return sub.category === 'Curiosity' || sub.id.includes('facts') || sub.id.includes('space') || sub.id.includes('psychology') || sub.id.includes('philosophy');
+        if (worldCategoryFilter === 'Science') return WORLD_ACADEMIC_IDS.includes(sub.id);
+        if (worldCategoryFilter === 'Language') return sub.id === 'sub_english' || sub.id === 'sub_hindi';
+        if (worldCategoryFilter === 'Social') return WORLD_GENERAL_IDS.includes(sub.id);
+        if (worldCategoryFilter === 'Curiosity') return WORLD_CURIOSITY_IDS.includes(sub.id);
         return true;
       });
   }, [searchQuery, worldCategoryFilter]);
@@ -438,7 +475,7 @@ export default function Subjects() {
           <div className="space-y-4 sm:space-y-5">
             {/* 1. Academic & Science Subjects */}
             {worldAcademicSubjects.length > 0 && (
-              <div className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_world_academic" className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-sky-600 dark:text-sky-400 min-w-0 flex-1">
                     <BookOpen className="w-4 h-4 shrink-0" />
@@ -460,7 +497,7 @@ export default function Subjects() {
 
             {/* 2. World & General GK */}
             {worldGeneralSubjects.length > 0 && (
-              <div className="bg-emerald-100/80 dark:bg-emerald-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-emerald-300/80 dark:border-emerald-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_world_general" className="bg-emerald-100/80 dark:bg-emerald-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-emerald-300/80 dark:border-emerald-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 min-w-0 flex-1">
                     <Globe className="w-4 h-4 shrink-0" />
@@ -482,7 +519,7 @@ export default function Subjects() {
 
             {/* 3. Curiosity & Fascinating Minds */}
             {worldCuriositySubjects.length > 0 && (
-              <div className="bg-purple-100/85 dark:bg-purple-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-purple-300/80 dark:border-purple-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_world_curiosity" className="bg-purple-100/85 dark:bg-purple-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-purple-300/80 dark:border-purple-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-purple-600 dark:text-purple-400 min-w-0 flex-1">
                     <Sparkles className="w-4 h-4 shrink-0" />
@@ -516,7 +553,7 @@ export default function Subjects() {
           <div className="space-y-4 sm:space-y-5">
             {/* 1. Indian Competitive Exams Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'exam') && examCategories.length > 0 && (
-              <div className="bg-orange-100/85 dark:bg-orange-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-orange-300/80 dark:border-orange-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_india_exams" className="bg-orange-100/85 dark:bg-orange-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-orange-300/80 dark:border-orange-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-rose-600 dark:text-rose-400 min-w-0 flex-1">
                     <Landmark className="w-4 h-4 shrink-0" />
@@ -538,7 +575,7 @@ export default function Subjects() {
 
             {/* 2. Indian GS & Academic Subjects Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'subject') && gsSubjectCategories.length > 0 && (
-              <div className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_india_gs" className="bg-sky-100/90 dark:bg-sky-950/50 p-2 sm:p-3.5 rounded-3xl border-2 border-sky-300/80 dark:border-sky-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-sky-600 dark:text-sky-400 min-w-0 flex-1">
                     <Layers className="w-4 h-4 shrink-0" />
@@ -560,7 +597,7 @@ export default function Subjects() {
 
             {/* 3. State Special Exams Hero Banner Section */}
             {(indiaCategoryFilter === 'all' || indiaCategoryFilter === 'state') && (
-              <div className="bg-amber-100/90 dark:bg-amber-950/40 p-2 sm:p-3.5 rounded-3xl border-2 border-amber-300/80 dark:border-amber-800/60 shadow-sm space-y-2.5 sm:space-y-3">
+              <div id="section_india_states" className="bg-amber-100/90 dark:bg-amber-950/40 p-2 sm:p-3.5 rounded-3xl border-2 border-amber-300/80 dark:border-amber-800/60 shadow-sm space-y-2.5 sm:space-y-3">
                 <div className="flex items-center justify-between gap-2 px-1">
                   <div className="flex items-center space-x-2 text-amber-600 dark:text-amber-400 min-w-0 flex-1">
                     <Landmark className="w-4 h-4 shrink-0" />

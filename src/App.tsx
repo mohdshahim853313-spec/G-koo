@@ -14,7 +14,7 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { GkooSplashScreen } from './components/GkooSplashScreen';
-import { initializeAdMob, hideBannerAd, resumeBannerAd } from './services/admobService';
+import { initializeAdMob, hideBannerAd } from './services/admobService';
 import { isAndroidApp } from './utils/platform';
 
 // Lazy load non-tab secondary pages only
@@ -62,23 +62,13 @@ function AppContent() {
   const pathnameRef = useRef(pathname);
   pathnameRef.current = pathname;
 
-  // AdMob Banner & SDK Lifecycle Management (APK ONLY, NEVER on Web)
+  // AdMob SDK Lifecycle Management (APK ONLY, NEVER on Web)
   useEffect(() => {
     if (isAndroidApp() && Capacitor.isNativePlatform()) {
       initializeAdMob();
+      hideBannerAd().catch(() => {});
     }
   }, []);
-
-  useEffect(() => {
-    if (!isAndroidApp() || !Capacitor.isNativePlatform()) return;
-
-    // STRICT USER DIRECTIVE: Home screen ('/') and Quiz ('/quiz') must NEVER show ads!
-    if (pathname === '/' || isQuiz) {
-      hideBannerAd();
-    } else {
-      resumeBannerAd();
-    }
-  }, [pathname, isQuiz]);
 
   const currentTabIdx = getTabIndex(pathname);
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);

@@ -44,27 +44,42 @@ const PANEL_DATA: Record<
   dashboard: {
     titleEn: 'Gkoo Study Buddy',
     titleHi: 'Gkoo स्टडी बडी',
-    buttonTextEn: '✨ + Custom AI Quiz',
-    buttonTextHi: '✨ + कस्टम AI क्विज',
+    buttonTextEn: '✨ + Practice Test',
+    buttonTextHi: '✨ + नया प्रैक्टिस टेस्ट',
     buttonIcon: Sparkles,
     buttonGradient: 'from-purple-600 via-indigo-600 to-violet-700',
     borderTheme: 'border-purple-200 dark:border-purple-900/60',
     dialogs: [
-      { mood: 'waving', textEn: 'Flapping my wings to say hello and cheer for you! 👋', textHi: 'पंख हिलाकर आपका स्वागत कर रहा हूँ, चलो धमाल मचाते हैं! 👋', particle: '👋' },
-      { mood: 'looking_around', textEn: 'Looking left and right, discovering amazing new questions! 👀', textHi: 'इधर-उधर नजर घुमाओ, हर जगह ज्ञान और मजेदार सवाल हैं! 👀', particle: '👀' },
-      { mood: 'scratching', textEn: 'Scratching my feathers, ready to fly high in knowledge! 🪶', textHi: 'पंख खुजलाकर उड़ान भरने के लिए तैयार हो रहा हूँ! 🪶', particle: '🪶' },
-      { mood: 'head_tilt', textEn: 'Curious brain? Every tricky question has a secret! ❓', textHi: 'जिज्ञासु दिमाग? हर कठिन सवाल का एक राज़ होता है! ❓', particle: '❓' },
-      { mood: 'wing_stretch', textEn: 'Stretching wings wide! Ready with full energy! 💨', textHi: 'अंगड़ाई लेकर तैयार, अगले टेस्ट के लिए पूरी ऊर्जा! 💨', particle: '💨' },
-      { mood: 'hop', textEn: 'Hop, hop! Bouncing with joy and victory power! ⚡', textHi: 'फुदक-फुदक कर खुशियां मना रहे हैं, जीत हमारी होगी! ⚡', particle: '⚡' },
-      { mood: 'preening', textEn: 'Grooming feathers to stay sharp and smart! 🫧', textHi: 'पंख संवार कर दिमाग एकदम शार्प और तेज कर लिया! 🫧', particle: '🫧' },
-      { mood: 'excited', textEn: 'Ready for high score today? Let’s conquer! 🚀', textHi: 'आज नया रिकॉर्ड बनाने के लिए तैयार हो? चलो शुरू करें! 🚀', particle: '⭐' },
-      { mood: 'fire', textEn: 'Your daily streak is blazing hot! Keep going! 🔥', textHi: 'आपकी डेली स्ट्रीक आग की तरह चमक रही है! जारी रखो! 🔥', particle: '🔥' },
-      { mood: 'ninja', textEn: 'Focus like a ninja, answer with lightning speed! ⚡', textHi: 'निंजा की तरह फोकस करो और बिजली की तेज़ी से जवाब दो! ⚡', particle: '💨' },
-      { mood: 'eating', textEn: 'Munching on diamonds! Earn gems in quizzes! 💎', textHi: 'मैं डायमंड्स खा रहा हूँ! क्विज खेलो और जेम्स कमाओ! 💎', particle: '💎' },
-      { mood: 'celebrate', textEn: 'Party time! Every correct answer brings you closer to #1! 🎉', textHi: 'पार्टी का समय! हर सही उत्तर आपको #1 के करीब ले जाता है! 🎉', particle: '🎉' },
-      { mood: 'thinking', textEn: 'Wisdom is power! Just 10 minutes of quiz builds genius! 🧠', textHi: 'ज्ञान ही असली ताकत है! रोज़ाना 10 मिनट क्विज आपको जीनियस बनाता है! 🧠', particle: '💡' },
-      { mood: 'happy', textEn: 'Your brain is getting sharper every single day! 💪', textHi: 'आपका दिमाग हर दिन और भी ज़्यादा तेज़ हो रहा है! 💪', particle: '💖' },
-      { mood: 'love', textEn: 'Believe in yourself, champ! You know more than you think! ✨', textHi: 'खुद पर भरोसा रखो चैंपियन! तुम जितना सोचते हो उससे कहीं ज़्यादा जानते हो! ✨', particle: '💕' },
+      // Morning / High Energy slots
+      { mood: 'waving', textEn: 'Good morning champ! 10 minutes of daily practice keeps you ahead! ☀️', textHi: 'सुप्रभात चैंपियन! रोज़ाना 10 मिनट का अभ्यास आपको सबसे आगे रखेगा! ☀️', particle: '👋' },
+      { mood: 'wing_stretch', textEn: 'Stretching wings wide! Fresh day, fresh focus and unstoppable energy! 🌅', textHi: 'अंगड़ाई लेकर तैयार! नया दिन, नया संकल्प और जबरदस्त ऊर्जा! 🌅', particle: '💨' },
+      { mood: 'fire', textEn: 'Your daily study streak is blazing hot! Keep the momentum burning! 🔥', textHi: 'आपकी डेली स्टडी स्ट्रीक आग की तरह चमक रही है! रफ्तार बनाए रखो! 🔥', particle: '🔥' },
+      { mood: 'looking_around', textEn: 'Exploring new topics! General knowledge is your biggest strength! 🌍', textHi: 'हर विषय को समझो! सामान्य ज्ञान ही आपकी सबसे बड़ी ताकत है! 🌍', particle: '👀' },
+      { mood: 'head_tilt', textEn: 'Curious minds master tough concepts. Keep asking why and how! ❓', textHi: 'जिज्ञासु दिमाग हर कठिन सवाल का हल ढूंढ लेता है! नया सीखते रहो! ❓', particle: '❓' },
+      { mood: 'ninja', textEn: 'Focus like a master! Eliminate wrong options with precision! 🥷', textHi: 'पूरे ध्यान से पढ़ो! गलत विकल्पों को तुरंत पहचान कर सही चुनो! 🥷', particle: '⚡' },
+      { mood: 'hop', textEn: 'Hop, hop! Small daily steps build massive exam readiness! ⚡', textHi: 'फुदकते रहो! रोज़ाना के छोटे कदम ही बड़ी परीक्षा में जीत दिलाते हैं! ⚡', particle: '⚡' },
+      { mood: 'preening', textEn: 'Sharpening memory every day! Consistent revision makes you brilliant! 🫧', textHi: 'याददाश्त रोज़ तेज़ हो रही है! नियमित रिवीजन से सब कुछ पक्का होता है! 🫧', particle: '🫧' },
+      { mood: 'excited', textEn: 'Aiming for a personal best today? Let’s conquer the lesson! 🚀', textHi: 'आज एक नया रिकॉर्ड बनाने के लिए तैयार हो? चलो शुरू करें! 🚀', particle: '⭐' },
+      { mood: 'eating', textEn: 'Fueling up with knowledge gems! Complete practice sets to level up! 💎', textHi: 'ज्ञान के जेम्स कलेक्ट करो! हर प्रैक्टिस सेट आपकी रैंक मजबूत करता है! 💎', particle: '💎' },
+      { mood: 'celebrate', textEn: 'Celebration time! Every correct answer brings you closer to selection! 🎉', textHi: 'पार्टी का समय! हर सही उत्तर आपको आपकी मंजिल के करीब ले जाता है! 🎉', particle: '🎉' },
+      { mood: 'thinking', textEn: 'Think with clarity! Deep concept learning beats rote memorization! 💡', textHi: 'तर्क के साथ सोचो! गहराई से समझा हुआ ज्ञान हमेशा काम आता है! 💡', particle: '💡' },
+      { mood: 'happy', textEn: 'Your brain is getting stronger and sharper with every practice session! 💪', textHi: 'आपका दिमाग हर प्रैक्टिस सेशन के साथ और भी तेज़ हो रहा है! 💪', particle: '💖' },
+      { mood: 'love', textEn: 'Believe in your journey! You know far more than you give yourself credit for! ✨', textHi: 'अपनी मेहनत पर विश्वास रखो! आप जितना सोचते हो उससे कहीं आगे हो! ✨', particle: '💕' },
+      { mood: 'dance', textEn: 'Grooving with confidence! Learning is exciting when you stay curious! 🕺', textHi: 'उत्साह से भरपूर रहो! जब मन लगाकर पढ़ो तो हर सवाल आसान लगता है! 🕺', particle: '🎵' },
+      // Afternoon / Evening / Review slots
+      { mood: 'scratching', textEn: 'Warming up the brain! Today’s hard work will pay off tomorrow! 🪶', textHi: 'दिमाग को वार्म अप करो! आज की मेहनत कल का सुनहरा परिणाम बनेगी! 🪶', particle: '🪶' },
+      { mood: 'waving', textEn: 'Evening review time! Let’s solidify what you learned today! 🌙', textHi: 'शाम का रिवीजन समय! आज जो पढ़ा उसे पक्का कर लेते हैं! 🌙', particle: '🌙' },
+      { mood: 'fire', textEn: 'Discipline beats motivation. Showing up daily is the champion mindset! 🏆', textHi: 'अनुशासन ही सबसे बड़ी कुंजी है। रोज़ अभ्यास करना ही असली जीत है! 🏆', particle: '🏆' },
+      { mood: 'thinking', textEn: 'Analyze mistakes calmly. Every wrong answer teaches a lasting lesson! 🧠', textHi: 'गलतियों से मत घबराओ। हर गलती एक नया सबक सिखा कर जाती है! 🧠', particle: '🌟' },
+      { mood: 'hop', textEn: 'Bouncing with high spirits! Consistency is building your dream future! 🌟', textHi: 'ऊंचे हौसलों के साथ आगे बढ़ो! आपकी निरंतरता ही भविष्य संवार रही है! 🌟', particle: '🌟' },
+      { mood: 'ninja', textEn: 'Steady hands and sharp eyes! Strike the target score! 🎯', textHi: 'स्थिर मन और पैनी नज़र! अपने लक्ष्य पर बिल्कुल सटीक निशाना साधो! 🎯', particle: '🎯' },
+      { mood: 'celebrate', textEn: 'Terrific effort today! Every milestone deserves a round of applause! 👑', textHi: 'शानदार प्रयास! हर पड़ाव पार करने पर खुद की पीठ थपथपाओ! 👑', particle: '👑' },
+      { mood: 'happy', textEn: 'A calm and peaceful mind absorbs facts like a sponge! 🌸', textHi: 'शांत और प्रसन्न मन हर तथ्य को बहुत जल्दी याद कर लेता है! 🌸', particle: '🌸' },
+      { mood: 'love', textEn: 'Gkoo is right here by your side cheering for every step you take! 💖', textHi: 'Gkoo हर कदम पर आपके साथ है और आपका हौसला बढ़ा रहा है! 💖', particle: '❤️' },
+      { mood: 'wing_stretch', textEn: 'Take a quick deep breath, drink water, and keep moving forward! 💧', textHi: 'एक गहरी सांस लो, पानी पियो और पूरे जोश के साथ आगे बढ़ते रहो! 💧', particle: '💧' },
+      { mood: 'preening', textEn: 'Polishing your revision strategy! Toppers review daily! 📚', textHi: 'अपनी रिवीजन रणनीति मजबूत रखो! टॉपर्स हमेशा रोज़ दोहराते हैं! 📚', particle: '📚' },
+      { mood: 'looking_around', textEn: 'Look how far you’ve come since day one! Be proud of your growth! 📈', textHi: 'देखो पहले दिन से अब तक आप कितना आगे आ चुके हो! गर्व करो! 📈', particle: '🍀' },
+      { mood: 'sleeping', textEn: 'Rest well tonight! A refreshed brain works wonders tomorrow! 🌙', textHi: 'अच्छी और सुकून भरी नींद लो! कल सुबह दिमाग फिर तरोताजा मिलेगा! 🌙', particle: '💤' },
     ],
   },
   leaderboard: {
@@ -76,18 +91,19 @@ const PANEL_DATA: Record<
     buttonGradient: 'from-amber-500 via-orange-500 to-amber-600',
     borderTheme: 'border-amber-200 dark:border-amber-800/60',
     dialogs: [
-      { mood: 'celebrate', textEn: 'Top 3 podium is waiting for you! Show your power! 👑', textHi: 'टॉप 3 पोडियम आपका इंतजार कर रहा है! अपना दम दिखाओ! 👑', particle: '👑' },
-      { mood: 'fire', textEn: 'Challengers are pushing, but you are unstoppable! 🔥', textHi: 'प्रतिद्वंद्वी आगे बढ़ रहे हैं, लेकिन आप अजेय हैं! 🔥', particle: '🔥' },
-      { mood: 'ninja', textEn: 'Stealth attack the leaderboard! +50 XP combo! 🥷', textHi: 'लीडरबोर्ड पर निंजा स्ट्राइक करो! +50 XP कॉम्बो लूटो! 🥷', particle: '⚡' },
-      { mood: 'dance', textEn: 'Victory dance ready! Win the league season! 🕺', textHi: 'विक्ट्री डांस तैयार है! यह लीग सीजन जीतकर दिखाओ! 🕺', particle: '🏆' },
-      { mood: 'excited', textEn: 'Climb the ranks! Every quiz gives you precious XP! 📈', textHi: 'रैंकिंग में ऊपर चढ़ो! हर क्विज आपको कीमती XP दिलाता है! 📈', particle: '🚀' },
-      { mood: 'thinking', textEn: 'Champions aren’t born, they practice daily with Gkoo! 🥇', textHi: 'चैंपियन पैदा नहीं होते, वो रोज़ Gkoo के साथ अभ्यास करते हैं! 🥇', particle: '🌟' },
+      { mood: 'celebrate', textEn: 'Top podium rank is waiting for you! Show your power! 👑', textHi: 'टॉप पोडियम आपका इंतजार कर रहा है! अपना दम दिखाओ! 👑', particle: '👑' },
+      { mood: 'fire', textEn: 'Challengers are pushing, but you are unstoppable! 🔥', textHi: 'प्रतियोगी आगे बढ़ रहे हैं, लेकिन आप अजेय हैं! 🔥', particle: '🔥' },
+      { mood: 'ninja', textEn: 'Climb the leaderboard with steady precision! +50 XP bonus! 🥷', textHi: 'लीडरबोर्ड पर मजबूती से आगे बढ़ो! +50 XP बोनस हासिल करो! 🥷', particle: '⚡' },
+      { mood: 'dance', textEn: 'Victory groove ready! Win this league season! 🕺', textHi: 'विक्ट्री डांस तैयार है! यह लीग सीजन जीतकर दिखाओ! 🕺', particle: '🏆' },
+      { mood: 'excited', textEn: 'Climb the ranks! Every completed test gives you precious XP! 📈', textHi: 'रैंकिंग में ऊपर चढ़ो! हर पूरा किया गया टेस्ट कीमती XP देता है! 📈', particle: '🚀' },
+      { mood: 'thinking', textEn: 'Champions aren’t born, they practice daily with Gkoo! 🥇', textHi: 'चैंपियन पैदा नहीं होते, वो रोज़ अभ्यास से तैयार होते हैं! 🥇', particle: '🌟' },
       { mood: 'love', textEn: 'The higher you aim, the brighter you shine! ✨', textHi: 'जितना बड़ा लक्ष्य, उतनी ही चमकदार सफलता! ✨', particle: '💎' },
-      { mood: 'fire', textEn: 'Maintain your lead! Don’t let rivals catch up! 🛡️', textHi: 'अपनी बढ़त बनाए रखो! प्रतिद्वंदियों को आगे मत निकलने दो! 🛡️', particle: '🔥' },
-      { mood: 'celebrate', textEn: 'Crown looks great on you! Defend your throne! 👑', textHi: 'ताज आप पर बहुत जचता है! अपने सिंहासन की रक्षा करो! 👑', particle: '👑' },
+      { mood: 'fire', textEn: 'Maintain your lead! Don’t let anyone break your stride! 🛡️', textHi: 'अपनी बढ़त बनाए रखो! किसी को आगे मत निकलने दो! 🛡️', particle: '🔥' },
+      { mood: 'celebrate', textEn: 'Crown looks great on you! Defend your top spot! 👑', textHi: 'ताज आप पर बहुत जचता है! अपने शीर्ष स्थान की रक्षा करो! 👑', particle: '👑' },
+      { mood: 'hop', textEn: 'Consistency always wins the league in the long run! ⚡', textHi: 'लगातार लगे रहने वाला ही आखिर में लीग जीतता है! ⚡', particle: '⚡' },
       { mood: 'ninja', textEn: 'True power lies in persistence! Score more XP! ⚡', textHi: 'असली ताकत लगातार डटे रहने में है! और XP स्कोर करो! ⚡', particle: '💨' },
       { mood: 'excited', textEn: 'League promotion is just a few perfect tests away! 🚀', textHi: 'लीग प्रमोशन बस कुछ परफेक्ट टेस्ट्स की दूरी पर है! 🚀', particle: '🏆' },
-      { mood: 'happy', textEn: 'You have the speed, focus and knowledge to rule! 🦁', textHi: 'आपके पास टॉप पर राज करने की स्पीड, फोकस और ज्ञान है! 🦁', particle: '⭐' },
+      { mood: 'happy', textEn: 'You have the speed, focus and knowledge to rule! 🦁', textHi: 'आपके पास टॉप पर रहने की स्पीड, फोकस और ज्ञान है! 🦁', particle: '⭐' },
     ],
   },
   profile: {
@@ -99,16 +115,16 @@ const PANEL_DATA: Record<
     buttonGradient: 'from-pink-500 via-rose-500 to-red-500',
     borderTheme: 'border-pink-200 dark:border-pink-900/60',
     dialogs: [
-      { mood: 'love', textEn: 'Gkoo loves learning with you! Best friends forever! 💖', textHi: 'Gkoo को आपके साथ पढ़ना बहुत पसंद है! पक्के दोस्त! 💖', particle: '❤️' },
-      { mood: 'sleeping', textEn: 'Zzz... Rest well to keep your brain sharp! 🌙', textHi: 'ज़ू... अच्छी नींद लो ताकि दिमाग हमेशा तेज़ रहे! 🌙', particle: '💤' },
-      { mood: 'waving', textEn: 'Hello champion! Look at your amazing badges! 👋', textHi: 'नमस्ते चैंपियन! अपने शानदार बैज और लेवल देखो! 👋', particle: '✨' },
-      { mood: 'eating', textEn: 'Sharing my secret energy gems with you! 💎', textHi: 'अपनी सीक्रेट एनर्जी वाले जेम्स आपके साथ शेयर कर रहा हूँ! 💎', particle: '💎' },
-      { mood: 'excited', textEn: 'You are leveling up so fast! Proud of you! 🌟', textHi: 'आप बहुत तेजी से लेवल अप कर रहे हो! मुझे गर्व है! 🌟', particle: '🌟' },
+      { mood: 'love', textEn: 'Gkoo loves learning with you! Best study buddies forever! 💖', textHi: 'Gkoo को आपके साथ पढ़ना बहुत पसंद है! पक्के दोस्त! 💖', particle: '❤️' },
+      { mood: 'sleeping', textEn: 'Zzz... Rest well to keep your brain fresh and sharp! 🌙', textHi: 'ज़ू... अच्छी नींद लो ताकि दिमाग हमेशा तेज़ रहे! 🌙', particle: '💤' },
+      { mood: 'waving', textEn: 'Hello champion! Look at your amazing badges and progress! 👋', textHi: 'नमस्ते चैंपियन! अपने शानदार बैज और प्रगति देखो! 👋', particle: '✨' },
+      { mood: 'eating', textEn: 'Sharing secret energy gems with you for today’s practice! 💎', textHi: 'आज की पढ़ाई के लिए सीक्रेट एनर्जी वाले जेम्स शेयर कर रहा हूँ! 💎', particle: '💎' },
+      { mood: 'excited', textEn: 'You are leveling up so fast! Proud of your dedication! 🌟', textHi: 'आप बहुत तेजी से आगे बढ़ रहे हो! आपकी मेहनत पर गर्व है! 🌟', particle: '🌟' },
       { mood: 'love', textEn: 'Every day spent learning with you is pure joy! 🌈', textHi: 'आपके साथ सीखने में बिताया हर दिन बहुत सुखद होता है! 🌈', particle: '💖' },
       { mood: 'waving', textEn: 'Your dedication inspires Gkoo to fly higher! 🕊️', textHi: 'आपकी मेहनत Gkoo को भी ऊंची उड़ान भरने की प्रेरणा देती है! 🕊️', particle: '🍀' },
-      { mood: 'happy', textEn: 'Treat yourself to some cool perks in the shop! 🎁', textHi: 'शॉप में जाकर अपने लिए कुछ शानदार रिवार्ड्स अनलॉक करो! 🎁', particle: '💎' },
-      { mood: 'celebrate', textEn: 'Smart, focused and kind—you are the complete package! 🌟', textHi: 'होशियार, एकाग्र और दयालु—आप एक सच्चे ऑलराउंडर हो! 🌟', particle: '⭐' },
-      { mood: 'love', textEn: 'Let’s keep this friendship and streak going forever! 🤝', textHi: 'यह दोस्ती और सीखने का सिलसिला हमेशा ऐसे ही चलता रहे! 🤝', particle: '❤️' },
+      { mood: 'happy', textEn: 'Treat yourself to cool perks in the shop with your gems! 🎁', textHi: 'शॉप में जाकर अपने जेम्स से शानदार रिवार्ड्स अनलॉक करो! 🎁', particle: '💎' },
+      { mood: 'celebrate', textEn: 'Smart, focused and hardworking—you are on the winning track! 🌟', textHi: 'होशियार, एकाग्र और मेहनती—आप बिल्कुल सही रास्ते पर हो! 🌟', particle: '⭐' },
+      { mood: 'love', textEn: 'Let’s keep this friendship and streak going strong! 🤝', textHi: 'यह दोस्ती और सीखने का सिलसिला हमेशा ऐसे ही चलता रहे! 🤝', particle: '❤️' },
       { mood: 'excited', textEn: 'A fresh mind discovers wonders! Stay awesome! ✨', textHi: 'एक तरोताजा दिमाग चमत्कारों की खोज करता है! हमेशा खुश रहो! ✨', particle: '💫' },
       { mood: 'celebrate', textEn: 'High five! We make the ultimate dream team! ✋', textHi: 'हाई फाइव! हमारी और आपकी जोड़ी सचमुच लाजवाब है! ✋', particle: '🎉' },
     ],
@@ -153,6 +169,8 @@ const PANEL_DATA: Record<
       { mood: 'fire', textEn: 'Knowledge is your superpower! Unleash it now! 🚀', textHi: 'ज्ञान ही आपकी महाशक्ति है! इसे साबित करने का वक्त है! 🚀', particle: '🔥' },
       { mood: 'thinking', textEn: 'Think logically, you are smarter than this question! 🧠', textHi: 'तर्क से सोचो, आप इस सवाल से कहीं ज्यादा होशियार हो! 🧠', particle: '🌟' },
       { mood: 'excited', textEn: '100% Accuracy bonus gives you extra shining gems! 👑', textHi: '100% एक्यूरेसी बोनस से आपको अतिरिक्त चमकदार जेम्स मिलते हैं! 👑', particle: '💎' },
+      { mood: 'hop', textEn: 'Stay calm and steady! Victory is right around the corner! ⚡', textHi: 'शांत और एकाग्र रहो! जीत बिल्कुल सामने है! ⚡', particle: '⚡' },
+      { mood: 'love', textEn: 'Believe in yourself! Every question practiced makes you stronger! ✨', textHi: 'खुद पर भरोसा रखो! हर हल किया गया सवाल आपको मजबूत बनाता है! ✨', particle: '💖' },
     ],
   },
 };
@@ -173,10 +191,13 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
   const { lang, hapticsEnabled } = useAppContext();
   const config = PANEL_DATA[panel];
 
+  // User manual tap offset so user can tap Gkoo to shuffle dialogue anytime!
+  const [tapOffset, setTapOffset] = useState(0);
+
   // Deterministically select dialog and animation 2 times a day:
   // Slot 0: 00:00 - 13:59 (Morning / Midday)
   // Slot 1: 14:00 - 23:59 (Evening / Night)
-  const slotIndex = useMemo(() => {
+  const baseSlotIndex = useMemo(() => {
     const now = new Date();
     const start = new Date(now.getFullYear(), 0, 0);
     const diff = (now.getTime() - start.getTime()) + ((start.getTimezoneOffset() - now.getTimezoneOffset()) * 60 * 1000);
@@ -186,7 +207,8 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
     return (dayOfYear * 2 + slot) % config.dialogs.length;
   }, [config.dialogs.length]);
 
-  const currentDialog = config.dialogs[slotIndex] || config.dialogs[0];
+  const activeIndex = (baseSlotIndex + tapOffset) % config.dialogs.length;
+  const currentDialog = config.dialogs[activeIndex] || config.dialogs[0];
   const currentMood: MascotMood = customMood || currentDialog.mood || defaultMood;
   const activeMessage = lang === 'hi'
     ? (customMessageHi || currentDialog.textHi)
@@ -222,6 +244,8 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
 
   const handleTapMascot = () => {
     triggerHaptic('click', hapticsEnabled);
+    // Cycle to next motivational quote and animation
+    setTapOffset(prev => prev + 1);
   };
 
   const IconComponent = config.buttonIcon;
@@ -229,9 +253,9 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
   return (
     <div className={`relative flex items-center justify-between gap-3 sm:gap-5 select-none py-1 ${className}`}>
       {/* G-koo Speech Message Bubble */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0" onClick={handleTapMascot} title="Tap to see next message!">
         <div
-          className="bg-white dark:bg-[#13192B] p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-indigo-900/40 shadow-md relative flex flex-col justify-between"
+          className="bg-white dark:bg-[#13192B] p-3.5 sm:p-4 rounded-2xl sm:rounded-3xl border-2 border-gray-200 dark:border-indigo-900/40 shadow-md relative flex flex-col justify-between cursor-pointer hover:border-rose-300 dark:hover:border-indigo-700/60 transition-colors"
         >
           {/* Speech Bubble Arrow Tail pointing towards G-koo bird on right */}
           <div className="absolute top-1/2 -right-2 -translate-y-1/2 w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-l-[8px] border-l-gray-200 dark:border-l-indigo-900/40 pointer-events-none" />
@@ -273,7 +297,8 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
             <div className="mt-2.5 pt-2 border-t border-gray-100 dark:border-gray-800/80">
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   triggerHaptic('click', hapticsEnabled);
                   if (customButtonAction) customButtonAction();
                 }}
@@ -297,10 +322,10 @@ export const GkooCompanionCard: React.FC<GkooCompanionCardProps> = ({
           repeat: Infinity,
           ease: 'easeInOut',
         }}
-        whileTap={{ scale: 0.94 }}
+        whileTap={{ scale: 0.92 }}
         onClick={handleTapMascot}
         className="w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 shrink-0 cursor-pointer relative select-none self-center"
-        title="Gkoo Study Buddy 🦉"
+        title="Gkoo Study Buddy - Tap to change! 🦉"
       >
         <GkooBirdSvg mood={currentMood} className="w-full h-full drop-shadow-xl" />
       </motion.div>

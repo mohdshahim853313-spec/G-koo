@@ -155,10 +155,10 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
           </div>
 
           {/* Footer Actions */}
-          <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151B28] flex items-center gap-3 shrink-0">
+          <div className="p-3.5 sm:p-4 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-[#151B28] flex items-center gap-2.5 shrink-0">
             <button
               onClick={onClose}
-              className="flex-1 py-3 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs cursor-pointer"
+              className="py-3 px-4 rounded-2xl border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 font-bold text-xs shrink-0 cursor-pointer whitespace-nowrap"
             >
               {t('close')}
             </button>
@@ -167,10 +167,10 @@ export const MistakesReviewModal: React.FC<MistakesReviewModalProps> = ({
               <motion.button
                 whileTap={{ scale: 0.96, y: 1 }}
                 onClick={handleRetestClick}
-                className="flex-2 bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-3 rounded-2xl text-xs shadow-[0_3px_0_0_#991B1B] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                className="flex-1 bg-gradient-to-r from-[#FF5F6D] to-[#E64553] text-white font-black py-3 px-3 rounded-2xl text-xs sm:text-sm shadow-[0_3px_0_0_#991B1B] active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center space-x-1.5 cursor-pointer whitespace-nowrap"
               >
-                <RotateCcw className="w-4 h-4 stroke-[2.5]" />
-                <span>{t('retestMistakes')} ({mistakes.length})</span>
+                <RotateCcw className="w-4 h-4 stroke-[2.5] shrink-0" />
+                <span className="whitespace-nowrap">{t('retestMistakes')} ({mistakes.length})</span>
               </motion.button>
             )}
           </div>

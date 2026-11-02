@@ -1,4 +1,5 @@
 import type { QuizQuestion } from './gemini';
+import { isCuriosityStorySubject } from '../utils/pinnedSubjects';
 // Hardcoded questions removed: all questions load exclusively from Google Sheets
 
 export interface SheetQuestionRow {
@@ -648,12 +649,21 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
     const questionText = colQuestion !== -1 ? row[colQuestion]?.trim() : row[1]?.trim();
     if (!questionText) continue;
 
-    const optA = (colOptA !== -1 ? row[colOptA] : row[2])?.trim() || '';
-    const optB = (colOptB !== -1 ? row[colOptB] : row[3])?.trim() || '';
-    const optC = (colOptC !== -1 ? row[colOptC] : row[4])?.trim() || '';
-    const optD = (colOptD !== -1 ? row[colOptD] : row[5])?.trim() || '';
+    const parsedCat = colCategory !== -1 ? row[colCategory]?.trim() : '';
+    const category = parsedCat || fallbackCategory || 'mix';
+    const isCuriosity = isCuriosityStorySubject(category);
 
-    if (!optA || !optB) continue;
+    let optA = (colOptA !== -1 ? row[colOptA] : row[2])?.trim() || '';
+    let optB = (colOptB !== -1 ? row[colOptB] : row[3])?.trim() || '';
+    let optC = (colOptC !== -1 ? row[colOptC] : row[4])?.trim() || '';
+    let optD = (colOptD !== -1 ? row[colOptD] : row[5])?.trim() || '';
+
+    if (isCuriosity) {
+      if (!optA) optA = 'अगला तथ्य';
+      if (!optB) optB = 'ज्ञान';
+    } else if (!optA || !optB) {
+      continue;
+    }
 
     const rawOptions = [optA, optB, optC, optD].filter(Boolean);
     if (rawOptions.length < 2) continue;
@@ -674,10 +684,14 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
 
     // English parsed items (if present)
     const questionTextEn = colQuestionEn !== -1 ? row[colQuestionEn]?.trim() : '';
-    const optAEn = colOptAEn !== -1 ? row[colOptAEn]?.trim() : '';
-    const optBEn = colOptBEn !== -1 ? row[colOptBEn]?.trim() : '';
-    const optCEn = colOptCEn !== -1 ? row[colOptCEn]?.trim() : '';
-    const optDEn = colOptDEn !== -1 ? row[colOptDEn]?.trim() : '';
+    let optAEn = colOptAEn !== -1 ? row[colOptAEn]?.trim() : '';
+    let optBEn = colOptBEn !== -1 ? row[colOptBEn]?.trim() : '';
+    let optCEn = colOptCEn !== -1 ? row[colOptCEn]?.trim() : '';
+    let optDEn = colOptDEn !== -1 ? row[colOptDEn]?.trim() : '';
+    if (isCuriosity) {
+      if (!optAEn) optAEn = 'Next Fact';
+      if (!optBEn) optBEn = 'Knowledge';
+    }
     const rawOptionsEn = [optAEn, optBEn, optCEn, optDEn].filter(Boolean);
 
     let rawAnswerEn = colAnswerEn !== -1 ? row[colAnswerEn]?.trim() : '';
@@ -690,8 +704,6 @@ export function parseSheetRowsToQuestions(rows: string[][], fallbackCategory?: s
     }
 
     const explanationEn = colExplanationEn !== -1 ? row[colExplanationEn]?.trim() : '';
-    const parsedCat = colCategory !== -1 ? row[colCategory]?.trim() : '';
-    const category = parsedCat || fallbackCategory || 'mix';
     const explanation = (colExplanation !== -1 ? row[colExplanation] : '')?.trim() || '';
     const examTag = (colExamTag !== -1 ? row[colExamTag] : '')?.trim() || 'Google Sheet PYQ';
 

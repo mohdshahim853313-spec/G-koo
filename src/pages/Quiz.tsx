@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAppContext } from '../useAppContext';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { playSound, triggerHaptic, speakText, stopSpeech } from '../lib/audio';
 import { Mascot, GkooBirdAvatar, GkooBirdSvg } from '../components/Mascot';
-import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Play, Bookmark, Zap, BookOpen, ChevronRight, ChevronLeft, Gem, Landmark, Globe, Flame, Target, HardDrive, AlertTriangle, Languages } from 'lucide-react';
+import { X, CheckCircle2, XCircle, Sparkles, Heart, RotateCcw, Volume2, VolumeX, Star, ArrowRight, Clock, WifiOff, Play, Bookmark, Zap, BookOpen, ChevronRight, ChevronLeft, Gem, Landmark, Globe, Flame, Target, AlertTriangle, Languages } from 'lucide-react';
 import { generateAiQuiz, type QuizQuestion } from '../lib/gemini';
 import { getSyncedQuestionsByCategory, syncCategoryQuestions, filterQuestionsByLanguage } from '../lib/sheetSync';
 import { getCategoryLevelConfig, getCategoryInfo } from '../lib/levelData';
@@ -14,6 +14,7 @@ import { MistakesReviewModal, type MistakeRecord } from '../components/MistakesR
 import { RateAppModal } from '../components/RateAppModal';
 import { isAndroidApp } from '../utils/platform';
 import { triggerQuizCompletionInterstitial, showRewardedVideoAd } from '../services/admobService';
+import { isCuriosityStorySubject } from '../utils/pinnedSubjects';
 
 const QUIT_MESSAGES = [
   {
@@ -161,6 +162,7 @@ function getSynchronousQuizQuestions(
 export default function Quiz() {
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { categoryId: rawCategoryId } = useParams();
   const categoryId = rawCategoryId || 'india';
   const [searchParams] = useSearchParams();
@@ -215,6 +217,8 @@ export default function Quiz() {
 
   const levelConfig = (levelNumber && levelCategory) ? getCategoryLevelConfig(levelCategory, levelNumber) : null;
   const categoryInfo = getCategoryInfo(levelCategory);
+  const activeQuizCategory = isLevelQuiz ? levelCategory : (categoryId || 'india');
+  const isStoryMode = isCuriosityStorySubject(activeQuizCategory);
 
   const isResumeMode = searchParams.get('resume') === 'true';
   const savedResumeSession = (() => {
@@ -248,9 +252,7 @@ export default function Quiz() {
     if (savedResumeSession?.questions?.length) return false;
     return questions.length === 0;
   });
-  const [isOfflineQuiz, setIsOfflineQuiz] = useState(false);
   const [isOfflineBlocked, setIsOfflineBlocked] = useState(false);
-  const [showOfflineBanner, setShowOfflineBanner] = useState(true);
   const [showRateModal, setShowRateModal] = useState(false);
   const [isWatchingRewardAd, setIsWatchingRewardAd] = useState(false);
   const [rewardAdTimer, setRewardAdTimer] = useState(5);
@@ -580,7 +582,6 @@ export default function Quiz() {
       }
     }
 
-    setIsOfflineQuiz(isCurrentlyOffline);
     setMistakesList([]);
 
     setQuestions(shuffleQuestionsAndOptions(filterQuestionsByLanguage(generated, lang)));
@@ -649,7 +650,7 @@ export default function Quiz() {
   useEffect(() => {
     if (questions.length > 0 && currentIndex < questions.length && !isLoading) {
       try {
-        const fullUrl = window.location.pathname + window.location.search.replace(/[?&]resume=true/g, '');
+        const fullUrl = location.pathname + (location.search ? location.search.replace(/[?&]resume=true/g, '') : '');
         const sessionData = {
           url: fullUrl,
           categoryId: categoryId || 'mix',
@@ -887,7 +888,9 @@ export default function Quiz() {
     } else if (currentQ) {
       triggerHaptic('click', hapticsEnabled);
       setIsSpeaking(true);
-      const textToSpeak = `${currentQ.text}. ${lang === 'hi' ? 'विकल्प हैं:' : 'Options are:'} ${currentQ.options.join(', ')}`;
+      const textToSpeak = isStoryMode
+        ? `${currentQ.text}. ${currentQ.explanation && currentQ.explanation.trim() !== currentQ.text.trim() ? currentQ.explanation : ''}`
+        : `${currentQ.text}. ${lang === 'hi' ? 'विकल्प हैं:' : 'Options are:'} ${currentQ.options.join(', ')}`;
       speakText(textToSpeak, lang, () => setIsSpeaking(false));
     }
   };
@@ -1037,6 +1040,39 @@ export default function Quiz() {
     setCurrentIndex(prev => prev + 1);
   };
 
+  const handleNextStoryFact = () => {
+    stopSpeech();
+    setIsSpeaking(false);
+    triggerHaptic('click', hapticsEnabled);
+
+    const isLast = currentIndex === questions.length - 1;
+
+    if (isLast) {
+      const finalAccuracy = 100;
+      const baseReward = levelConfig ? levelConfig.xpReward : 100;
+      const gemsReward = 25;
+
+      setEarnedGems(gemsReward);
+      addXp(baseReward);
+      recordQuizResult(questions.length, questions.length, questions.length, gemsReward);
+      playSound('complete', soundEnabled);
+
+      if (isLevelQuiz && levelNumber) {
+        const result = completeCategoryLevel(levelCategory, levelNumber, finalAccuracy, baseReward);
+        setEarnedStars(3);
+        setNextUnlockedLevel(result.nextUnlocked);
+      }
+    }
+
+    setSelectedOption(null);
+    setIsAnswerChecked(false);
+    setIsExplanationDismissed(false);
+    setIsCorrect(null);
+    setRemovedOptions([]);
+    setReviewIndex(null);
+    setCurrentIndex(prev => prev + 1);
+  };
+
 
   // Google Play Store 5-Star Rating Prompt (Android App Only)
   useEffect(() => {
@@ -1140,14 +1176,35 @@ export default function Quiz() {
     );
   }
 
-  // If questions are still loading on cold start, show clean minimal loader (no mascot popup)
-  if (isLoading && questions.length === 0) {
+  // Loading screen before level starts: Animated GKoo mascot without text + animated loading bar below
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 text-center bg-[#FCF9F7] dark:bg-[#0B0F19]">
-        <div className="w-10 h-10 rounded-full border-3 border-[#FF5F6D] border-t-transparent animate-spin mb-3" />
-        <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
-          {lang === 'hi' ? 'सवाल तैयार हो रहे हैं...' : 'Loading questions...'}
-        </span>
+        <motion.div
+          initial={{ scale: 0.88, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.25 }}
+          className="flex flex-col items-center justify-center"
+        >
+          {/* Animated GKoo Mascot without any text */}
+          <Mascot size="lg" mood="excited" interactive={false} className="justify-center mx-auto" />
+
+          {/* Sleek animated loading bar right below GKoo */}
+          <div className="w-44 sm:w-52 h-2 bg-gray-200/90 dark:bg-gray-800/90 rounded-full overflow-hidden relative shadow-inner mt-4">
+            <motion.div
+              className="h-full rounded-full bg-gradient-to-r from-[#FF5F6D] via-[#FF8008] to-[#FFC371] shadow-[0_0_12px_rgba(255,95,109,0.5)]"
+              animate={{
+                x: ['-100%', '170%'],
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 1.15,
+                ease: 'easeInOut',
+              }}
+              style={{ width: '45%' }}
+            />
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -1305,14 +1362,6 @@ export default function Quiz() {
           </p>
         )}
 
-        {/* Offline Badge on Completion */}
-        {isOfflineQuiz && (
-          <div className="inline-flex items-center space-x-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-3 py-0.5 rounded-full text-[11px] font-black text-amber-800 dark:text-amber-300 mt-1 shadow-xs">
-            <span>📡</span>
-            <span>{lang === 'hi' ? 'ऑफलाइन मोड' : 'Offline Mode'}</span>
-          </div>
-        )}
-
         {/* 3-Star Rating Showcase on Level Finish */}
         {isLevelQuiz && (
           <div className="flex items-center justify-center space-x-2.5 my-2">
@@ -1329,8 +1378,8 @@ export default function Quiz() {
               >
                 <Star
                   className={`w-8 h-8 ${star <= earnedStars
-                      ? 'fill-amber-400 text-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.6)]'
-                      : 'text-gray-300 dark:text-gray-700 fill-gray-100 dark:fill-gray-800/40'
+                    ? 'fill-amber-400 text-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.6)]'
+                    : 'text-gray-300 dark:text-gray-700 fill-gray-100 dark:fill-gray-800/40'
                     }`}
                 />
               </motion.div>
@@ -1456,8 +1505,8 @@ export default function Quiz() {
 
               {/* Cut-off evaluation badge */}
               <div className={`p-2 rounded-lg border text-[10px] font-bold flex items-center space-x-1.5 ${isCleared
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
-                  : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200'
+                : 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 dark:border-amber-800 text-amber-800 dark:text-amber-200'
                 }`}>
                 {isCleared ? (
                   <Target className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -1623,22 +1672,15 @@ export default function Quiz() {
                 />
               </div>
 
-              {/* Offline Status Badge in Top Bar (Only when actually offline) */}
-              {isOfflineQuiz && (
-                <div
-                  className="flex items-center space-x-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 px-2.5 py-1 rounded-full text-[10px] font-black text-amber-700 dark:text-amber-300 shrink-0 shadow-xs"
-                  title={lang === 'hi' ? 'ऑफलाइन सुरक्षित डेटा' : 'Offline Saved Data'}
-                >
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="flex items-center space-x-1">
-                    <HardDrive className="w-3 h-3 inline text-amber-600 dark:text-amber-400" />
-                    <span>{lang === 'hi' ? 'ऑफलाइन सेव्ड' : 'Offline Saved'}</span>
+              {/* 5-Heart HUD Indicator, Story Mode Badge, or Unlimited Hearts for Daily Challenge / Mock Exam */}
+              {isStoryMode ? (
+                <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-orange-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse inline" />
+                  <span className="text-xs font-black text-amber-600 dark:text-amber-400">
+                    {lang === 'hi' ? 'ज्ञान यात्रा' : 'Story Mode'}
                   </span>
                 </div>
-              )}
-
-              {/* 5-Heart HUD Indicator or Unlimited Hearts for Daily Challenge / Mock Exam */}
-              {isDailyChallenge ? (
+              ) : isDailyChallenge ? (
                 <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-500/15 to-rose-500/15 dark:from-amber-950/40 dark:to-rose-950/40 px-3 py-1.5 rounded-full border border-amber-300/60 dark:border-amber-700/50 shadow-xs shrink-0">
                   <span className="text-xs font-black text-amber-600 dark:text-amber-400 flex items-center space-x-1">
                     <Zap className="w-3 h-3 fill-amber-500 text-amber-500 inline" />
@@ -1666,8 +1708,8 @@ export default function Quiz() {
                       <Heart
                         key={i}
                         className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-transform ${i <= quizHearts
-                            ? 'fill-[#FF5F6D] text-[#FF5F6D]'
-                            : 'text-gray-300 dark:text-gray-600 scale-90'
+                          ? 'fill-[#FF5F6D] text-[#FF5F6D]'
+                          : 'text-gray-300 dark:text-gray-600 scale-90'
                           }`}
                       />
                     ))}
@@ -1680,31 +1722,6 @@ export default function Quiz() {
 
 
 
-          {/* Offline Notification Banner */}
-          {isOfflineQuiz && showOfflineBanner && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700/60 px-3.5 py-2 rounded-2xl mb-4 text-xs font-bold text-emerald-900 dark:text-emerald-200 shadow-xs"
-            >
-              <div className="flex items-center space-x-2 truncate">
-                <HardDrive className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="truncate">
-                  {lang === 'hi'
-                    ? 'ऑफलाइन मोड: पास किए गए स्तर का सुरक्षित डेटा लोड हुआ है'
-                    : 'Offline Mode: Playing completed level from saved data'}
-                </span>
-              </div>
-              <button
-                onClick={() => setShowOfflineBanner(false)}
-                className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 p-0.5 ml-2 cursor-pointer shrink-0"
-                title={lang === 'hi' ? 'बंद करें' : 'Dismiss'}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-
           {/* Question Prompt & Options Grid */}
           <AnimatePresence mode="wait">
             <motion.div
@@ -1714,270 +1731,348 @@ export default function Quiz() {
               exit={{ x: -25, opacity: 0 }}
               className="w-full"
             >
-              {/* Question Text Box with TTS & Bookmark */}
-              <div className="w-full bg-white dark:bg-[#13192B] p-4.5 sm:p-6 rounded-3xl border border-gray-100 dark:border-indigo-950/80 shadow-sm mb-4 sm:mb-6 flex flex-col">
-                {/* Top Action Row: Tag & Timer on Left, Bookmark & Audio on Right */}
-                <div className="flex items-center justify-between gap-2 mb-3.5 w-full">
-                  <div className="flex items-center flex-wrap gap-2 min-w-0">
-                    {/* Back Arrow button to inspect previously passed questions */}
-                    {(currentIndex > 0 || isReviewMode) && (
-                      <button
-                        type="button"
-                        onClick={handleGoBack}
-                        disabled={isReviewMode && reviewIndex === 0}
-                        className={`p-1.5 rounded-xl border flex items-center justify-center transition-all ${isReviewMode && reviewIndex === 0
-                            ? 'opacity-40 border-gray-200 dark:border-gray-800 text-gray-400 cursor-not-allowed'
-                            : 'border-indigo-200 dark:border-indigo-800/80 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs active:scale-95 cursor-pointer'
-                          }`}
-                        title={lang === 'hi' ? 'पिछला सवाल देखें' : 'View Previous Question'}
-                      >
-                        <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                      </button>
+              {isStoryMode ? (
+                /* KNOWLEDGE STORY MODE CARD */
+                <div className="w-full space-y-4">
+                  <div className="bg-white dark:bg-[#13192B] rounded-3xl p-5 sm:p-7 border-2 border-amber-200/90 dark:border-amber-900/60 shadow-xl relative overflow-hidden text-left">
+                    {/* Subtle glowing corner */}
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-amber-400/15 via-orange-400/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+                    {/* Header Meta */}
+                    <div className="flex items-center justify-between gap-2 mb-4 pb-3 border-b border-gray-100 dark:border-gray-800/80 relative z-10">
+                      <div className="flex items-center space-x-2.5 min-w-0">
+                        <span className="text-2xl sm:text-3xl shrink-0">{categoryInfo?.icon || '💡'}</span>
+                        <div className="min-w-0">
+                          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 block truncate">
+                            {lang === 'hi' ? (categoryInfo?.titleHi || 'रोचक ज्ञान') : (categoryInfo?.titleEn || 'Curiosity & Knowledge')}
+                          </span>
+                          <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                            {lang === 'hi' ? `तथ्य #${currentIndex + 1} / ${questions.length}` : `Fact #${currentIndex + 1} of ${questions.length}`}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons: Listen Audio + Save */}
+                      <div className="flex items-center space-x-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={toggleSpeakQuestion}
+                          className={`px-3 py-2 rounded-2xl border-2 transition-all flex items-center space-x-1.5 cursor-pointer text-xs font-black ${isSpeaking
+                              ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-300 shadow-xs'
+                              : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-300 hover:text-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20'
+                            }`}
+                          title={isSpeaking ? (lang === 'hi' ? 'आवाज़ रोकें' : 'Stop Audio') : (lang === 'hi' ? 'तथ्य सुनें' : 'Listen Fact')}
+                        >
+                          {isSpeaking ? (
+                            <>
+                              <VolumeX className="w-4 h-4 text-amber-500 animate-pulse shrink-0" />
+                              <span>{lang === 'hi' ? 'रोकें' : 'Stop'}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-4 h-4 text-amber-500 shrink-0" />
+                              <span>{lang === 'hi' ? 'सुनें' : 'Listen'}</span>
+                            </>
+                          )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleBookmarkCurrent}
+                          className={`p-2 rounded-2xl border-2 transition-all cursor-pointer ${isBookmarked(currentQ.text)
+                              ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/50 text-amber-500'
+                              : 'border-gray-200 dark:border-gray-800 text-gray-400 hover:text-amber-500'
+                            }`}
+                          title={lang === 'hi' ? 'सेव करें' : 'Bookmark'}
+                        >
+                          <Bookmark className={`w-4 h-4 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Hook / Question Title */}
+                    <h2 className="text-lg sm:text-xl md:text-2xl font-black text-gray-900 dark:text-white leading-snug mb-3.5 text-left selectable-text select-text relative z-10">
+                      {currentQ.text}
+                    </h2>
+
+                    {/* Knowledge Story Paragraph */}
+                    {currentQ.explanation && currentQ.explanation.trim() !== currentQ.text.trim() && (
+                      <div className="mt-3 p-4 sm:p-5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/25 border border-amber-200/70 dark:border-amber-900/40 relative z-10">
+                        <p className="text-sm sm:text-base md:text-lg text-gray-800 dark:text-gray-200 leading-relaxed font-semibold text-left selectable-text select-text whitespace-pre-line">
+                          {currentQ.explanation}
+                        </p>
+                      </div>
                     )}
-
-                    {/* Forward Arrow button when in review mode */}
-                    {isReviewMode && (
-                      <button
-                        type="button"
-                        onClick={handleGoForward}
-                        className="p-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs active:scale-95 cursor-pointer flex items-center justify-center"
-                        title={reviewIndex! < currentIndex - 1 ? (lang === 'hi' ? 'अगला सवाल' : 'Next Question') : (lang === 'hi' ? 'वर्तमान सवाल पर लौटें' : 'Return to Current Question')}
-                      >
-                        <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-                      </button>
-                    )}
-
-                    {/* Review Mode Indicator Badge */}
-                    {isReviewMode && (
-                      <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider">
-                        <span>{lang === 'hi' ? `समीक्षा: सवाल ${(reviewIndex ?? 0) + 1}` : `Review: Q${(reviewIndex ?? 0) + 1}`}</span>
-                      </span>
-                    )}
-
-                    {/* Real Exam PYQ Tag Badge */}
-                    {displayExamTag && (
-                      <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[11px] font-black shadow-2xs">
-                        {isWorldMode ? (
-                          <Globe className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                        ) : (
-                          <Landmark className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
-                        )}
-                        <span className="truncate max-w-[200px] sm:max-w-none">{displayExamTag}</span>
-                      </span>
-                    )}
-
-                    {/* Active Exam Timer countdown pill */}
-                    {(examTimerEnabled || isExamMockMode) && !isAnswerChecked && !isReviewMode && (
-                      <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border text-xs font-black shadow-xs ${timeLeft <= 5
-                          ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 text-rose-600 animate-pulse'
-                          : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-700 dark:text-amber-300'
-                        }`}>
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{timeLeft}s</span>
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center space-x-1 shrink-0">
-                    {/* Bookmark Button */}
-                    <button
-                      type="button"
-                      onClick={handleBookmarkCurrent}
-                      className={`p-2 rounded-2xl border transition-all ${isBookmarked(currentQ.text)
-                          ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-500 shadow-xs'
-                          : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20'
-                        }`}
-                      title={isBookmarked(currentQ.text) ? (lang === 'hi' ? 'बुकमार्क हटाया' : 'Remove Bookmark') : (lang === 'hi' ? 'बुकमार्क करें' : 'Bookmark Question')}
-                    >
-                      <Bookmark className={`w-5 h-5 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
-                    </button>
-
-                    {/* Question TTS Audio Button (Toggles ON and OFF on 2nd press) */}
-                    <button
-                      type="button"
-                      onClick={toggleSpeakQuestion}
-                      className={`p-2 rounded-2xl border transition-all cursor-pointer ${isSpeaking
-                          ? 'border-[#FF5F6D] bg-rose-50 dark:bg-rose-950/40 text-[#FF5F6D] shadow-xs'
-                          : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:text-[#FF5F6D] hover:bg-rose-50/50 dark:hover:bg-rose-950/20'
-                        }`}
-                      title={
-                        isSpeaking
-                          ? (lang === 'hi' ? 'आवाज़ बंद करें' : 'Stop Reading')
-                          : (lang === 'hi' ? 'सवाल और विकल्प सुनें' : 'Read Question & Options Aloud')
-                      }
-                    >
-                      {isSpeaking ? (
-                        <VolumeX className="w-5 h-5 text-[#FF5F6D] animate-pulse" />
-                      ) : (
-                        <Volume2 className="w-5 h-5" />
-                      )}
-                    </button>
                   </div>
                 </div>
+              ) : (
+                <>
+                  {/* Question Text Box with TTS & Bookmark */}
+                  <div className="w-full bg-white dark:bg-[#13192B] p-4.5 sm:p-6 rounded-3xl border border-gray-100 dark:border-indigo-950/80 shadow-sm mb-4 sm:mb-6 flex flex-col">
+                    {/* Top Action Row: Tag & Timer on Left, Bookmark & Audio on Right */}
+                    <div className="flex items-center justify-between gap-2 mb-3.5 w-full">
+                      <div className="flex items-center flex-wrap gap-2 min-w-0">
+                        {/* Back Arrow button to inspect previously passed questions */}
+                        {(currentIndex > 0 || isReviewMode) && (
+                          <button
+                            type="button"
+                            onClick={handleGoBack}
+                            disabled={isReviewMode && reviewIndex === 0}
+                            className={`p-1.5 rounded-xl border flex items-center justify-center transition-all ${isReviewMode && reviewIndex === 0
+                              ? 'opacity-40 border-gray-200 dark:border-gray-800 text-gray-400 cursor-not-allowed'
+                              : 'border-indigo-200 dark:border-indigo-800/80 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs active:scale-95 cursor-pointer'
+                              }`}
+                            title={lang === 'hi' ? 'पिछला सवाल देखें' : 'View Previous Question'}
+                          >
+                            <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                          </button>
+                        )}
 
-                {/* Question Text takes the FULL width of the card across left to right */}
-                <h2 className="w-full text-base sm:text-lg md:text-xl font-black text-gray-800 dark:text-white leading-relaxed text-left selectable-text select-text">
-                  {currentQ.text}
-                </h2>
-              </div>
+                        {/* Forward Arrow button when in review mode */}
+                        {isReviewMode && (
+                          <button
+                            type="button"
+                            onClick={handleGoForward}
+                            className="p-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800/80 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs active:scale-95 cursor-pointer flex items-center justify-center"
+                            title={reviewIndex! < currentIndex - 1 ? (lang === 'hi' ? 'अगला सवाल' : 'Next Question') : (lang === 'hi' ? 'वर्तमान सवाल पर लौटें' : 'Return to Current Question')}
+                          >
+                            <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+                          </button>
+                        )}
 
-              {/* Options Section: 2-second Delayed Reveal (Skipped in Review Mode) */}
-              <div className="w-full mt-2 sm:mt-3 mb-4">
-                {!showOptions && !isReviewMode ? (
-                  /* 4 Soft Pulsing Skeleton Option Placeholders with exact matching height and spacing */
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="h-[58px] rounded-2xl bg-gray-200/70 dark:bg-gray-800/60 animate-pulse border-2 border-gray-100 dark:border-gray-800/40 shadow-[0_3px_0_0_#E2E8F0]/30 dark:shadow-[0_3px_0_0_#1E293B]/30"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full"
-                  >
-                    {currentQ.options.map((option, optIdx) => {
-                      const isSelected = selectedOption === option;
-                      const isRemoved = !isReviewMode && removedOptions.includes(option);
+                        {/* Review Mode Indicator Badge */}
+                        {isReviewMode && (
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-950/80 border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200 text-[10px] font-black uppercase tracking-wider">
+                            <span>{lang === 'hi' ? `समीक्षा: सवाल ${(reviewIndex ?? 0) + 1}` : `Review: Q${(reviewIndex ?? 0) + 1}`}</span>
+                          </span>
+                        )}
 
-                      let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
-                      let badgeColor = 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700';
+                        {/* Real Exam PYQ Tag Badge */}
+                        {displayExamTag && (
+                          <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/70 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 text-[11px] font-black shadow-2xs">
+                            {isWorldMode ? (
+                              <Globe className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                            ) : (
+                              <Landmark className="w-3 h-3 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                            )}
+                            <span className="truncate max-w-[200px] sm:max-w-none">{displayExamTag}</span>
+                          </span>
+                        )}
 
-                      if (isReviewMode) {
-                        const isUserChoice = activePastRecord?.userSelected === option;
-                        const isThisCorrect = option === currentQ.answer;
+                        {/* Active Exam Timer countdown pill */}
+                        {(examTimerEnabled || isExamMockMode) && !isAnswerChecked && !isReviewMode && (
+                          <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl border text-xs font-black shadow-xs ${timeLeft <= 5
+                            ? 'bg-rose-50 dark:bg-rose-950/70 border-rose-400 text-rose-600 animate-pulse'
+                            : 'bg-amber-50 dark:bg-amber-950/50 border-amber-300 text-amber-700 dark:text-amber-300'
+                            }`}>
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{timeLeft}s</span>
+                          </span>
+                        )}
+                      </div>
 
-                        if (isUserChoice && activePastRecord?.isCorrect) {
-                          // User selected correctly -> Emerald / Green
-                          btnStyles += "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 shadow-[0_3px_0_0_#10B981]";
-                          badgeColor = 'bg-emerald-500 text-white';
-                        } else if (isUserChoice && !activePastRecord?.isCorrect) {
-                          // User selected incorrectly -> Rose / Red
-                          btnStyles += "border-rose-500 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 shadow-[0_3px_0_0_#F43F5E]";
-                          badgeColor = 'bg-rose-500 text-white';
-                        } else if (isThisCorrect) {
-                          // The correct answer -> Emerald / Green
-                          btnStyles += "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 shadow-[0_3px_0_0_#10B981]";
-                          badgeColor = 'bg-emerald-500 text-white';
-                        } else {
-                          // Other neutral unselected option
-                          btnStyles += "border-gray-200 dark:border-indigo-950/60 opacity-40 bg-white dark:bg-[#13192B] text-gray-400";
-                        }
-                      } else if (isRemoved) {
-                        btnStyles += "border-dashed border-gray-300 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-gray-400 line-through opacity-30 cursor-not-allowed";
-                      } else if (!isAnswerChecked) {
-                        if (isSelected) {
-                          btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
-                          badgeColor = 'bg-[#FF5F6D] text-white shadow-xs';
-                        } else {
-                          btnStyles += "border-gray-200 dark:border-indigo-950/80 bg-white dark:bg-[#13192B] text-gray-800 dark:text-white hover:border-gray-300 dark:hover:border-indigo-800 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#0F1424] active:translate-y-0.5 active:shadow-none";
-                        }
-                      } else {
-                        if (option === currentQ.answer) {
-                          btnStyles += "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-[0_3px_0_0_#10B981]";
-                          badgeColor = 'bg-emerald-500 text-white';
-                        } else if (isSelected && !isCorrect) {
-                          btnStyles += "border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-[0_3px_0_0_#F43F5E]";
-                          badgeColor = 'bg-rose-500 text-white';
-                        } else {
-                          btnStyles += "border-gray-200 dark:border-indigo-950/60 opacity-40 bg-white dark:bg-[#13192B] text-gray-400";
-                        }
-                      }
-
-                      return (
-                        <motion.button
-                          key={option}
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ duration: 0.15 }}
-                          whileTap={!isReviewMode && ((!isAnswerChecked && !isRemoved) || (isAnswerChecked && isExplanationDismissed)) ? { scale: 0.98 } : {}}
-                          onClick={() => {
-                            if (isReviewMode) return;
-                            if (isRemoved) return;
-                            if (isAnswerChecked) {
-                              if (isExplanationDismissed) {
-                                triggerHaptic('click', hapticsEnabled);
-                                setIsExplanationDismissed(false);
-                              }
-                              return;
-                            }
-                            triggerHaptic('click', hapticsEnabled);
-                            handleSelect(option);
-                          }}
-                          disabled={isRemoved || isReviewMode}
-                          className={btnStyles + (!isReviewMode && isAnswerChecked && isExplanationDismissed ? " cursor-pointer" : "")}
+                      <div className="flex items-center space-x-1 shrink-0">
+                        {/* Bookmark Button */}
+                        <button
+                          type="button"
+                          onClick={handleBookmarkCurrent}
+                          className={`p-2 rounded-2xl border transition-all ${isBookmarked(currentQ.text)
+                            ? 'bg-amber-50 dark:bg-amber-950/40 border-amber-300 text-amber-500 shadow-xs'
+                            : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:text-amber-500 hover:bg-amber-50/50 dark:hover:bg-amber-950/20'
+                            }`}
+                          title={isBookmarked(currentQ.text) ? (lang === 'hi' ? 'बुकमार्क हटाया' : 'Remove Bookmark') : (lang === 'hi' ? 'बुकमार्क करें' : 'Bookmark Question')}
                         >
-                          <div className="flex items-center space-x-3 flex-1 min-w-0 pr-2">
-                            {/* Option Tag Badge: A, B, C, D */}
-                            <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors ${badgeColor}`}>
-                              {['A', 'B', 'C', 'D'][optIdx] || (optIdx + 1)}
-                            </span>
-                            <span className="font-bold text-sm sm:text-base leading-snug">{option}</span>
-                          </div>
+                          <Bookmark className={`w-5 h-5 ${isBookmarked(currentQ.text) ? 'fill-amber-500 text-amber-500' : ''}`} />
+                        </button>
 
-                          {/* Review Mode Answer Status Badges */}
-                          {isReviewMode && (
-                            <div className="flex items-center space-x-1.5 shrink-0 ml-1">
-                              {activePastRecord?.userSelected === option && activePastRecord.isCorrect && (
-                                <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 text-xs font-black">
-                                  <span className="hidden sm:inline">{lang === 'hi' ? 'आपका सही उत्तर' : 'Your Answer'}</span>
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                </span>
-                              )}
-                              {activePastRecord?.userSelected === option && !activePastRecord.isCorrect && (
-                                <span className="flex items-center space-x-1 text-rose-600 dark:text-rose-400 text-xs font-black">
-                                  <span className="hidden sm:inline">{lang === 'hi' ? 'आपने यह चुना (गलत)' : 'Your Pick (Wrong)'}</span>
-                                  <XCircle className="w-5 h-5 text-rose-500" />
-                                </span>
-                              )}
-                              {option === currentQ.answer && activePastRecord?.userSelected !== option && (
-                                <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 text-xs font-black">
-                                  <span className="hidden sm:inline">{lang === 'hi' ? 'सही उत्तर' : 'Correct'}</span>
-                                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                </span>
-                              )}
-                            </div>
+                        {/* Question TTS Audio Button (Toggles ON and OFF on 2nd press) */}
+                        <button
+                          type="button"
+                          onClick={toggleSpeakQuestion}
+                          className={`p-2 rounded-2xl border transition-all cursor-pointer ${isSpeaking
+                            ? 'border-[#FF5F6D] bg-rose-50 dark:bg-rose-950/40 text-[#FF5F6D] shadow-xs'
+                            : 'border-gray-100 dark:border-gray-800 text-gray-400 hover:text-[#FF5F6D] hover:bg-rose-50/50 dark:hover:bg-rose-950/20'
+                            }`}
+                          title={
+                            isSpeaking
+                              ? (lang === 'hi' ? 'आवाज़ बंद करें' : 'Stop Reading')
+                              : (lang === 'hi' ? 'सवाल और विकल्प सुनें' : 'Read Question & Options Aloud')
+                          }
+                        >
+                          {isSpeaking ? (
+                            <VolumeX className="w-5 h-5 text-[#FF5F6D] animate-pulse" />
+                          ) : (
+                            <Volume2 className="w-5 h-5" />
                           )}
-
-                          {!isReviewMode && isAnswerChecked && option === currentQ.answer && (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-                          )}
-                          {!isReviewMode && isAnswerChecked && isSelected && !isCorrect && (
-                            <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
-                          )}
-                        </motion.button>
-                      );
-                    })}
-                  </motion.div>
-                )}
-
-                {/* Review Mode Educational Explanation Card */}
-                {isReviewMode && currentQ.explanation && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="w-full mt-3 p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 shadow-xs"
-                  >
-                    <div className="flex items-center space-x-2 text-amber-800 dark:text-amber-200 font-black text-xs sm:text-sm mb-1.5">
-                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-                      <span>{lang === 'hi' ? '💡 व्याख्या (Explanation):' : '💡 Explanation:'}</span>
+                        </button>
+                      </div>
                     </div>
-                    <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-semibold selectable-text select-text">
-                      {currentQ.explanation}
-                    </p>
-                  </motion.div>
-                )}
-              </div>
+
+                    {/* Question Text takes the FULL width of the card across left to right */}
+                    <h2 className="w-full text-base sm:text-lg md:text-xl font-black text-gray-800 dark:text-white leading-relaxed text-left selectable-text select-text">
+                      {currentQ.text}
+                    </h2>
+                  </div>
+
+                  {/* Options Section: 2-second Delayed Reveal (Skipped in Review Mode) */}
+                  <div className="w-full mt-2 sm:mt-3 mb-4">
+                    {!showOptions && !isReviewMode ? (
+                      /* 4 Soft Pulsing Skeleton Option Placeholders with exact matching height and spacing */
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full">
+                        {[1, 2, 3, 4].map((i) => (
+                          <div
+                            key={i}
+                            className="h-[58px] rounded-2xl bg-gray-200/70 dark:bg-gray-800/60 animate-pulse border-2 border-gray-100 dark:border-gray-800/40 shadow-[0_3px_0_0_#E2E8F0]/30 dark:shadow-[0_3px_0_0_#1E293B]/30"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 w-full"
+                      >
+                        {currentQ.options.map((option, optIdx) => {
+                          const isSelected = selectedOption === option;
+                          const isRemoved = !isReviewMode && removedOptions.includes(option);
+
+                          let btnStyles = "w-full p-4 rounded-2xl border-2 font-black text-left transition-all flex justify-between items-center text-sm ";
+                          let badgeColor = 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700';
+
+                          if (isReviewMode) {
+                            const isUserChoice = activePastRecord?.userSelected === option;
+                            const isThisCorrect = option === currentQ.answer;
+
+                            if (isUserChoice && activePastRecord?.isCorrect) {
+                              // User selected correctly -> Emerald / Green
+                              btnStyles += "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 shadow-[0_3px_0_0_#10B981]";
+                              badgeColor = 'bg-emerald-500 text-white';
+                            } else if (isUserChoice && !activePastRecord?.isCorrect) {
+                              // User selected incorrectly -> Rose / Red
+                              btnStyles += "border-rose-500 bg-rose-50/80 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 shadow-[0_3px_0_0_#F43F5E]";
+                              badgeColor = 'bg-rose-500 text-white';
+                            } else if (isThisCorrect) {
+                              // The correct answer -> Emerald / Green
+                              btnStyles += "border-emerald-500 bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 shadow-[0_3px_0_0_#10B981]";
+                              badgeColor = 'bg-emerald-500 text-white';
+                            } else {
+                              // Other neutral unselected option
+                              btnStyles += "border-gray-200 dark:border-indigo-950/60 opacity-40 bg-white dark:bg-[#13192B] text-gray-400";
+                            }
+                          } else if (isRemoved) {
+                            btnStyles += "border-dashed border-gray-300 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/30 text-gray-400 line-through opacity-30 cursor-not-allowed";
+                          } else if (!isAnswerChecked) {
+                            if (isSelected) {
+                              btnStyles += "border-[#FF5F6D] bg-rose-50/70 dark:bg-rose-950/30 text-[#FF5F6D] shadow-[0_3px_0_0_#FF5F6D]";
+                              badgeColor = 'bg-[#FF5F6D] text-white shadow-xs';
+                            } else {
+                              btnStyles += "border-gray-200 dark:border-indigo-950/80 bg-white dark:bg-[#13192B] text-gray-800 dark:text-white hover:border-gray-300 dark:hover:border-indigo-800 shadow-[0_3px_0_0_#E2E8F0] dark:shadow-[0_3px_0_0_#0F1424] active:translate-y-0.5 active:shadow-none";
+                            }
+                          } else {
+                            if (option === currentQ.answer) {
+                              btnStyles += "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-[0_3px_0_0_#10B981]";
+                              badgeColor = 'bg-emerald-500 text-white';
+                            } else if (isSelected && !isCorrect) {
+                              btnStyles += "border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 shadow-[0_3px_0_0_#F43F5E]";
+                              badgeColor = 'bg-rose-500 text-white';
+                            } else {
+                              btnStyles += "border-gray-200 dark:border-indigo-950/60 opacity-40 bg-white dark:bg-[#13192B] text-gray-400";
+                            }
+                          }
+
+                          return (
+                            <motion.button
+                              key={option}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ duration: 0.15 }}
+                              whileTap={!isReviewMode && ((!isAnswerChecked && !isRemoved) || (isAnswerChecked && isExplanationDismissed)) ? { scale: 0.98 } : {}}
+                              onClick={() => {
+                                if (isReviewMode) return;
+                                if (isRemoved) return;
+                                if (isAnswerChecked) {
+                                  if (isExplanationDismissed) {
+                                    triggerHaptic('click', hapticsEnabled);
+                                    setIsExplanationDismissed(false);
+                                  }
+                                  return;
+                                }
+                                triggerHaptic('click', hapticsEnabled);
+                                handleSelect(option);
+                              }}
+                              disabled={isRemoved || isReviewMode}
+                              className={btnStyles + (!isReviewMode && isAnswerChecked && isExplanationDismissed ? " cursor-pointer" : "")}
+                            >
+                              <div className="flex items-center space-x-3 flex-1 min-w-0 pr-2">
+                                {/* Option Tag Badge: A, B, C, D */}
+                                <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-colors ${badgeColor}`}>
+                                  {['A', 'B', 'C', 'D'][optIdx] || (optIdx + 1)}
+                                </span>
+                                <span className="font-bold text-sm sm:text-base leading-snug">{option}</span>
+                              </div>
+
+                              {/* Review Mode Answer Status Badges */}
+                              {isReviewMode && (
+                                <div className="flex items-center space-x-1.5 shrink-0 ml-1">
+                                  {activePastRecord?.userSelected === option && activePastRecord.isCorrect && (
+                                    <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 text-xs font-black">
+                                      <span className="hidden sm:inline">{lang === 'hi' ? 'आपका सही उत्तर' : 'Your Answer'}</span>
+                                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                    </span>
+                                  )}
+                                  {activePastRecord?.userSelected === option && !activePastRecord.isCorrect && (
+                                    <span className="flex items-center space-x-1 text-rose-600 dark:text-rose-400 text-xs font-black">
+                                      <span className="hidden sm:inline">{lang === 'hi' ? 'आपने यह चुना (गलत)' : 'Your Pick (Wrong)'}</span>
+                                      <XCircle className="w-5 h-5 text-rose-500" />
+                                    </span>
+                                  )}
+                                  {option === currentQ.answer && activePastRecord?.userSelected !== option && (
+                                    <span className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 text-xs font-black">
+                                      <span className="hidden sm:inline">{lang === 'hi' ? 'सही उत्तर' : 'Correct'}</span>
+                                      <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              {!isReviewMode && isAnswerChecked && option === currentQ.answer && (
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                              )}
+                              {!isReviewMode && isAnswerChecked && isSelected && !isCorrect && (
+                                <XCircle className="w-5 h-5 text-rose-500 shrink-0" />
+                              )}
+                            </motion.button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+
+                    {/* Review Mode Educational Explanation Card */}
+                    {isReviewMode && currentQ.explanation && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="w-full mt-3 p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/60 shadow-xs"
+                      >
+                        <div className="flex items-center space-x-2 text-amber-800 dark:text-amber-200 font-black text-xs sm:text-sm mb-1.5">
+                          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                          <span>{lang === 'hi' ? '💡 व्याख्या (Explanation):' : '💡 Explanation:'}</span>
+                        </div>
+                        <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-semibold selectable-text select-text">
+                          {currentQ.explanation}
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
+                </>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
 
         {/* Re-Open Explanation Button (Shown when user dismissed the popup to review options) */}
-        {!isReviewMode && isAnswerChecked && isExplanationDismissed && (
+        {!isReviewMode && !isStoryMode && isAnswerChecked && isExplanationDismissed && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 6 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -1999,7 +2094,29 @@ export default function Quiz() {
 
         {/* Bottom Section: Single Unified Action Button */}
         <div className="w-full pt-4 relative z-50">
-          {isReviewMode ? (
+          {isStoryMode ? (
+            <motion.button
+              key="quiz-story-next-btn"
+              initial={{ scale: 0.98, opacity: 0.9 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: 1.01 }}
+              type="button"
+              onClick={handleNextStoryFact}
+              className={`w-full py-4 rounded-2xl font-black text-white text-base tracking-wide transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer ${currentIndex < questions.length - 1
+                  ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-600 hover:to-rose-600 shadow-[0_4px_0_0_#C2410C] active:translate-y-1 active:shadow-none'
+                  : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-[0_4px_0_0_#065F46] active:translate-y-1 active:shadow-none animate-pulse'
+                }`}
+            >
+              <span>
+                {currentIndex < questions.length - 1
+                  ? (lang === 'hi' ? 'अगला रोचक तथ्य (Next Fact) →' : 'Next Amazing Fact →')
+                  : (lang === 'hi' ? 'लेवल पूरा करें ✨ (+100 XP)' : 'Complete Level ✨ (+100 XP)')}
+              </span>
+              <ArrowRight className="w-5 h-5 stroke-[2.5]" />
+            </motion.button>
+          ) : isReviewMode ? (
             <motion.button
               key="quiz-review-return-btn"
               initial={{ scale: 0.98, opacity: 0.9 }}
@@ -2032,12 +2149,12 @@ export default function Quiz() {
               }}
               disabled={!isAnswerChecked && !selectedOption}
               className={`w-full py-4 rounded-2xl font-black text-white text-base tracking-wide transition-colors duration-300 shadow-md flex items-center justify-center space-x-2 ${!isAnswerChecked
-                  ? selectedOption
-                    ? 'bg-[#FF5F6D] hover:bg-[#E64553] shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none cursor-pointer'
-                    : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
-                  : isCorrect
-                    ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_0_#059669] active:translate-y-1 active:shadow-none cursor-pointer'
-                    : 'bg-rose-500 hover:bg-rose-600 shadow-[0_4px_0_0_#E11D48] active:translate-y-1 active:shadow-none cursor-pointer'
+                ? selectedOption
+                  ? 'bg-[#FF5F6D] hover:bg-[#E64553] shadow-[0_4px_0_0_#D93848] active:translate-y-1 active:shadow-none cursor-pointer'
+                  : 'bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-600 cursor-not-allowed shadow-none'
+                : isCorrect
+                  ? 'bg-emerald-500 hover:bg-emerald-600 shadow-[0_4px_0_0_#059669] active:translate-y-1 active:shadow-none cursor-pointer'
+                  : 'bg-rose-500 hover:bg-rose-600 shadow-[0_4px_0_0_#E11D48] active:translate-y-1 active:shadow-none cursor-pointer'
                 }`}
             >
               <span>{!isAnswerChecked ? t('checkBtn') : t('continueBtn')}</span>
@@ -2049,7 +2166,7 @@ export default function Quiz() {
 
       {/* EXPLANATION POPUP MODAL (Blur Backdrop + Center Popup Card) */}
       <AnimatePresence>
-        {isAnswerChecked && !isExplanationDismissed && currentQ && (
+        {isAnswerChecked && !isExplanationDismissed && !isStoryMode && currentQ && (
           <motion.div
             key="explanation-popup-backdrop"
             initial={{ opacity: 0 }}
@@ -2070,8 +2187,8 @@ export default function Quiz() {
               exit={{ opacity: 0, scale: 0.94, y: 12 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
               className={`w-full max-w-md md:max-w-xl bg-white/95 dark:bg-[#13192B]/95 backdrop-blur-xl rounded-3xl p-5 sm:p-6 border-2 shadow-2xl relative max-h-[72vh] overflow-y-auto cursor-default ${isCorrect
-                  ? 'border-emerald-500/30 dark:border-emerald-500/40 shadow-emerald-500/10'
-                  : 'border-rose-500/30 dark:border-rose-500/40 shadow-rose-500/10'
+                ? 'border-emerald-500/30 dark:border-emerald-500/40 shadow-emerald-500/10'
+                : 'border-rose-500/30 dark:border-rose-500/40 shadow-rose-500/10'
                 }`}
             >
               {/* Close (X) button at top right of card for quick dismissal */}

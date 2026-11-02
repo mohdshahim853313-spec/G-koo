@@ -149,7 +149,7 @@ const translations: Record<LangKey, Record<string, string>> = {
     reviewMistakes: "Review Mistakes",
     mistakesNotebook: "Mistakes Notebook",
     mistakesSubtitle: "Analyze questions you missed & understand concepts",
-    retestMistakes: "Practice Mistakes Only",
+    retestMistakes: "Retest Mistakes",
     flawlessNoMistakes: "Flawless Round! You made 0 mistakes! 🌟",
     yourAnswer: "Your Answer",
     correctAnswer: "Correct Answer",
@@ -418,7 +418,7 @@ const translations: Record<LangKey, Record<string, string>> = {
     reviewMistakes: "गलतियां देखें (Review)",
     mistakesNotebook: "गलतियों की डायरी (Mistakes Notebook)",
     mistakesSubtitle: "गलत हुए सवालों का विश्लेषण करें और सही तथ्य समझें",
-    retestMistakes: "सिर्फ गलत सवालों का री-टेस्ट दें",
+    retestMistakes: "री-टेस्ट दें",
     flawlessNoMistakes: "शानदार प्रदर्शन! आपने शून्य (0) गलतियां की हैं! 🌟",
     yourAnswer: "आपका उत्तर",
     correctAnswer: "सही उत्तर",
@@ -567,8 +567,8 @@ const DEFAULT_QUESTS: Quest[] = [
 ];
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
-  const [lang, setLang] = useState<LangKey>(() => (localStorage.getItem('lang') as LangKey) || 'hi');
-  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem('theme') as ThemeKey) || 'system');
+  const [lang, setLang] = useState<LangKey>(() => (localStorage.getItem('lang') as LangKey) || 'en');
+  const [theme, setTheme] = useState<ThemeKey>(() => (localStorage.getItem('theme') as ThemeKey) || 'light');
   
   // Real XP, Streak, Hearts, Gems
   const [xp, setXp] = useState<number>(() => parseInt(localStorage.getItem('xp') || '140', 10));

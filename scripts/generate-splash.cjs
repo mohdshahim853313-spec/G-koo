@@ -4,14 +4,14 @@ const path = require('path');
 
 const THEME_BG = { r: 255, g: 95, b: 109, alpha: 1 }; // #FF5F6D
 
-// Target density scale factors for splash_content.png (baseline: width 220, height 295)
+// Target density scale factors for splash_content.png (scaled up ~25% for larger prominence)
 const CONTENT_SIZES = [
-  { folder: 'drawable', width: 330, height: 442 },
-  { folder: 'drawable-mdpi', width: 220, height: 295 },
-  { folder: 'drawable-hdpi', width: 330, height: 442 },
-  { folder: 'drawable-xhdpi', width: 440, height: 590 },
-  { folder: 'drawable-xxhdpi', width: 660, height: 885 },
-  { folder: 'drawable-xxxhdpi', width: 880, height: 1180 }
+  { folder: 'drawable', width: 420, height: 558 },
+  { folder: 'drawable-mdpi', width: 280, height: 372 },
+  { folder: 'drawable-hdpi', width: 420, height: 558 },
+  { folder: 'drawable-xhdpi', width: 560, height: 744 },
+  { folder: 'drawable-xxhdpi', width: 840, height: 1116 },
+  { folder: 'drawable-xxxhdpi', width: 1120, height: 1488 }
 ];
 
 async function main() {
@@ -48,8 +48,8 @@ async function main() {
   }
 
   // 2. Generate Android 12+ splash_icon.png (512x512)
-  // Perfectly centered inside Android 12's 160dp circle (diameter 320px)
-  const iconH = 260;
+  // Maximum clear prominence inside Android 12's 160dp circle
+  const iconH = 320;
   const iconW = Math.round(cutoutRaw.info.width * (iconH / cutoutRaw.info.height));
   const iconResized = await sharp(cutoutBuffer, { raw: cutoutRaw.info })
     .resize(iconW, iconH)
@@ -76,6 +76,12 @@ async function main() {
 
   fs.writeFileSync('android/app/src/main/res/drawable/splash_icon.png', splashIconBuffer);
   console.log('✓ Created android/app/src/main/res/drawable/splash_icon.png (Android 12+)');
+
+  // Save public/splash_content.png for seamless webview splash
+  const publicCutout = await sharp(cutoutBuffer, { raw: cutoutRaw.info }).png().toBuffer();
+  fs.writeFileSync('public/splash_content.png', publicCutout);
+  fs.writeFileSync('public/splash_content_cutout.png', publicCutout);
+  console.log('✓ Saved public/splash_content.png');
 
   // 3. Generate splash_content.png across all density folders
   for (const item of CONTENT_SIZES) {

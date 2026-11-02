@@ -140,9 +140,8 @@ interface GkooQuizLoadingArenaProps {
   isOffline?: boolean;
 }
 
-export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = ({ isOffline: propIsOffline }) => {
-  const { lang, isOnline } = useAppContext();
-  const isOffline = propIsOffline !== undefined ? propIsOffline : (!isOnline || (typeof navigator !== 'undefined' && !navigator.onLine));
+export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = () => {
+  const { lang } = useAppContext();
 
   // Pick a random unique template for each level load session
   const [templateIndex] = useState(() => Math.floor(Math.random() * LOADING_TEMPLATES.length));
@@ -212,25 +211,15 @@ export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = ({ isOf
       {/* Dynamic Animated Badge */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={isOffline ? 'offline-badge' : currentTemplate.badgeEn}
+          key={currentTemplate.badgeEn}
           initial={{ opacity: 0, y: 10, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.9 }}
-          className={`inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full border shadow-xs mb-3 ${
-            isOffline
-              ? 'bg-amber-500/15 dark:bg-amber-500/25 border-amber-400 dark:border-amber-600/60'
-              : 'bg-gradient-to-r from-rose-500/15 via-amber-500/15 to-rose-500/15 dark:from-rose-500/25 dark:to-amber-500/25 border-rose-300 dark:border-rose-700/60'
-          }`}
+          className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full border shadow-xs mb-3 bg-gradient-to-r from-rose-500/15 via-amber-500/15 to-rose-500/15 dark:from-rose-500/25 dark:to-amber-500/25 border-rose-300 dark:border-rose-700/60"
         >
-          {isOffline ? (
-            <span className="text-sm">📡</span>
-          ) : (
-            <Sparkles className="w-3.5 h-3.5 text-[#FF5F6D] animate-spin" />
-          )}
-          <span className={`text-xs font-black tracking-wide ${isOffline ? 'text-amber-600 dark:text-amber-400' : 'text-[#FF5F6D] dark:text-rose-400'}`}>
-            {isOffline 
-              ? (lang === 'hi' ? '📡 ऑफलाइन मोड (Offline Mode)' : '📡 Offline Mode Active')
-              : (lang === 'hi' ? currentTemplate.badgeHi : currentTemplate.badgeEn)}
+          <Sparkles className="w-3.5 h-3.5 text-[#FF5F6D] animate-spin" />
+          <span className="text-xs font-black tracking-wide text-[#FF5F6D] dark:text-rose-400">
+            {lang === 'hi' ? currentTemplate.badgeHi : currentTemplate.badgeEn}
           </span>
         </motion.div>
       </AnimatePresence>
@@ -239,23 +228,15 @@ export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = ({ isOf
       <div className="w-full max-w-sm px-2 mb-6">
         <AnimatePresence mode="wait">
           <motion.div
-            key={isOffline ? 'offline-text' : currentTemplate.textEn}
+            key={currentTemplate.textEn}
             initial={{ opacity: 0, y: 12, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.95 }}
             transition={{ duration: 0.35, ease: 'easeOut' }}
-            className={`backdrop-blur-md border-2 p-4 rounded-3xl shadow-lg relative ${
-              isOffline
-                ? 'bg-amber-50/95 dark:bg-[#1C1814]/95 border-amber-300 dark:border-amber-700/70'
-                : 'bg-white/95 dark:bg-gray-800/95 border-rose-200 dark:border-rose-900/60'
-            }`}
+            className="backdrop-blur-md border-2 p-4 rounded-3xl shadow-lg relative bg-white/95 dark:bg-gray-800/95 border-rose-200 dark:border-rose-900/60"
           >
             <p className="text-sm sm:text-base font-black text-gray-900 dark:text-gray-100 leading-snug">
-              {isOffline
-                ? (lang === 'hi' 
-                    ? '📡 आप ऑफलाइन हैं! Gkoo ऑफलाइन प्रश्न बैंक से आपके लिए सवाल तैयार कर रहा है...' 
-                    : '📡 You are offline! Gkoo is preparing questions from the offline question bank...')
-                : (lang === 'hi' ? currentTemplate.textHi : currentTemplate.textEn)}
+              {lang === 'hi' ? currentTemplate.textHi : currentTemplate.textEn}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -272,19 +253,13 @@ export const GkooQuizLoadingArena: React.FC<GkooQuizLoadingArenaProps> = ({ isOf
             duration: 1.4,
             ease: 'easeInOut',
           }}
-          className={`w-1/2 h-full rounded-full ${
-            isOffline
-              ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500'
-              : 'bg-gradient-to-r from-[#FF7B7B] via-[#FF5F6D] to-[#FF9F1A]'
-          }`}
+          className="w-1/2 h-full rounded-full bg-gradient-to-r from-[#FF7B7B] via-[#FF5F6D] to-[#FF9F1A]"
         />
       </div>
 
       {/* Bottom Subtitle */}
       <p className="text-[11px] font-bold text-gray-400 dark:text-gray-400 mt-3 tracking-wide">
-        {isOffline
-          ? (lang === 'hi' ? '⚡ ऑफलाइन मोड चालू • बिना इंटरनेट भी सीखें' : '⚡ Offline Mode • Keep learning without internet')
-          : (lang === 'hi' ? '✨ क्विज बस शुरू होने ही वाला है...' : '✨ Quiz starting in a moment...')}
+        {lang === 'hi' ? '✨ अभ्यास बस शुरू होने ही वाला है...' : '✨ Practice starting in a moment...'}
       </p>
     </div>
   );

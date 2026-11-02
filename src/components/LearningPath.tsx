@@ -320,7 +320,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
                     isCompleted
                       ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 text-white border-b-amber-800'
                       : isCurrent
-                      ? 'bg-gradient-to-r from-purple-700 via-indigo-600 to-rose-600 text-white border-b-purple-950 ring-4 ring-purple-300 dark:ring-purple-900'
+                      ? 'bg-gradient-to-r from-purple-700 via-indigo-600 to-rose-600 text-white border-b-purple-950 shadow-lg'
                       : 'bg-gray-100 dark:bg-gray-800/80 text-gray-400 dark:text-gray-500 border-b-gray-300 dark:border-b-gray-950 opacity-70'
                   }`}
                 >
@@ -400,7 +400,7 @@ export const LearningPath: React.FC<LearningPathProps> = ({ onBackToCategories }
                   isCompleted
                     ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white border-b-teal-800 shadow-md'
                     : isCurrent
-                    ? 'bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF8F8F] text-white border-b-[#991B1B] shadow-lg ring-4 ring-rose-200 dark:ring-rose-950'
+                    ? 'bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF8F8F] text-white border-b-[#991B1B] shadow-lg'
                     : 'bg-white dark:bg-[#13192B] text-gray-400 dark:text-gray-500 border-2 border-gray-200 dark:border-indigo-950/80 border-b-[5px] border-b-gray-300 dark:border-b-[#0B0F19] opacity-75'
                 }`}
               >

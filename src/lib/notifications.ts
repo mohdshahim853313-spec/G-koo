@@ -38,11 +38,11 @@ export const scheduleDailyReminders = async (
 
       const title = lang === 'hi' 
         ? `🔥 अपनी ${streak} दिन की स्ट्रीक बचाइए!`
-        : `🔥 Don't lose your ${streak}-day streak!`;
+        : `🔥 Keep your ${streak}-day streak alive!`;
 
       const body = lang === 'hi'
-        ? `आज आपने कोई टेस्ट नहीं दिया! Gkoo आपका इंतज़ार कर रहा है, 2 मिनट अभ्यास करें 🦜`
-        : `You haven't completed a lesson today! Take a quick 2-minute quiz now 🦜`;
+        ? `आज आपने अभ्यास नहीं किया! Gkoo पर 2 मिनट में महत्वपूर्ण प्रश्न हल करें 🦜`
+        : `You haven't practiced today! Spend 2 minutes on important questions 🦜`;
 
       // Schedule for 7:30 PM daily
       await LocalNotifications.schedule({
@@ -65,8 +65,8 @@ export const scheduleDailyReminders = async (
           },
           {
             id: EVENING_ALERT_ID,
-            title: lang === 'hi' ? '⏰ स्ट्रीक एक्सपायर होने वाली है!' : '⏰ Your daily streak is at risk!',
-            body: lang === 'hi' ? 'दिन खत्म होने से पहले 1 छोटा क्विज खेलें और XP कमाएं!' : 'Complete 1 quick quiz before midnight to keep your progress safe!',
+            title: lang === 'hi' ? '⏰ अपनी दैनिक स्ट्रीक सुरक्षित करें!' : '⏰ Your daily streak is at risk!',
+            body: lang === 'hi' ? 'दिन खत्म होने से पहले 1 टेस्ट पूरा करें और अपना स्कोर बढ़ाएं!' : 'Complete 1 test before midnight to keep your study streak safe!',
             schedule: {
               on: {
                 hour: 21,
@@ -112,8 +112,8 @@ export const sendImmediateTestNotification = async (
       : `🦜 Gkoo: Keep your ${streak}-day streak alive!`;
 
     const body = lang === 'hi'
-      ? `आज आपने कोई टेस्ट नहीं दिया! चलिए अभी 5 सवाल हल करें 🔥`
-      : `You haven't practiced today! Let's solve 5 quick questions now 🔥`;
+      ? `आज का अभ्यास पूरा करें और अपनी तैयारी को मजबूत बनाएं 🔥`
+      : `Practice today's questions and keep your preparation on track 🔥`;
 
     if (Capacitor.isNativePlatform()) {
       await LocalNotifications.schedule({

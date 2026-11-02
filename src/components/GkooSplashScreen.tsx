@@ -9,7 +9,7 @@ interface GkooSplashScreenProps {
 
 export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
   onFinish,
-  minDuration = 2400,
+  minDuration = 1800,
 }) => {
   const [shouldRender, setShouldRender] = useState(() => {
     try {
@@ -25,7 +25,7 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
   const [isFadingOut, setIsFadingOut] = useState(false);
 
   useEffect(() => {
-    // Hide native splash screen with smooth fade
+    // Hide native 1st splash screen seamlessly once webview is ready
     if (Capacitor.isNativePlatform()) {
       SplashScreen.hide({ fadeOutDuration: 150 }).catch(() => {});
     }
@@ -39,12 +39,10 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
       sessionStorage.setItem('gkoo_splash_shown', 'true');
     } catch {}
 
-    // Start graceful fade-out before completion
     const fadeTimer = setTimeout(() => {
       setIsFadingOut(true);
-    }, Math.max(minDuration - 400, 1000));
+    }, Math.max(minDuration - 350, 1200));
 
-    // Fully unmount after fade completes
     const finishTimer = setTimeout(() => {
       setShouldRender(false);
       if (onFinish) onFinish();
@@ -67,145 +65,118 @@ export const GkooSplashScreen: React.FC<GkooSplashScreenProps> = ({
         backgroundColor: '#FF5F6D',
         willChange: 'opacity, transform',
         transform: isFadingOut ? 'scale(1.02)' : 'scale(1)',
-        transition: 'opacity 400ms cubic-bezier(0.25, 1, 0.5, 1), transform 400ms cubic-bezier(0.25, 1, 0.5, 1)',
+        transition: 'opacity 350ms cubic-bezier(0.25, 1, 0.5, 1), transform 350ms cubic-bezier(0.25, 1, 0.5, 1)',
       }}
     >
       <style>{`
-        /* Soft, organic entrance with gentle elasticity - absolutely ZERO abrupt jerk */
-        @keyframes gkooBirdEntrance {
+        /* Mascot playful hop - starts at 1:1 position to match 1st native splash perfectly without jumping */
+        @keyframes gkooBirdHop {
           0% {
-            opacity: 0;
-            transform: translate3d(0, 14px, 0) scale3d(0.72, 0.72, 1);
+            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
           }
-          32% {
-            opacity: 1;
-            transform: translate3d(0, -10px, 0) scale3d(1.05, 1.05, 1);
+          18% {
+            transform: translate3d(0, 3px, 0) scale3d(1.05, 0.95, 1);
           }
-          52% {
-            opacity: 1;
-            transform: translate3d(0, 3px, 0) scale3d(0.97, 0.97, 1);
+          42% {
+            transform: translate3d(0, -14px, 0) scale3d(0.96, 1.06, 1);
           }
-          70% {
-            opacity: 1;
-            transform: translate3d(0, -2px, 0) scale3d(1.015, 1.015, 1);
+          62% {
+            transform: translate3d(0, 2px, 0) scale3d(1.03, 0.97, 1);
           }
-          85% {
-            opacity: 1;
-            transform: translate3d(0, 1px, 0) scale3d(0.995, 0.995, 1);
+          78% {
+            transform: translate3d(0, -2px, 0) scale3d(0.99, 1.01, 1);
           }
-          100% {
-            opacity: 1;
+          90%, 100% {
             transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
           }
         }
 
-        /* Gentle fade-in and slide-up for text */
-        @keyframes gkooTextEntrance {
-          0%, 25% {
-            opacity: 0;
-            transform: translate3d(0, 8px, 0) scale3d(0.94, 0.94, 1);
-          }
-          65% {
-            opacity: 1;
-            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-          }
-          100% {
-            opacity: 1;
-            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
-          }
-        }
-
-        /* Smooth loading bar with gentle ease */
-        @keyframes gkooBarEntrance {
-          0%, 20% {
-            opacity: 0;
-            transform: scaleX(0);
-          }
-          35% {
-            opacity: 1;
-            transform: scaleX(0.15);
-          }
-          65% {
-            opacity: 1;
-            transform: scaleX(0.78);
-          }
-          88%, 100% {
-            opacity: 1;
-            transform: scaleX(1);
-          }
-        }
-
-        /* Soft ambient background glow expansion */
-        @keyframes gkooGlowEntrance {
+        /* Subtle smooth text reveal/breathing */
+        @keyframes gkooTextPulse {
           0% {
-            opacity: 0;
-            transform: scale3d(0.65, 0.65, 1);
+            opacity: 0.95;
+            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
           }
           50% {
             opacity: 1;
-            transform: scale3d(1, 1, 1);
+            transform: translate3d(0, -1px, 0) scale3d(1.02, 1.02, 1);
           }
           100% {
-            opacity: 0.85;
-            transform: scale3d(1, 1, 1);
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
           }
         }
 
-        .gkoo-splash-glow {
-          animation: gkooGlowEntrance 1.8s cubic-bezier(0.25, 1, 0.5, 1) both;
-          will-change: transform, opacity;
+        /* Smooth loading progress bar */
+        @keyframes gkooProgressFill {
+          0% {
+            transform: scaleX(0.04);
+            opacity: 0.7;
+          }
+          30% {
+            transform: scaleX(0.35);
+            opacity: 1;
+          }
+          70% {
+            transform: scaleX(0.82);
+            opacity: 1;
+          }
+          95%, 100% {
+            transform: scaleX(1);
+            opacity: 1;
+          }
         }
 
-        .gkoo-splash-bird {
-          animation: gkooBirdEntrance 2.0s cubic-bezier(0.25, 1, 0.4, 1) both;
+        .gkoo-bird-animated {
+          animation: gkooBirdHop 1.5s cubic-bezier(0.25, 1, 0.4, 1) 120ms both;
+          will-change: transform;
+          backface-visibility: hidden;
+        }
+
+        .gkoo-text-animated {
+          animation: gkooTextPulse 1.4s ease-out 100ms both;
           will-change: transform, opacity;
           backface-visibility: hidden;
         }
 
-        .gkoo-splash-text {
-          animation: gkooTextEntrance 1.8s cubic-bezier(0.25, 1, 0.4, 1) both;
-          will-change: transform, opacity;
-          backface-visibility: hidden;
-        }
-
-        .gkoo-splash-bar {
-          animation: gkooBarEntrance 2.0s cubic-bezier(0.25, 1, 0.4, 1) both;
+        .gkoo-progress-animated {
+          animation: gkooProgressFill 1.5s cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
           transform-origin: left center;
-          will-change: transform, opacity;
+          will-change: transform;
           backface-visibility: hidden;
         }
       `}</style>
 
-      {/* Lightweight GPU radial ambient glow */}
+      {/* Subtle radial ambient glow for depth */}
       <div
-        className="gkoo-splash-glow absolute w-[380px] h-[380px] pointer-events-none rounded-full"
+        className="absolute w-[360px] h-[360px] pointer-events-none rounded-full"
         style={{
           background: 'radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.05) 50%, transparent 70%)',
         }}
       />
 
       <div className="relative z-10 flex flex-col items-center justify-center text-center px-6">
-        {/* Mascot Bird */}
-        <div className="gkoo-splash-bird relative w-[180px] h-[175px] sm:w-[220px] sm:h-[214px] mb-3 flex items-center justify-center">
+        {/* Mascot Bird with playful animated hop */}
+        <div className="gkoo-bird-animated relative w-[180px] h-[175px] sm:w-[210px] sm:h-[204px] mb-2 flex items-center justify-center">
           <img
             src="/splash_mascot.png"
             alt="G-koo Mascot"
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain select-none pointer-events-none"
           />
         </div>
 
         {/* Brand Name "G-koo" */}
-        <div className="gkoo-splash-text h-[42px] sm:h-[48px] mb-6 flex items-center justify-center">
+        <div className="gkoo-text-animated h-[42px] sm:h-[46px] mb-6 flex items-center justify-center">
           <img
             src="/splash_text.png"
             alt="G-koo"
-            className="h-full w-auto object-contain"
+            className="h-full w-auto object-contain select-none pointer-events-none"
           />
         </div>
 
         {/* Sleek rounded loading progress bar */}
         <div className="w-36 sm:w-44 h-1.5 bg-black/15 rounded-full overflow-hidden p-[1px] shadow-inner">
-          <div className="gkoo-splash-bar h-full w-full bg-white rounded-full shadow-sm" />
+          <div className="gkoo-progress-animated h-full w-full bg-white rounded-full shadow-sm" />
         </div>
       </div>
     </div>

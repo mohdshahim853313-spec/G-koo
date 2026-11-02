@@ -130,10 +130,14 @@ async function prepareNextRewarded(): Promise<void> {
   }
 }
 
+// Strip prevention: Disable floating native bottom banner ad to eliminate the flashing native strip above bottom buttons
+export const ENABLE_BOTTOM_BANNER_AD = false;
+
 /**
  * Shows Banner Ad above the bottom navigation bar (ONLY on secondary tabs, NEVER on Home)
  */
 export async function showBannerAd(): Promise<void> {
+  if (!ENABLE_BOTTOM_BANNER_AD) return;
   if (!isAndroidApp() || !Capacitor.isNativePlatform()) return;
 
   // STRICT RULE: Home screen ('/') must NEVER show banner ad
@@ -179,6 +183,7 @@ export async function hideBannerAd(): Promise<void> {
  * Resumes Banner Ad when returning to secondary tabs
  */
 export async function resumeBannerAd(): Promise<void> {
+  if (!ENABLE_BOTTOM_BANNER_AD) return;
   if (!isAndroidApp() || !Capacitor.isNativePlatform()) return;
 
   // STRICT RULE: Home screen must NEVER show banner ad

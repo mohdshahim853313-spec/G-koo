@@ -1,17 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '../useAppContext';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  CheckCircle2, 
-  AlertTriangle, 
-  Bookmark, 
-  Sparkles, 
-  Flame, 
-  Award, 
-  ArrowRight, 
-  Target, 
+import {
+  BarChart3,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  Bookmark,
+  Sparkles,
+  Flame,
+  Award,
+  ArrowRight,
+  Target,
   RotateCcw,
   BookOpen,
   Trophy,
@@ -28,20 +28,20 @@ import { motion } from 'framer-motion';
 
 export default function Leaderboard() {
   const navigate = useNavigate();
-  const { 
-    t, 
-    lang, 
-    xp, 
-    streak, 
-    stats, 
-    profile, 
-    badges, 
-    bookmarks, 
+  const {
+    t,
+    lang,
+    xp,
+    streak,
+    stats,
+    profile,
+    badges,
+    bookmarks,
     categoryStats,
     activeCategory,
     getCategoryMaxUnlocked,
     setActiveCategory,
-    resetAnalyticsReports 
+    resetAnalyticsReports
   } = useAppContext();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'subjects' | 'mistakes'>('overview');
@@ -99,8 +99,8 @@ export default function Leaderboard() {
   const strongSubjects = subjectBreakdown.filter((s) => s.status === 'strong');
   const weakSubjects = subjectBreakdown.filter((s) => s.status === 'weak');
 
-  const studentName = profile.name && profile.name !== 'Guest Scholar' 
-    ? profile.name 
+  const studentName = profile.name && profile.name !== 'Guest Scholar'
+    ? profile.name
     : (lang === 'hi' ? 'शिक्षार्थी' : 'Student');
 
   // Dynamic G-koo Performance & Report Overview (1-3 sentences)
@@ -175,10 +175,10 @@ export default function Leaderboard() {
     const fullHi = `${s1Hi} ${s2Hi} ${s3Hi}`;
     const fullEn = `${s1En} ${s2En} ${s3En}`;
 
-    const btnHi = trackerStats.incorrectCount > 0 
+    const btnHi = trackerStats.incorrectCount > 0
       ? `गलतियाँ सुधारें (${trackerStats.incorrectCount})`
       : 'अगला टेस्ट खेलें';
-    const btnEn = trackerStats.incorrectCount > 0 
+    const btnEn = trackerStats.incorrectCount > 0
       ? `Review Mistakes (${trackerStats.incorrectCount})`
       : 'Practice Next Level';
 
@@ -201,7 +201,7 @@ export default function Leaderboard() {
   return (
     <div className="min-h-screen bg-[#FCF9F7] dark:bg-[#0F121E] pb-28 px-4 pt-[calc(max(env(safe-area-inset-top,0px),28px)+24px)] md:pt-10 font-sans text-gray-800 dark:text-gray-100 transition-colors duration-300 select-none">
       <div className="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto">
-        
+
         {/* Page Header */}
         <div className="flex items-center justify-between mb-4 mt-1">
           <div>
@@ -214,8 +214,8 @@ export default function Leaderboard() {
               </h1>
             </div>
             <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mt-1">
-              {lang === 'hi' 
-                ? 'आपकी तैयारी, सटीकता और विषयवार प्रदर्शन का वास्तविक विश्लेषण' 
+              {lang === 'hi'
+                ? 'आपकी तैयारी, सटीकता और विषयवार प्रदर्शन का वास्तविक विश्लेषण'
                 : 'Real-time breakdown of your accuracy, strength & exam readiness'}
             </p>
           </div>
@@ -368,20 +368,19 @@ export default function Leaderboard() {
         </div>
 
         {/* Tab Switcher: Overview vs Subjects vs Mistakes */}
-        <div className="flex bg-white dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700 shadow-sm mb-5 text-xs font-bold">
+        <div className="flex bg-white dark:bg-gray-800 rounded-2xl p-1 border border-gray-200 dark:border-gray-700 shadow-sm mb-5 text-[11px] sm:text-xs font-bold">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => {
               triggerHaptic('click');
               setActiveTab('overview');
             }}
-            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center ${
-              activeTab === 'overview' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
-            }`}
+            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center whitespace-nowrap ${activeTab === 'overview' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
+              }`}
           >
-            <span className="flex items-center justify-center space-x-1">
+            <span className="flex items-center justify-center space-x-1 whitespace-nowrap">
               <BarChart3 className="w-3.5 h-3.5 inline shrink-0" />
-              <span>{lang === 'hi' ? 'समग्र अवलोकन' : 'Overview'}</span>
+              <span className="whitespace-nowrap">{lang === 'hi' ? 'अवलोकन' : 'Overview'}</span>
             </span>
           </motion.button>
           <motion.button
@@ -390,13 +389,12 @@ export default function Leaderboard() {
               triggerHaptic('click');
               setActiveTab('subjects');
             }}
-            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center ${
-              activeTab === 'subjects' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
-            }`}
+            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center whitespace-nowrap ${activeTab === 'subjects' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
+              }`}
           >
-            <span className="flex items-center justify-center space-x-1">
+            <span className="flex items-center justify-center space-x-1 whitespace-nowrap">
               <BookOpen className="w-3.5 h-3.5 inline shrink-0" />
-              <span>{lang === 'hi' ? 'विषयवार' : 'Subjects'}</span>
+              <span className="whitespace-nowrap">{lang === 'hi' ? 'विषयवार' : 'Subjects'}</span>
             </span>
           </motion.button>
           <motion.button
@@ -405,13 +403,12 @@ export default function Leaderboard() {
               triggerHaptic('click');
               setActiveTab('mistakes');
             }}
-            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center ${
-              activeTab === 'mistakes' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
-            }`}
+            className={`flex-1 py-2.5 px-1 rounded-xl transition-all select-none text-center whitespace-nowrap ${activeTab === 'mistakes' ? 'bg-[#FF5F6D] text-white font-black shadow-sm' : 'text-gray-500 dark:text-gray-400'
+              }`}
           >
-            <span className="flex items-center justify-center space-x-1">
+            <span className="flex items-center justify-center space-x-1 whitespace-nowrap">
               <AlertTriangle className="w-3.5 h-3.5 inline shrink-0" />
-              <span>{lang === 'hi' ? `गलतियाँ (${trackerStats.incorrectCount})` : `Mistakes (${trackerStats.incorrectCount})`}</span>
+              <span className="whitespace-nowrap">{lang === 'hi' ? `गलतियाँ (${trackerStats.incorrectCount})` : `Mistakes (${trackerStats.incorrectCount})`}</span>
             </span>
           </motion.button>
         </div>
@@ -434,7 +431,7 @@ export default function Leaderboard() {
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-4">
-            
+
             {/* Quick Action: Mistakes Review Card */}
             {trackerStats.incorrectCount > 0 && (
               <div className="bg-gradient-to-r from-rose-500 to-amber-500 text-white rounded-3xl p-4 shadow-md flex items-center justify-between gap-3 border-b-[4px] border-rose-700">
@@ -444,13 +441,13 @@ export default function Leaderboard() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <h4 className="text-xs sm:text-sm font-black truncate">
-                      {lang === 'hi' 
-                        ? `${trackerStats.incorrectCount} प्रश्नों में सुधार की ज़रूरत है` 
+                      {lang === 'hi'
+                        ? `${trackerStats.incorrectCount} प्रश्नों में सुधार की ज़रूरत है`
                         : `${trackerStats.incorrectCount} mistakes need your review`}
                     </h4>
                     <p className="text-[10px] text-rose-100 font-medium line-clamp-1">
-                      {lang === 'hi' 
-                        ? 'अपनी पुरानी गलतियों को दोबारा हल करें और 100% सटीकता हासिल करें' 
+                      {lang === 'hi'
+                        ? 'अपनी पुरानी गलतियों को दोबारा हल करें और 100% सटीकता हासिल करें'
                         : 'Practice questions you previously got wrong to master them'}
                     </p>
                   </div>
@@ -477,7 +474,7 @@ export default function Leaderboard() {
                 <div className="flex items-center space-x-2 text-emerald-600 dark:text-emerald-400 mb-2">
                   <TrendingUp className="w-4 h-4" />
                   <h3 className="text-xs font-black uppercase tracking-wider">
-                    {lang === 'hi' ? '🟢 आपके मजबूत विषय (Strength)' : '🟢 Strong Subjects'}
+                    {lang === 'hi' ? 'आपके मजबूत विषय (Strength)' : 'Strong Subjects'}
                   </h3>
                 </div>
                 {strongSubjects.length > 0 ? (
@@ -504,7 +501,7 @@ export default function Leaderboard() {
                 <div className="flex items-center space-x-2 text-rose-500 mb-2">
                   <AlertTriangle className="w-4 h-4" />
                   <h3 className="text-xs font-black uppercase tracking-wider">
-                    {lang === 'hi' ? '🔴 ध्यान देने योग्य विषय (Weak Areas)' : '🔴 Focus Needed'}
+                    {lang === 'hi' ? 'ध्यान देने योग्य विषय (Weak Areas)' : 'Focus Needed'}
                   </h3>
                 </div>
                 {weakSubjects.length > 0 ? (
@@ -538,7 +535,7 @@ export default function Leaderboard() {
                     {lang === 'hi' ? 'बुकमार्क किए गए महत्वपूर्ण सवाल' : 'Saved Questions'}
                   </h4>
                   <p className="text-[10px] sm:text-[11px] text-gray-500 dark:text-gray-400 font-semibold">
-                    {bookmarks.length > 0 
+                    {bookmarks.length > 0
                       ? (lang === 'hi' ? `${bookmarks.length} सवाल रिवीजन के लिए सेव हैं` : `${bookmarks.length} questions saved for revision`)
                       : (
                         <span className="flex items-center space-x-1">
@@ -588,8 +585,8 @@ export default function Leaderboard() {
         {activeTab === 'subjects' && (
           <div className="space-y-3">
             <p className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mb-1">
-              {lang === 'hi' 
-                ? 'प्रत्येक विषय में आपका प्रदर्शन और सही उत्तरों का प्रतिशत:' 
+              {lang === 'hi'
+                ? 'प्रत्येक विषय में आपका प्रदर्शन और सही उत्तरों का प्रतिशत:'
                 : 'Your accuracy and total attempted questions per subject:'}
             </p>
 
@@ -609,13 +606,12 @@ export default function Leaderboard() {
                           {lang === 'hi' ? (sub.titleHi || sub.titleEn) : sub.titleEn}
                         </p>
                         {hasAttempted && (
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${
-                            sub.status === 'strong' 
-                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
-                              : sub.status === 'average'
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full ${sub.status === 'strong'
+                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300'
+                            : sub.status === 'average'
                               ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
                               : 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                          }`}>
+                            }`}>
                             {sub.status === 'strong' ? (lang === 'hi' ? 'मजबूत' : 'Strong') : sub.status === 'average' ? (lang === 'hi' ? 'सामान्य' : 'Average') : (lang === 'hi' ? 'कमज़ोर' : 'Weak')}
                           </span>
                         )}
@@ -624,10 +620,9 @@ export default function Leaderboard() {
                       {hasAttempted ? (
                         <div className="mt-1.5 flex items-center space-x-2">
                           <div className="w-24 sm:w-32 bg-gray-100 dark:bg-gray-700 h-2 rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full rounded-full ${
-                                sub.status === 'strong' ? 'bg-emerald-500' : sub.status === 'average' ? 'bg-amber-500' : 'bg-rose-500'
-                              }`} 
+                            <div
+                              className={`h-full rounded-full ${sub.status === 'strong' ? 'bg-emerald-500' : sub.status === 'average' ? 'bg-amber-500' : 'bg-rose-500'
+                                }`}
                               style={{ width: `${sub.accuracy}%` }}
                             />
                           </div>
@@ -723,8 +718,8 @@ export default function Leaderboard() {
                   {lang === 'hi' ? 'कोई गलत सवाल लंबित नहीं है!' : 'Zero Mistakes Pending!'}
                 </h3>
                 <p className="text-xs text-gray-400 max-w-xs mx-auto">
-                  {lang === 'hi' 
-                    ? 'आपने जो भी सवाल हल किए हैं उन सभी को सफलता से सही कर लिया है।' 
+                  {lang === 'hi'
+                    ? 'आपने जो भी सवाल हल किए हैं उन सभी को सफलता से सही कर लिया है।'
                     : 'All answered questions have been mastered or got correct.'}
                 </p>
               </div>

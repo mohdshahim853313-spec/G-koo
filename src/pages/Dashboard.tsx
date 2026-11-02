@@ -29,7 +29,11 @@ import {
 import { 
   getPinnedSubjectItems,
   unpinSubject, 
-  PINNED_SUBJECTS_EVENT 
+  PINNED_SUBJECTS_EVENT,
+  WORLD_ACADEMIC_IDS,
+  WORLD_GENERAL_IDS,
+  WORLD_CURIOSITY_IDS,
+  INDIA_GS_SUBJECT_IDS
 } from '../utils/pinnedSubjects';
 import { type StateData } from '../data/stateExamsData';
 
@@ -74,23 +78,26 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
   
   // Grouped Pinned Items by Category
   const pinnedIndiaExams = useMemo(() => {
-    return pinnedIndiaSubjects.filter(item => CATEGORIES_LIST.some(c => c.id === item.id));
+    return pinnedIndiaSubjects.filter(item => CATEGORIES_LIST.some(c => c.id === item.id && c.type === 'exam'));
   }, [pinnedIndiaSubjects]);
 
   const pinnedIndiaGS = useMemo(() => {
-    return pinnedIndiaSubjects.filter(item => !CATEGORIES_LIST.some(c => c.id === item.id));
+    return pinnedIndiaSubjects.filter(item => INDIA_GS_SUBJECT_IDS.has(item.id) || !CATEGORIES_LIST.some(c => c.id === item.id && c.type === 'exam'));
   }, [pinnedIndiaSubjects]);
 
   const pinnedWorldAcademic = useMemo(() => {
-    return pinnedWorldSubjects.filter(s => s.category === 'Science' || s.category === 'Language');
+    return pinnedWorldSubjects.filter(s => WORLD_ACADEMIC_IDS.includes(s.id));
   }, [pinnedWorldSubjects]);
 
   const pinnedWorldGeneral = useMemo(() => {
-    return pinnedWorldSubjects.filter(s => s.category === 'Social' || s.category === 'General' || s.category === 'General Studies' || s.category === 'Social Studies');
+    return pinnedWorldSubjects.filter(s => 
+      WORLD_GENERAL_IDS.includes(s.id) || 
+      (!WORLD_ACADEMIC_IDS.includes(s.id) && !WORLD_CURIOSITY_IDS.includes(s.id))
+    );
   }, [pinnedWorldSubjects]);
 
   const pinnedWorldCuriosity = useMemo(() => {
-    return pinnedWorldSubjects.filter(s => s.category === 'Curiosity');
+    return pinnedWorldSubjects.filter(s => WORLD_CURIOSITY_IDS.includes(s.id));
   }, [pinnedWorldSubjects]);
   
   // Collapsible category sections state (persisted across sessions)
@@ -396,11 +403,37 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                 const fallbackCatInfo = CATEGORIES_LIST.find(c => c.id === fallbackCatId);
                 const fallbackTitle = fallbackCatInfo ? (lang === 'hi' ? fallbackCatInfo.titleHi : fallbackCatInfo.titleEn) : (lang === 'hi' ? 'एसएससी सीजीएल' : 'SSC CGL');
 
+                const handleResumeClick = () => {
+                  triggerHaptic('click');
+                  if (activeSession) {
+                    let targetPath = '';
+                    if (activeSession.isLevelQuiz && activeSession.levelCategory && activeSession.levelNumber) {
+                      targetPath = `/quiz/level-${activeSession.levelCategory}-${activeSession.levelNumber}`;
+                    } else if (activeSession.categoryId && activeSession.categoryId.startsWith('level-')) {
+                      targetPath = `/quiz/${activeSession.categoryId}`;
+                    } else if (activeSession.categoryId) {
+                      targetPath = `/quiz/${activeSession.categoryId}`;
+                    } else if (activeSession.url && activeSession.url.startsWith('/quiz')) {
+                      targetPath = activeSession.url.split('?')[0];
+                    } else {
+                      targetPath = `/quiz/level-${fallbackCatId}-${fallbackMaxUnlocked}`;
+                    }
+                    navigate(`${targetPath}?resume=true`);
+                  } else {
+                    navigate(`/quiz/level-${fallbackCatId}-${fallbackMaxUnlocked}`);
+                  }
+                };
+
                 return (
                   <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF9E2C] text-white rounded-2xl p-3 shadow-md border-b-[3px] border-[#D93848] flex items-center justify-between gap-2.5"
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleResumeClick}
+                    role="button"
+                    tabIndex={0}
+                    className="bg-gradient-to-r from-[#FF5F6D] via-[#FF7B54] to-[#FF9E2C] text-white rounded-2xl p-3 shadow-md border-b-[3px] border-[#D93848] flex items-center justify-between gap-2.5 cursor-pointer select-none active:brightness-95 transition-all"
                   >
                     <div className="flex-1 min-w-0 pr-1">
                       <div className="flex items-center space-x-1.5 mb-1 flex-wrap gap-1">
@@ -444,13 +477,9 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
 
                     <motion.button
                       whileTap={{ scale: 0.95 }}
-                      onClick={() => {
-                        triggerHaptic('click');
-                        if (activeSession) {
-                          navigate(`${activeSession.url}${activeSession.url.includes('?') ? '&' : '?'}resume=true`);
-                        } else {
-                          navigate(`/quiz/level-${fallbackCatId}-${fallbackMaxUnlocked}`);
-                        }
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResumeClick();
                       }}
                       className="bg-white text-[#E64553] font-black px-3.5 py-2.5 rounded-xl text-xs shadow-[0_3px_0_0_#FCD5D8] active:translate-y-0.5 active:shadow-none transition-all flex items-center space-x-1 select-none whitespace-nowrap shrink-0 cursor-pointer"
                     >
@@ -549,11 +578,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                           <button
                             onClick={() => {
                               triggerHaptic('click');
-                              navigate('/subjects');
+                              navigate('/subjects?region=world&section=world_academic');
                             }}
                             className="text-[10px] sm:text-xs font-black text-sky-700 dark:text-sky-300 bg-sky-200/60 dark:bg-sky-900/50 px-2.5 py-0.5 rounded-full border border-sky-300 dark:border-sky-800 hover:bg-sky-300/60 transition-all cursor-pointer whitespace-nowrap"
                           >
-                            + {lang === 'hi' ? 'और जोड़ें' : '+ Add'}
+                            {lang === 'hi' ? '+ और जोड़ें' : '+ Add'}
                           </button>
                           <button
                             type="button"
@@ -603,11 +632,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                           <button
                             onClick={() => {
                               triggerHaptic('click');
-                              navigate('/subjects');
+                              navigate('/subjects?region=world&section=world_general');
                             }}
                             className="text-[10px] sm:text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-200/60 dark:bg-emerald-900/50 px-2.5 py-0.5 rounded-full border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-300/60 transition-all cursor-pointer whitespace-nowrap"
                           >
-                            + {lang === 'hi' ? 'और जोड़ें' : '+ Add'}
+                            {lang === 'hi' ? '+ और जोड़ें' : '+ Add'}
                           </button>
                           <button
                             type="button"
@@ -657,11 +686,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                           <button
                             onClick={() => {
                               triggerHaptic('click');
-                              navigate('/subjects');
+                              navigate('/subjects?region=world&section=world_curiosity');
                             }}
                             className="text-[10px] sm:text-xs font-black text-purple-700 dark:text-purple-300 bg-purple-200/60 dark:bg-purple-900/50 px-2.5 py-0.5 rounded-full border border-purple-300 dark:border-purple-800 hover:bg-purple-300/60 transition-all cursor-pointer whitespace-nowrap"
                           >
-                            + {lang === 'hi' ? 'और जोड़ें' : '+ Add'}
+                            {lang === 'hi' ? '+ और जोड़ें' : '+ Add'}
                           </button>
                           <button
                             type="button"
@@ -732,11 +761,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                           <button
                             onClick={() => {
                               triggerHaptic('click');
-                              navigate('/subjects');
+                              navigate('/subjects?region=india&section=india_exams');
                             }}
                             className="text-[10px] sm:text-xs font-black text-rose-700 dark:text-rose-300 bg-orange-200/60 dark:bg-orange-900/50 px-2.5 py-0.5 rounded-full border border-orange-300 dark:border-orange-800 hover:bg-orange-300/60 transition-all cursor-pointer whitespace-nowrap"
                           >
-                            + {lang === 'hi' ? 'और जोड़ें' : '+ Add'}
+                            {lang === 'hi' ? '+ और जोड़ें' : '+ Add'}
                           </button>
                           <button
                             type="button"
@@ -786,11 +815,11 @@ export default function Dashboard({ initialView }: DashboardProps = {}) {
                           <button
                             onClick={() => {
                               triggerHaptic('click');
-                              navigate('/subjects');
+                              navigate('/subjects?region=india&section=india_gs');
                             }}
                             className="text-[10px] sm:text-xs font-black text-sky-700 dark:text-sky-300 bg-sky-200/60 dark:bg-sky-900/50 px-2.5 py-0.5 rounded-full border border-sky-300 dark:border-sky-800 hover:bg-sky-300/60 transition-all cursor-pointer whitespace-nowrap"
                           >
-                            + {lang === 'hi' ? 'और जोड़ें' : '+ Add'}
+                            {lang === 'hi' ? '+ और जोड़ें' : '+ Add'}
                           </button>
                           <button
                             type="button"

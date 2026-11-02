@@ -34,25 +34,60 @@ export interface DashboardSubjectCard {
 }
 
 // Universal Subject Membership Sets
-export const WORLD_SUBJECT_IDS = new Set([
+export const WORLD_ACADEMIC_IDS = [
+  'sub_english',
+  'sub_hindi',
+  'sub_math',
+  'sub_physics',
+  'sub_biology',
+  'sub_chemistry'
+];
+
+export const WORLD_GENERAL_IDS = [
   'sub_world_geography',
   'sub_world_history',
   'sub_international',
-  'sub_space',
-  'sub_facts',
+  'sub_gk'
+];
+
+export const WORLD_CURIOSITY_IDS = [
   'sub_psychology',
+  'sub_facts',
+  'sub_space',
+  'sub_philosophy'
+];
+
+export const CURIOSITY_STORY_SUBJECT_IDS = new Set([
+  'sub_psychology',
+  'sub_facts',
+  'sub_space',
   'sub_philosophy',
-  'sub_gk',
-  'sub_english',
-  'sub_math',
-  'sub_physics',
-  'sub_chemistry',
-  'sub_biology',
-  'sub_hindi'
+  'world_facts',
+  'world_space',
+  'world_psychology',
+  'world_philosophy',
+  'sub_world_facts',
+  'sub_world_space',
+  'sub_world_psychology',
+  'sub_world_philosophy'
+]);
+
+export function isCuriosityStorySubject(catId?: string | null): boolean {
+  if (!catId) return false;
+  const c = catId.toLowerCase().trim();
+  if (CURIOSITY_STORY_SUBJECT_IDS.has(c)) return true;
+  return c.includes('facts') || c.includes('space') || c.includes('psychology') || c.includes('philosophy');
+}
+
+export const WORLD_SUBJECT_IDS = new Set([
+  ...WORLD_ACADEMIC_IDS,
+  ...WORLD_GENERAL_IDS,
+  ...WORLD_CURIOSITY_IDS
 ]);
 
 export const INDIA_GS_SUBJECT_IDS = new Set([
   'sub_civics',
+  'sub_political_science',
   'sub_history',
   'sub_geography',
   'sub_economics',
@@ -64,16 +99,18 @@ export const INDIA_GS_SUBJECT_IDS = new Set([
   'sub_chemistry',
   'sub_biology',
   'sub_math',
-  'sub_gk'
+  'sub_gk',
+  'sub_english',
+  'sub_hindi'
 ]);
 
 export const DEFAULT_INDIA_PINNED_IDS: string[] = [
-  'ssc',
+  'ssc_cgl',
   'ssc_chsl',
   'uppsc',
   'upsc',
-  'rrb',
-  'bank',
+  'railway',
+  'banking',
   'sub_gk',
   'sub_math',
   'sub_reasoning',
@@ -122,6 +159,23 @@ function ensureMigratedKeys() {
           return id;
         });
         localStorage.setItem(PINNED_WORLD_SUBJECTS_KEY, JSON.stringify(updated));
+      }
+    }
+
+    const currentIndiaRaw = localStorage.getItem(PINNED_INDIA_SUBJECTS_KEY);
+    if (currentIndiaRaw) {
+      const parsed = JSON.parse(currentIndiaRaw);
+      if (Array.isArray(parsed)) {
+        let changed = false;
+        const updated = parsed.map(id => {
+          if (id === 'ssc') { changed = true; return 'ssc_cgl'; }
+          if (id === 'rrb') { changed = true; return 'railway'; }
+          if (id === 'bank') { changed = true; return 'banking'; }
+          return id;
+        });
+        if (changed) {
+          localStorage.setItem(PINNED_INDIA_SUBJECTS_KEY, JSON.stringify(updated));
+        }
       }
     }
 

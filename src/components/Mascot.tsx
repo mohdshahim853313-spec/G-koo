@@ -372,24 +372,34 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
 
       {/* ======================= EYES & BROWS ======================= */}
       {mood === 'celebrate' ? (
-        // Star Eyes for Victory Celebration (★ ★)
+        // Sparkling Victory Celebration Eyes with Expressive Dark Pupils & Golden Stars (★ ★)
         <g>
           <circle cx="102" cy="104" r="24" fill="#FFF" />
           <circle cx="154" cy="104" r="24" fill="#FFF" />
+          {/* Expressive Glossy Dark Pupils so G-koo never looks blind */}
+          <circle cx="102" cy="106" r="14" fill="#111827" />
+          <circle cx="154" cy="106" r="14" fill="#111827" />
+          {/* Golden Stars inside Pupils */}
           <motion.path
             animate={{ rotate: [0, 360], scale: [1, 1.15, 1] }}
             transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
-            style={{ transformOrigin: '102px 104px' }}
-            fill="url(#gold_spark)"
-            d="M102 92 L105 101 L114 102 L107 108 L109 117 L102 112 L95 117 L97 108 L90 102 L99 101 Z"
+            style={{ transformOrigin: '102px 106px' }}
+            fill="#FACC15"
+            d="M102 96 L104 103 L111 104 L106 109 L107 116 L102 112 L97 116 L98 109 L93 104 L100 103 Z"
           />
           <motion.path
             animate={{ rotate: [0, 360], scale: [1, 1.15, 1] }}
             transition={{ repeat: Infinity, duration: 3.5, ease: 'linear' }}
-            style={{ transformOrigin: '154px 104px' }}
-            fill="url(#gold_spark)"
-            d="M154 92 L157 101 L166 102 L159 108 L161 117 L154 112 L147 117 L149 108 L142 102 L151 101 Z"
+            style={{ transformOrigin: '154px 106px' }}
+            fill="#FACC15"
+            d="M154 96 L156 103 L163 104 L158 109 L159 116 L154 112 L149 116 L150 109 L145 104 L152 103 Z"
           />
+          {/* Crisp Catchlight Highlights */}
+          <circle cx="106" cy="101" r="3.5" fill="#FFF" />
+          <circle cx="158" cy="101" r="3.5" fill="#FFF" />
+          <circle cx="98" cy="111" r="1.5" fill="#FFF" opacity="0.8" />
+          <circle cx="150" cy="111" r="1.5" fill="#FFF" opacity="0.8" />
+          {/* Expressive Cheerful Eyebrows */}
           <path d="M80 72 Q102 60 118 70" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
           <path d="M138 70 Q154 60 176 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
         </g>
@@ -556,24 +566,28 @@ export const GkooBirdSvg: React.FC<{ mood?: MascotMood; className?: string }> = 
           <path d="M138 70 Q154 58 174 72" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
         </g>
       ) : mood === 'petting_stars' ? (
-        // Ecstatic Star Eyes (★ ★)
+        // Ecstatic Star Eyes with Pupils (★ ★)
         <g>
           <circle cx="102" cy="104" r="24" fill="#FFF" />
           <circle cx="154" cy="104" r="24" fill="#FFF" />
+          <circle cx="102" cy="106" r="14" fill="#111827" />
+          <circle cx="154" cy="106" r="14" fill="#111827" />
           <motion.path
             animate={{ rotate: [0, 360], scale: [1, 1.2, 1] }}
             transition={{ repeat: Infinity, duration: 2.5, ease: 'linear' }}
-            style={{ transformOrigin: '102px 104px' }}
-            fill="url(#gold_spark)"
-            d="M102 92 L105 101 L114 102 L107 108 L109 117 L102 112 L95 117 L97 108 L90 102 L99 101 Z"
+            style={{ transformOrigin: '102px 106px' }}
+            fill="#FACC15"
+            d="M102 96 L104 103 L111 104 L106 109 L107 116 L102 112 L97 116 L98 109 L93 104 L100 103 Z"
           />
           <motion.path
             animate={{ rotate: [0, 360], scale: [1, 1.2, 1] }}
             transition={{ repeat: Infinity, duration: 2.5, ease: 'linear' }}
-            style={{ transformOrigin: '154px 104px' }}
-            fill="url(#gold_spark)"
-            d="M154 92 L157 101 L166 102 L159 108 L161 117 L154 112 L147 117 L149 108 L142 102 L151 101 Z"
+            style={{ transformOrigin: '154px 106px' }}
+            fill="#FACC15"
+            d="M154 96 L156 103 L163 104 L158 109 L159 116 L154 112 L149 116 L150 109 L145 104 L152 103 Z"
           />
+          <circle cx="106" cy="101" r="3.5" fill="#FFF" />
+          <circle cx="158" cy="101" r="3.5" fill="#FFF" />
           <path d="M80 70 Q102 56 120 68" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
           <path d="M136 68 Q154 56 176 70" stroke="#2D3748" strokeWidth="6" strokeLinecap="round" fill="none" />
         </g>

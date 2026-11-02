@@ -24,7 +24,7 @@
         <item name="windowActionBar">false</item>
         <item name="windowNoTitle">true</item>
         <item name="android:background">@color/splash_background</item>
-        <item name="android:windowBackground">@color/splash_background</item>
+        <item name="android:windowBackground">@drawable/splash</item>
         <item name="android:statusBarColor">@color/splash_background</item>
         <item name="android:navigationBarColor">@color/splash_background</item>
     </style>
