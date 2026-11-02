@@ -1,9 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogOut, Play, Sparkles } from 'lucide-react';
+import { LogOut, Play, Sparkles, Star } from 'lucide-react';
 import { Mascot } from './Mascot';
 import { useAppContext } from '../useAppContext';
 import { triggerHaptic } from '../lib/audio';
+import { PLAY_STORE_APP_URL, PLAY_STORE_MARKET_URI } from '../utils/platform';
 
 interface ExitConfirmModalProps {
   isOpen: boolean;
@@ -19,6 +20,24 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
   const { lang, streak } = useAppContext();
 
   if (!isOpen) return null;
+
+  const handleRatePlayStore = () => {
+    triggerHaptic('success');
+    try {
+      localStorage.setItem('gkoo_has_rated_app', 'true');
+    } catch {}
+
+    const playStoreUrl = PLAY_STORE_APP_URL;
+    const marketUrl = PLAY_STORE_MARKET_URI;
+
+    if (typeof window !== 'undefined') {
+      try {
+        window.location.href = marketUrl;
+      } catch {
+        window.open(playStoreUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -45,20 +64,33 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
           </h3>
 
           {/* Streak warning / encouragement message */}
-          <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed mb-6 px-2">
+          <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 leading-relaxed mb-5 px-2">
             {lang === 'hi' ? (
               <>
-                अपनी <strong>{streak} दिन की स्ट्रीक</strong> और नए ज्ञान को न छोड़ें! क्या आप वाकई बाहर जाना चाहते हैं?
+                अपनी <strong>{streak} दिन की स्ट्रीक</strong> न तोड़ें! जाने से पहले Play Store पर G-koo को अपना प्यार और 5-स्टार रेटिंग ज़रूर दें।
               </>
             ) : (
               <>
-                Don't break your <strong>{streak}-day learning streak</strong>! Are you sure you want to leave?
+                Don't break your <strong>{streak}-day learning streak</strong>! Before leaving, please support G-koo with a 5-star rating on Play Store.
               </>
             )}
           </p>
 
           {/* Action Buttons */}
           <div className="space-y-2.5 w-full">
+            {/* 🌟 RATE US ON PLAY STORE BUTTON */}
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={handleRatePlayStore}
+              className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:from-amber-300 hover:to-yellow-200 text-amber-950 font-black text-xs uppercase tracking-wider transition-all shadow-[0_3px_0_0_#D97706] active:translate-y-0.5 active:shadow-none flex items-center justify-center gap-1.5 cursor-pointer border border-amber-300"
+            >
+              <Star className="w-3.5 h-3.5 fill-amber-950 text-amber-950" />
+              <span>{lang === 'hi' ? 'Play Store पर 5-स्टार रेटिंग दें' : 'Rate Us on Play Store'}</span>
+              <Star className="w-3.5 h-3.5 fill-amber-950 text-amber-950" />
+            </motion.button>
+
             {/* Primary Button: Keep Playing / Stay */}
             <motion.button
               whileTap={{ scale: 0.97 }}
@@ -66,7 +98,7 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
                 triggerHaptic('success');
                 onStay();
               }}
-              className="w-full bg-gradient-to-r from-[#FF5F6D] via-[#FF7B7B] to-[#FF9F1A] text-white font-black py-3.5 px-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer border-b-2 border-[#D93848]"
+              className="w-full bg-gradient-to-r from-[#FF5F6D] via-[#FF7B7B] to-[#FF9F1A] text-white font-black py-3 px-4 rounded-2xl shadow-[0_4px_0_0_#D93848] active:translate-y-0.5 active:shadow-none transition-all text-xs flex items-center justify-center space-x-2 cursor-pointer border-b-2 border-[#D93848]"
             >
               <Play className="w-4 h-4 fill-white stroke-none" />
               <span className="whitespace-nowrap">
@@ -82,7 +114,7 @@ export const ExitConfirmModal: React.FC<ExitConfirmModalProps> = ({
                 triggerHaptic('click');
                 onConfirmExit();
               }}
-              className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold py-2.5 px-4 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
+              className="w-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 font-bold py-2 px-4 rounded-2xl text-xs flex items-center justify-center space-x-1.5 transition-all cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="whitespace-nowrap">
